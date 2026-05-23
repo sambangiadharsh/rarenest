@@ -26,6 +26,30 @@ function parseVerifiedBody(value) {
     return null;
 }
 
+function isBitTruthy(value) {
+    return value === true || value === 1 || value === '1';
+}
+
+async function canViewRestrictedProperty(req, property) {
+    let token;
+    if (req.cookies && req.cookies.token) {
+        token = req.cookies.token;
+    } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) return false;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.id === property.seller_id) return true;
+        const role = await userRepository.findRoleById(decoded.id);
+        return role === 'Admin';
+    } catch {
+        return false;
+    }
+}
+
 // @desc    Get all properties
 // @route   GET /api/properties
 exports.getProperties = async (req, res) => {
@@ -71,33 +95,9 @@ exports.getProperty = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Property not found' });
         }
 
-        // If the property is not verified, check if the current user is authorized (owner or Admin)
-        if (!property.is_verified) {
-            let isAuthorized = false;
-            let token;
-
-            if (req.cookies && req.cookies.token) {
-                token = req.cookies.token;
-            } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-                token = req.headers.authorization.split(' ')[1];
-            }
-
-            if (token) {
-                try {
-                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                    if (decoded.id === property.seller_id) {
-                        isAuthorized = true;
-                    } else {
-                        const role = await userRepository.findRoleById(decoded.id);
-                        if (role === 'Admin') {
-                            isAuthorized = true;
-                        }
-                    }
-                } catch (jwtErr) {
-                    // Ignore token errors and treat as unauthorized
-                }
-            }
-
+        const isPubliclyVisible = isBitTruthy(property.is_verified) && isBitTruthy(property.is_visible);
+        if (!isPubliclyVisible) {
+            const isAuthorized = await canViewRestrictedProperty(req, property);
             if (!isAuthorized) {
                 return res.status(404).json({ success: false, message: 'Property not found' });
             }

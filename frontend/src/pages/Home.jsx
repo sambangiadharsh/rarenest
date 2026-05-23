@@ -9,19 +9,17 @@ import {
   SlidersHorizontal, 
   X, 
   Mail, 
-  Heart,
   ChevronRight,
   ShieldCheck,
   CheckCircle2,
   DollarSign
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import PropertyCard from '@/components/PropertyCard'
 import { useProperties } from '@/hooks/useProperties'
 import { usePropertyTypes } from '@/hooks/usePropertyTypes'
+import { mapPropertyForCard } from '@/lib/propertyUtils'
 import { toast } from 'sonner'
-
-const PLACEHOLDER_IMAGE =
-  'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80'
 
 const typeIcons = {
   'wood house': '🌲',
@@ -65,30 +63,7 @@ export default function Home() {
     })),
   ]
 
-  const thumbnailUrl = (prop) => {
-    const thumb = prop.media?.find((m) => m.is_thumbnail && m.media_type === 'Image')
-    const first = prop.media?.find((m) => m.media_type === 'Image')
-    return thumb?.media_url || first?.media_url || PLACEHOLDER_IMAGE
-  }
-
-  const displayProperties = realProperties.map((prop) => {
-    const typeName = prop.property_type_name || 'Property'
-    const locParts = [prop.location_district, prop.location_city, prop.location_state].filter(Boolean)
-    return {
-      id: prop.id,
-      title: prop.title,
-      property_type: typeName,
-      location_city: prop.location_city,
-      location_state: prop.location_state || '',
-      location_address: locParts.join(', '),
-      asking_price: prop.asking_price,
-      size_sqft: prop.size_sqft,
-      beds: Math.max(1, Math.round(prop.size_sqft / 1200)),
-      baths: Math.max(1, Math.round(prop.size_sqft / 1000 * 2) / 2),
-      tag: typeName,
-      image: thumbnailUrl(prop),
-    }
-  })
+  const displayProperties = realProperties.map(mapPropertyForCard)
 
   const categoryMatches = (propType, catName) => {
     if (catName === 'All Homes') return true
@@ -138,20 +113,6 @@ export default function Home() {
       maxSize: 3500
     })
     toast.success('Filters reset!')
-  }
-
-  // Formatter for Prices
-  const formatINR = (val) => {
-    if (val >= 10000000) {
-      return `₹${(val / 10000000).toFixed(2)} Cr`
-    } else if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(1)} L`
-    }
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(val)
   }
 
   const handleWaitlistSubmit = (e) => {
@@ -403,85 +364,9 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                   {filteredProperties.map((prop, idx) => (
-                    <motion.div
-                      key={prop.id}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3) }}
-                      whileHover={{ y: -6 }}
-                      className="group flex flex-col bg-white dark:bg-neutral-900 border border-brand-sand rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
-                    >
-                      {/* Image Area */}
-                      <div className="relative h-64 overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-                        <img 
-                          src={prop.image} 
-                          alt={prop.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                          loading="lazy"
-                        />
-                        <span className="absolute top-4 left-4 bg-white/95 dark:bg-neutral-900/95 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-brand-terracotta border border-brand-sand shadow-sm">
-                          {prop.tag || prop.property_type}
-                        </span>
-                      </div>
-
-                      {/* Meta Details Area */}
-                      <div className="p-6 flex flex-col gap-4 flex-grow">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex justify-between items-start gap-2">
-                            <h3 className="font-serif text-lg font-bold text-neutral-950 dark:text-white group-hover:text-brand-terracotta transition-colors line-clamp-1">
-                              {prop.title}
-                            </h3>
-                            <span className="font-sans text-base font-extrabold text-brand-terracotta shrink-0">
-                              {formatINR(prop.asking_price)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-neutral-400 font-semibold flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5 text-brand-terracotta" />
-                            {prop.location_address || `${prop.location_city}, ${prop.location_state}`}
-                          </p>
-                        </div>
-
-                        {/* Spec Badges Grid */}
-                        <div className="grid grid-cols-3 gap-2 border-t border-brand-sand pt-4 text-center">
-                          <div className="flex flex-col bg-neutral-50 dark:bg-neutral-900/50 p-2 rounded-xl border border-brand-sand">
-                            <span className="text-sm font-bold text-neutral-900 dark:text-white">{prop.beds}</span>
-                            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Beds</span>
-                          </div>
-                          <div className="flex flex-col bg-neutral-50 dark:bg-neutral-900/50 p-2 rounded-xl border border-brand-sand">
-                            <span className="text-sm font-bold text-neutral-900 dark:text-white">{prop.baths}</span>
-                            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Baths</span>
-                          </div>
-                          <div className="flex flex-col bg-neutral-50 dark:bg-neutral-900/50 p-2 rounded-xl border border-brand-sand">
-                            <span className="text-sm font-bold text-neutral-900 dark:text-white">{prop.size_sqft.toLocaleString()}</span>
-                            <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Sq Ft</span>
-                          </div>
-                        </div>
-
-                        <div className="mt-2 flex justify-between items-center">
-                          <Link 
-                            to={`/properties`} 
-                            className="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5 hover:text-brand-terracotta transition-colors group/link"
-                          >
-                            Discover Specifications
-                            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover/link:translate-x-0.5" />
-                          </Link>
-                          
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="text-neutral-400 hover:text-destructive hover:bg-transparent rounded-full p-1 h-auto"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toast.success(`"${prop.title}" added to your wishlist!`);
-                            }}
-                          >
-                            <Heart className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
+                    <PropertyCard key={prop.id} property={prop} index={idx} />
                   ))}
                 </div>
               )}

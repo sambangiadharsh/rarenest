@@ -43,8 +43,10 @@ class PropertyRepository {
             query += ' AND p.size_sqft <= @maxSize';
         }
 
+        const isPortfolioQuery = seller_id && is_verified === 'all';
+
         if (is_verified === 'all') {
-            // no filter
+            // no is_verified filter (owner portfolio)
         } else if (is_verified !== undefined && is_verified !== null) {
             const isVerifiedVal = is_verified === 'true' || is_verified === true || is_verified === 1 || is_verified === '1';
             request.input('is_verified', sql.Bit, isVerifiedVal ? 1 : 0);
@@ -52,6 +54,11 @@ class PropertyRepository {
         } else {
             request.input('is_verified', sql.Bit, 1);
             query += ' AND p.is_verified = @is_verified';
+        }
+
+        if (!isPortfolioQuery) {
+            request.input('is_visible', sql.Bit, 1);
+            query += ' AND p.is_visible = @is_visible';
         }
 
         query += ' ORDER BY p.created_at DESC';
@@ -124,6 +131,7 @@ class PropertyRepository {
             'title', 'property_type_id', 'asking_price', 'size_sqft',
             'location_city', 'location_state', 'location_district',
             'contact_email', 'contact_phone', 'property_story', 'special_features', 'status',
+            'is_visible',
         ];
 
         const updateClauses = [];
@@ -139,6 +147,9 @@ class PropertyRepository {
                 request.input(key, sql.Decimal(18, 2), value);
             } else if (key === 'property_type_id') {
                 request.input(key, sql.UniqueIdentifier, value);
+            } else if (key === 'is_visible') {
+                const visible = value === true || value === 1 || value === '1' || value === 'true';
+                request.input(key, sql.Bit, visible ? 1 : 0);
             } else {
                 request.input(key, sql.NVarChar, value);
             }

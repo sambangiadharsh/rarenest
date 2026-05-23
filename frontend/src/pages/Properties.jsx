@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Search, 
   SlidersHorizontal, 
@@ -7,13 +6,12 @@ import {
   List, 
   Sparkles, 
   Loader2, 
-  MapPin, 
-  Heart,
-  ChevronRight 
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import PropertyCard from '@/components/PropertyCard'
 import { useProperties } from '@/hooks/useProperties'
 import { usePropertyTypes } from '@/hooks/usePropertyTypes'
+import { mapPropertyForCard } from '@/lib/propertyUtils'
 import { toast } from 'sonner'
 
 export default function Properties() {
@@ -52,135 +50,9 @@ export default function Properties() {
       name: t.name,
       icon: typeIcons[t.name?.toLowerCase()] || '🏠',
     })),
-    ...(apiTypes.length === 0
-      ? [
-          { name: 'Wood House', icon: '🌲' },
-          { name: 'Mud House', icon: '🧱' },
-          { name: 'Container Home', icon: '📦' },
-          { name: 'Treehouse', icon: '🍁' },
-          { name: 'Boat House', icon: '⛵' },
-        ]
-      : []),
   ]
 
-  // Curated Luxury Fallbacks
-  const curatedProperties = [
-    {
-      id: 'c1',
-      title: 'Himalayan Earthship Retreat',
-      property_type: 'Mud House',
-      location_city: 'Kasol',
-      location_state: 'Himachal Pradesh',
-      location_address: '📍 Parvati Valley',
-      asking_price: 14000000,
-      size_sqft: 1400,
-      beds: 3,
-      baths: 2,
-      tag: 'Earthship',
-      image: 'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=1200&q=80'
-    },
-    {
-      id: 'c2',
-      title: 'Himalayan A-Frame Chalet',
-      property_type: 'Wood House',
-      location_city: 'Manali',
-      location_state: 'Himachal Pradesh',
-      location_address: '📍 Solang Valley',
-      asking_price: 5500000,
-      size_sqft: 700,
-      beds: 2,
-      baths: 1,
-      tag: 'A-Frame',
-      image: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=80'
-    },
-    {
-      id: 'c3',
-      title: 'Glass & Cedar Forest House',
-      property_type: 'Wood House',
-      location_city: 'Chikmagalur',
-      location_state: 'Karnataka',
-      location_address: '📍 Mullayanagiri Hills',
-      asking_price: 23000000,
-      size_sqft: 3200,
-      beds: 5,
-      baths: 4,
-      tag: 'Luxury Timber',
-      image: 'https://images.unsplash.com/photo-1549693578-d683be217e58?auto=format&fit=crop&w=1200&q=80'
-    },
-    {
-      id: 'c4',
-      title: 'Desert Container Stack',
-      property_type: 'Container Home',
-      location_city: 'Al Qudra',
-      location_state: 'Dubai UAE',
-      location_address: '📍 Al Qudra Desert',
-      asking_price: 58000000,
-      size_sqft: 3800,
-      beds: 4,
-      baths: 3,
-      tag: 'Container Home',
-      image: 'https://images.unsplash.com/photo-1595841696660-1e9cdd43c2c9?auto=format&fit=crop&w=1200&q=80'
-    },
-    {
-      id: 'c5',
-      title: 'Canopy Canopy Treehouse',
-      property_type: 'Treehouse',
-      location_city: 'Wayanad',
-      location_state: 'Kerala',
-      location_address: '📍 Vythiri Forest',
-      asking_price: 9500000,
-      size_sqft: 900,
-      beds: 2,
-      baths: 1.5,
-      tag: 'Canopy Treehouse',
-      image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=1200&q=80'
-    },
-    {
-      id: 'c6',
-      title: 'Luxury Alleppey Houseboat',
-      property_type: 'Boat House',
-      location_city: 'Alleppey',
-      location_state: 'Kerala',
-      location_address: '📍 Vembanad Lake Backwaters',
-      asking_price: 18500000,
-      size_sqft: 1800,
-      beds: 3,
-      baths: 3,
-      tag: 'Modern Boathouse',
-      image: 'https://images.unsplash.com/photo-1569336415962-a4bd9f69cd83?auto=format&fit=crop&w=1200&q=80'
-    }
-  ]
-
-  // Map backend property data into unified frontend structure
-  const thumbnailUrl = (prop, fallback) => {
-    const thumb = prop.media?.find((m) => m.is_thumbnail && m.media_type === 'Image')
-    const first = prop.media?.find((m) => m.media_type === 'Image')
-    const url = thumb?.media_url || first?.media_url
-    return url || fallback
-  }
-
-  const dbMappedProperties = realProperties.map((prop, idx) => {
-    const typeName = prop.property_type_name || 'Unique Dwelling'
-    const locParts = [prop.location_district, prop.location_city, prop.location_state].filter(Boolean)
-    return {
-      id: prop.id,
-      title: prop.title,
-      property_type: typeName,
-      location_city: prop.location_city,
-      location_state: prop.location_state || '',
-      location_address: locParts.join(', '),
-      asking_price: prop.asking_price,
-      size_sqft: prop.size_sqft,
-      beds: Math.max(1, Math.round(prop.size_sqft / 1200)),
-      baths: Math.max(1, Math.round(prop.size_sqft / 1000 * 2) / 2),
-      tag: typeName,
-      image: thumbnailUrl(prop, curatedProperties[idx % curatedProperties.length].image),
-    }
-  })
-
-  const allDisplayProperties = dbMappedProperties.length > 0 
-    ? [...dbMappedProperties, ...curatedProperties] 
-    : curatedProperties
+  const displayProperties = realProperties.map(mapPropertyForCard)
 
   // Helper matching categories
   const categoryMatches = (propType, catName) => {
@@ -191,11 +63,11 @@ export default function Properties() {
   }
 
   // Filter & Search Logic
-  const filtered = allDisplayProperties.filter((p) => {
+  const filtered = displayProperties.filter((p) => {
     // 1. Search Query Filter
     const searchLower = search.toLowerCase()
     const titleMatch = p.title.toLowerCase().includes(searchLower)
-    const locMatch = p.location_address.toLowerCase().includes(searchLower)
+    const locMatch = p.locationLabel.toLowerCase().includes(searchLower)
     const typeMatch = p.property_type.toLowerCase().includes(searchLower)
     if (search && !titleMatch && !locMatch && !typeMatch) return false
 
@@ -211,20 +83,6 @@ export default function Properties() {
 
     return true
   })
-
-  // Format Price in Lakhs/Crores
-  const formatINR = (val) => {
-    if (val >= 10000000) {
-      return `₹${(val / 10000000).toFixed(2)} Cr`
-    } else if (val >= 100000) {
-      return `₹${(val / 100000).toFixed(1)} L`
-    }
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(val)
-  }
 
   const handleApplyFilters = () => {
     setAppliedFilters({ minPrice, maxPrice, maxSize })
@@ -405,84 +263,12 @@ export default function Properties() {
                 : "flex flex-col gap-6 animate-in fade-in duration-300"
             }>
               {filtered.map((prop, idx) => (
-                <motion.div
+                <PropertyCard
                   key={prop.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(idx * 0.04, 0.2) }}
-                  className={`group overflow-hidden rounded-2xl border border-neutral-100 dark:border-neutral-850 bg-white dark:bg-neutral-900 hover:shadow-xl transition-all duration-300 flex ${
-                    viewMode === 'grid' ? 'flex-col' : 'flex-col sm:flex-row h-auto sm:h-56'
-                  }`}
-                >
-                  {/* Image */}
-                  <div className={`relative overflow-hidden bg-neutral-100 dark:bg-neutral-800 shrink-0 ${
-                    viewMode === 'grid' ? 'h-60 w-full' : 'h-56 sm:h-full w-full sm:w-72'
-                  }`}>
-                    <img
-                      src={prop.image}
-                      alt={prop.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-103"
-                      loading="lazy"
-                    />
-                    <span className="absolute top-4 left-4 rounded-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur px-3 py-1 text-[9px] font-bold text-brand-bronze shadow-sm uppercase tracking-wider border border-brand-bronze/10">
-                      {prop.tag || prop.property_type}
-                    </span>
-                  </div>
-
-                  {/* Body */}
-                  <div className="p-6 flex flex-col justify-between flex-grow gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex justify-between items-start gap-2">
-                        <h3 className="font-serif font-bold text-base sm:text-lg text-neutral-950 dark:text-white group-hover:text-brand-bronze transition-colors line-clamp-1">
-                          {prop.title}
-                        </h3>
-                        <span className="text-base sm:text-lg font-extrabold text-brand-bronze shrink-0">
-                          {formatINR(prop.asking_price)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-400 font-semibold flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-brand-bronze" />
-                        {prop.location_address}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 border-t border-neutral-50 dark:border-neutral-800 pt-4 text-[10px] sm:text-xs text-neutral-400 text-center font-semibold">
-                      <div className="flex flex-col bg-neutral-50 dark:bg-neutral-950/40 p-1.5 rounded-xl border border-neutral-100/40 dark:border-neutral-800/40">
-                        <span className="text-neutral-900 dark:text-white font-bold">{prop.beds}</span>
-                        <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Beds</span>
-                      </div>
-                      <div className="flex flex-col bg-neutral-50 dark:bg-neutral-950/40 p-1.5 rounded-xl border border-neutral-100/40 dark:border-neutral-800/40">
-                        <span className="text-neutral-900 dark:text-white font-bold">{prop.baths}</span>
-                        <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Baths</span>
-                      </div>
-                      <div className="flex flex-col bg-neutral-50 dark:bg-neutral-950/40 p-1.5 rounded-xl border border-neutral-100/40 dark:border-neutral-800/40">
-                        <span className="text-neutral-900 dark:text-white font-bold">{prop.size_sqft.toLocaleString()}</span>
-                        <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">Sq Ft</span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2">
-                      <button 
-                        onClick={() => toast.info('Detailed blueprints, virtual tours, and legal papers will load here!')}
-                        className="text-xs font-bold text-neutral-950 dark:text-white flex items-center gap-1 hover:text-brand-bronze transition-colors group/view"
-                      >
-                        Inspect Blueprint
-                        <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover/view:translate-x-0.5" />
-                      </button>
-
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-neutral-400 hover:text-destructive hover:bg-transparent rounded-full p-1 h-auto"
-                        onClick={() => {
-                          toast.success(`"${prop.title}" added to your wishlist!`);
-                        }}
-                      >
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
+                  property={prop}
+                  index={idx}
+                  layout={viewMode === 'list' ? 'list' : 'grid'}
+                />
               ))}
             </div>
           )}

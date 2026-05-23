@@ -9,6 +9,32 @@ class PropertyMediaRepository {
         return result.recordset;
     }
 
+    async findByPropertyIds(propertyIds) {
+        if (!propertyIds?.length) return {};
+
+        const pool = await poolPromise;
+        const request = pool.request();
+        const placeholders = propertyIds.map((id, index) => {
+            const param = `property_id_${index}`;
+            request.input(param, sql.UniqueIdentifier, id);
+            return `@${param}`;
+        });
+
+        const result = await request.query(`
+            SELECT * FROM PropertyMedia
+            WHERE property_id IN (${placeholders.join(', ')})
+            ORDER BY created_at ASC
+        `);
+
+        const grouped = {};
+        for (const row of result.recordset) {
+            const key = String(row.property_id).toLowerCase();
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(row);
+        }
+        return grouped;
+    }
+
     async findById(mediaId) {
         const pool = await poolPromise;
         const result = await pool.request()

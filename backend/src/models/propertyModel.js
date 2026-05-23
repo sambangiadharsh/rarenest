@@ -35,6 +35,7 @@ const propertySchema = {
         property_story: Joi.string().allow('', null),
         special_features: specialFeaturesSchema,
         status: Joi.string().valid('Available', 'Sold', 'Pending'),
+        is_visible: Joi.boolean(),
     }),
 };
 

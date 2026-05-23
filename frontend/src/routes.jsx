@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import CreateListing from './pages/CreateListing'
+import PropertyDetail from './pages/PropertyDetail'
 import NotFound from './pages/NotFound'
 
 export const router = createBrowserRouter([
@@ -33,6 +34,10 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <Dashboard />
+      },
+      {
+        path: 'properties/:id',
+        element: <PropertyDetail />
       },
       {
         path: 'properties/create',

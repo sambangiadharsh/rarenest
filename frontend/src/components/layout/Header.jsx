@@ -34,7 +34,6 @@ export default function Header() {
     }`
 
   const isAdmin = user?.role?.toLowerCase() === 'admin'
-  const isSeller = user?.role?.toLowerCase() === 'seller'
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-brand-forest-mid/30 bg-brand-forest text-white backdrop-blur-md transition-all duration-300 shadow-md">
@@ -75,9 +74,9 @@ export default function Header() {
               Wishlist
             </NavLink>
           )}
-          {isAuthenticated && isSeller && (
+          {isAuthenticated && !isAdmin && (
             <NavLink to="/dashboard" className={activeStyle}>
-              Dashboard
+              My Properties
             </NavLink>
           )}
           {isAuthenticated && isAdmin && (
@@ -180,13 +179,13 @@ export default function Header() {
                 <Heart className="h-4 w-4 text-brand-terracotta" /> Wishlist
               </Link>
             )}
-            {isAuthenticated && isSeller && (
+            {isAuthenticated && !isAdmin && (
               <Link
                 to="/dashboard"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
               >
-                Dashboard
+                My Properties
               </Link>
             )}
             {isAuthenticated && isAdmin && (

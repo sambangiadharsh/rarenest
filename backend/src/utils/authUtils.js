@@ -17,8 +17,22 @@ const generateToken = (userId) => {
     });
 };
 
+const attachAuthCookie = (res, userId) => {
+    const token = generateToken(userId);
+    const options = {
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+    };
+    if (process.env.NODE_ENV === 'production') {
+        options.secure = true;
+    }
+    res.cookie('token', token, options);
+    return token;
+};
+
 module.exports = {
     hashPassword,
     comparePassword,
-    generateToken
+    generateToken,
+    attachAuthCookie,
 };

@@ -21,7 +21,7 @@ class WishlistRepository {
             .query(`
                 SELECT p.* FROM Properties p
                 JOIN Wishlist w ON p.id = w.property_id
-                WHERE w.user_id = @user_id AND p.is_verified = 1
+                WHERE w.user_id = @user_id AND p.is_verified = 1 AND p.is_visible = 1
             `);
         return result.recordset;
     }

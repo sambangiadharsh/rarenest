@@ -1,4 +1,5 @@
 const propertyRepository = require('../repositories/propertyRepository');
+const propertyMediaRepository = require('../repositories/propertyMediaRepository');
 const mediaService = require('./mediaService');
 
 class PropertyService {
@@ -23,11 +24,16 @@ class PropertyService {
 
     async getAllProperties(filters = {}) {
         const properties = await propertyRepository.findAll(filters);
+        if (properties.length === 0) return properties;
+
+        const mediaByPropertyId = await propertyMediaRepository.findByPropertyIds(
+            properties.map((p) => p.id),
+        );
+
         for (const p of properties) {
             this._parseSpecialFeatures(p);
-            if (filters.seller_id) {
-                p.media = await propertyRepository.findMediaByPropertyId(p.id);
-            }
+            const key = String(p.id).toLowerCase();
+            p.media = mediaByPropertyId[key] || [];
         }
         return properties;
     }
