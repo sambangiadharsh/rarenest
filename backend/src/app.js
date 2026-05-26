@@ -40,6 +40,10 @@ app.use('/api/sellers', require('./routes/sellerRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/property-types', require('./routes/propertyTypeRoutes'));
+app.use('/api/cms', require('./routes/cmsRoutes'));
+app.use('/api/faqs', require('./routes/faqRoutes'));
+app.use('/api/contact-info', require('./routes/contactInfoRoutes'));
+app.use('/api/careers', require('./routes/careerRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {

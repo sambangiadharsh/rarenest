@@ -31,11 +31,6 @@ export const mainNavItems = [
     href: '/reviews',
     icon: Star,
   },
-  {
-    title: 'Careers',
-    href: '/careers',
-    icon: Briefcase,
-  },
 ]
 
 export const propertyNavGroup = {
@@ -56,6 +51,7 @@ export const contentNavGroup = {
     { title: 'Terms and Conditions', href: '/content/terms', icon: ScrollText },
     { title: 'Privacy Policy', href: '/content/privacy', icon: Shield },
     { title: 'FAQs', href: '/content/faqs', icon: HelpCircle },
+    { title: 'Careers', href: '/content/careers', icon: Briefcase },
   ],
 }
 
@@ -65,7 +61,7 @@ export const routeTitles = {
   '/properties/types': 'Property Type',
   '/enquiries': 'Enquiries',
   '/reviews': 'Reviews',
-  '/careers': 'Careers',
+  '/content/careers': 'Careers',
   '/content/about-us': 'About Us',
   '/content/contact-info': 'Contact Info',
   '/content/terms': 'Terms and Conditions',

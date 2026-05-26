@@ -148,3 +148,26 @@
     @apply font-sans;
     }
 }
+
+.rich-content h1,
+.rich-content h2,
+.rich-content h3 {
+  @apply text-foreground font-semibold mt-4 mb-2;
+}
+
+.rich-content p {
+  @apply mb-3;
+}
+
+.rich-content ul,
+.rich-content ol {
+  @apply mb-3 pl-6;
+}
+
+.rich-content ul {
+  @apply list-disc;
+}
+
+.rich-content ol {
+  @apply list-decimal;
+}

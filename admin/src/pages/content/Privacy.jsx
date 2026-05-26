@@ -1,10 +1,11 @@
-import PagePlaceholder from '@/components/PagePlaceholder'
+import CmsPageEditor from '@/components/CmsPageEditor'
 
 export default function Privacy() {
   return (
-    <PagePlaceholder
-      title="Privacy Policy"
-      description="Manage the privacy policy content for visitors and users."
+    <CmsPageEditor
+      pageKey="privacy_policy"
+      pageTitle="Privacy Policy"
+      pageDescription="Manage the privacy policy content for visitors and users."
     />
   )
 }

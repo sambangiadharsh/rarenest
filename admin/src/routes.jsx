@@ -38,7 +38,7 @@ export const router = createBrowserRouter([
           { path: 'properties/types', element: <PropertyTypes /> },
           { path: 'enquiries', element: <Enquiries /> },
           { path: 'reviews', element: <Reviews /> },
-          { path: 'careers', element: <Careers /> },
+          { path: 'content/careers', element: <Careers /> },
           { path: 'content/about-us', element: <AboutUs /> },
           { path: 'content/contact-info', element: <ContactInfo /> },
           { path: 'content/terms', element: <Terms /> },
