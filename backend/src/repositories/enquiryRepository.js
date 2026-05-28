@@ -27,6 +27,12 @@ class EnquiryRepository {
             `);
         return result.recordset.length > 0;
     }
+
+    async countAll() {
+        const pool = await poolPromise;
+        const result = await pool.request().query('SELECT COUNT(*) AS total FROM Enquiries');
+        return result.recordset[0]?.total ?? 0;
+    }
 }
 
 module.exports = new EnquiryRepository();

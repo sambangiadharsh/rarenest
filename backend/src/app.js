@@ -39,6 +39,7 @@ app.use('/api/enquiries', require('./routes/enquiryRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/property-types', require('./routes/propertyTypeRoutes'));
 app.use('/api/cms', require('./routes/cmsRoutes'));
 app.use('/api/faqs', require('./routes/faqRoutes'));

@@ -119,16 +119,16 @@ export default function Careers() {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this job posting?')) return
-    try {
-      await deleteCareer(id)
-      toast.success('Job posting deleted.')
-      if (editingId === id) closeForm()
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete job posting.')
-    }
-  }
+  // const handleDelete = async (id) => {
+  //   if (!window.confirm('Delete this job posting?')) return
+  //   try {
+  //     await deleteCareer(id)
+  //     toast.success('Job posting deleted.')
+  //     if (editingId === id) closeForm()
+  //   } catch (err) {
+  //     toast.error(err.message || 'Failed to delete job posting.')
+  //   }
+  // }
 
   return (
     <div className="space-y-6">
@@ -283,14 +283,14 @@ export default function Careers() {
                     <Button variant="ghost" size="icon-sm" onClick={() => openEdit(career)}>
                       <Pencil className="size-4" />
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="icon-sm"
                       onClick={() => handleDelete(career.id)}
                       disabled={isDeleting}
                     >
                       <Trash2 className="size-4 text-destructive" />
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               ))}

@@ -127,6 +127,12 @@ class UserRepository {
             .input('role', sql.NVarChar, role)
             .query('UPDATE Users SET role = @role WHERE id = @id');
     }
+
+    async countAll() {
+        const pool = await poolPromise;
+        const result = await pool.request().query('SELECT COUNT(*) AS total FROM Users');
+        return result.recordset[0]?.total ?? 0;
+    }
 }
 
 module.exports = new UserRepository();

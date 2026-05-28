@@ -198,6 +198,12 @@ class PropertyRepository {
             `);
         return this.findById(result.recordset[0].id);
     }
+
+    async countAll() {
+        const pool = await poolPromise;
+        const result = await pool.request().query('SELECT COUNT(*) AS total FROM Properties');
+        return result.recordset[0]?.total ?? 0;
+    }
 }
 
 module.exports = new PropertyRepository();
