@@ -115,6 +115,22 @@ async function run() {
             END
         `);
 
+        console.log('Creating Wishlist table if missing...');
+        await pool.request().query(`
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Wishlist')
+            BEGIN
+                CREATE TABLE Wishlist (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    user_id UNIQUEIDENTIFIER NOT NULL,
+                    property_id UNIQUEIDENTIFIER NOT NULL,
+                    created_at DATETIME DEFAULT GETDATE(),
+                    FOREIGN KEY (user_id) REFERENCES Users(id),
+                    FOREIGN KEY (property_id) REFERENCES Properties(id) ON DELETE CASCADE,
+                    UNIQUE (user_id, property_id)
+                );
+            END
+        `);
+
         console.log('Creating PropertyTypes table if missing...');
         await pool.request().query(`
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PropertyTypes')

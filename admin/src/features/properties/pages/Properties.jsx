@@ -11,7 +11,12 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
-import { useProperties, useVerifyProperty } from '@/features/properties'
+import {
+  useProperties,
+  useVerifyProperty,
+  getPropertyThumbnail,
+  PLACEHOLDER_IMAGE,
+} from '@/features/properties'
 
 const VERIFICATION_FILTERS = [
   { value: 'all', label: 'All properties', param: 'all' },
@@ -139,6 +144,7 @@ export default function Properties() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/50 text-left">
+                    <th className="px-4 py-3 font-medium w-16">Image</th>
                     <th className="px-4 py-3 font-medium">Title</th>
                     <th className="px-4 py-3 font-medium">Type</th>
                     <th className="px-4 py-3 font-medium">City</th>
@@ -153,11 +159,27 @@ export default function Properties() {
                   {properties.map((prop) => {
                     const verified = isVerified(prop)
                     const rowPending = pendingId === prop.id
+                    const thumb = getPropertyThumbnail(prop)
                     return (
                       <tr
                         key={prop.id}
                         className="border-b border-border last:border-0"
                       >
+                        <td className="px-4 py-3">
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="h-12 w-16 rounded-md object-cover bg-muted"
+                            loading="lazy"
+                            onError={(e) => {
+                              const img = e.currentTarget
+                              if (!img.dataset.fallback) {
+                                img.dataset.fallback = '1'
+                                img.src = PLACEHOLDER_IMAGE
+                              }
+                            }}
+                          />
+                        </td>
                         <td className="px-4 py-3 font-medium">{prop.title}</td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {prop.property_type_name || '—'}

@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { getApiBaseUrl } from '@/shared/config/api'
 
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

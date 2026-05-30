@@ -47,9 +47,11 @@ Open **http://localhost:5174** — unauthenticated visits redirect to `/login`.
 
 Optional `backend/.env`: `ADMIN_URL=http://localhost:5174` (CORS; defaults to 5174).
 
+Copy `admin/.env.example` to `admin/.env` and set `VITE_API_URL` for production builds.
+
 ## Auth behavior
 
-- Login: `POST /api/auth/login` via Vite proxy (`credentials: include` for httpOnly cookie)
+- Login: `POST /api/auth/login` to backend (`http://localhost:5000/api` in dev; `VITE_API_URL` in prod) with `credentials: include` for httpOnly cookie
 - Only users with role **Admin** can access the dashboard
 - Session: Redux + `localStorage` key `admin_user` (separate origin from public site on 5173)
 - Logout: clears cookie via `/api/auth/logout` and local state

@@ -15,6 +15,6 @@ router.get('/:id', getOpenCareerById);
 router.get('/', getOpenCareers);
 router.post('/', protect, authorize('Admin'), createCareer);
 router.put('/:id', protect, authorize('Admin'), updateCareer);
-router.delete('/:id', protect, authorize('Admin'), deleteCareer);
+router.delete('/:id', protect, authorize('Admin'), deleteCareer); // No need to delete career
 
 module.exports = router;

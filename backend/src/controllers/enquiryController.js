@@ -29,6 +29,18 @@ function mapEnquiryErrors(result, res) {
     return null;
 }
 
+// @desc    List enquiries sent by the current user
+// @route   GET /api/enquiries
+exports.getMyEnquiries = async (req, res) => {
+    try {
+        const enquiries = await enquiryService.getEnquiriesForUser(req.user.id);
+        res.status(200).json({ success: true, data: enquiries });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
 // @desc    Send enquiry for a property (authenticated)
 // @route   POST /api/enquiries
 exports.createEnquiry = async (req, res) => {

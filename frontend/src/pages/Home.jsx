@@ -14,11 +14,11 @@ import {
   CheckCircle2,
   DollarSign
 } from 'lucide-react'
-import { Button } from '@/shared/components/ui/button'
-import PropertyCard from '@/features/properties/components/PropertyCard'
-import { useProperties } from '@/features/properties'
-import { usePropertyTypes } from '@/features/properties'
-import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
+import { Button } from '@/components/ui/button'
+import PropertyCard from '@/components/PropertyCard'
+import { useProperties } from '@/hooks/useProperties'
+import { usePropertyTypes } from '@/hooks/usePropertyTypes'
+import { mapPropertyForCard } from '@/lib/propertyUtils'
 import { toast } from 'sonner'
 
 const typeIcons = {
@@ -334,7 +334,7 @@ export default function Home() {
                 onClick={applyActiveFilters}
                 className="w-full bg-brand-terracotta hover:bg-brand-terracotta-light text-white font-bold py-2.5 rounded-xl transition-all duration-300 shadow-sm text-sm border-none"
               >
-                Apply Filters
+                Apply Filter
               </button>
             </div>
 
@@ -364,7 +364,7 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                   {filteredProperties.map((prop, idx) => (
                     <PropertyCard key={prop.id} property={prop} index={idx} />
                   ))}

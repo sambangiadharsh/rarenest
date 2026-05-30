@@ -95,6 +95,10 @@ class EnquiryService {
             emailSent,
         };
     }
+
+    async getEnquiriesForUser(userId) {
+        return enquiryRepository.findByFromUserId(userId);
+    }
 }
 
 module.exports = new EnquiryService();

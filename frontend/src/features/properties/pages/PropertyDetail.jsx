@@ -18,7 +18,7 @@ import { Button } from '@/shared/components/ui/button'
 
 import { useCreateEnquiry } from '@/features/enquiries'
 import { useProperty } from '@/features/properties'
-import { useAddToWishlist } from '@/features/wishlist'
+import { useWishlistIds, useToggleWishlist } from '@/features/wishlist'
 
 import {
   formatPriceOnwards,
@@ -37,8 +37,14 @@ export default function PropertyDetail() {
 
   const { data, isLoading, isError, error } = useProperty(id)
 
-  const { mutateAsync: addToWishlist, isPending: isAddingWishlist } =
-    useAddToWishlist()
+  const { data: wishlistIdsData } = useWishlistIds({ enabled: isAuthenticated })
+  const { mutateAsync: toggleWishlist, isPending: isTogglingWishlist } =
+    useToggleWishlist()
+
+  const wishlistedIds = new Set(
+    (wishlistIdsData?.data ?? []).map((pid) => String(pid).toLowerCase()),
+  )
+  const isWishlisted = wishlistedIds.has(String(id).toLowerCase())
 
   const { mutateAsync: createEnquiry, isPending: isSendingEnquiry } =
     useCreateEnquiry()
@@ -52,19 +58,23 @@ export default function PropertyDetail() {
     return false
   }
 
-  const handleAddToWishlist = async () => {
-    if (!requireAuth('add to wishlist')) return
+  const handleToggleWishlist = async () => {
+    if (!requireAuth('save properties to your wishlist')) return
 
     try {
-      const res = await addToWishlist(id)
+      const res = await toggleWishlist({ propertyId: id, isWishlisted })
 
       if (res?.success) {
-        toast.success('Added to your wishlist!')
+        toast.success(
+          isWishlisted
+            ? 'Removed from your wishlist.'
+            : 'Added to your wishlist!',
+        )
       } else {
-        toast.error(res?.message || 'Could not add to wishlist.')
+        toast.error(res?.message || 'Could not update wishlist.')
       }
     } catch (err) {
-      toast.error(err.message || 'Could not add to wishlist.')
+      toast.error(err.message || 'Could not update wishlist.')
     }
   }
 
@@ -92,13 +102,23 @@ export default function PropertyDetail() {
   const heroImage =
     images[0] || (property ? getPropertyThumbnail(property) : '')
 
+  const mediaItems = property?.media?.length
+    ? property.media
+        .filter((m) => m.media_type === 'Image' || m.media_type === 'Video')
+        .map((m) => ({
+          type: m.media_type,
+          src: resolveMediaUrl(m.media_url),
+          isThumbnail: Boolean(m.is_thumbnail),
+        }))
+    : []
+
   const [activeImage, setActiveImage] = useState(0)
 
   useEffect(() => {
     setActiveImage(0)
   }, [id])
 
-  const displayImage = images[activeImage] || heroImage
+  const displayMedia = mediaItems[activeImage] || { type: 'Image', src: heroImage }
 
   const typeName = property?.property_type_name || 'Property'
 
@@ -157,11 +177,19 @@ export default function PropertyDetail() {
       <div className="overflow-hidden rounded-2xl border border-brand-sand bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         {/* HERO IMAGE */}
         <div className="relative aspect-[16/9] overflow-hidden bg-neutral-100 dark:bg-neutral-800">
-          <img
-            src={displayImage}
-            alt={property.title}
-            className="h-full w-full object-cover"
-          />
+          {displayMedia.type === 'Video' ? (
+            <video
+              src={displayMedia.src}
+              controls
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={displayMedia.src}
+              alt={property.title}
+              className="h-full w-full object-cover"
+            />
+          )}
 
           <span className="absolute left-4 top-4 rounded-full bg-brand-forest px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
             {state || 'India'}
@@ -169,11 +197,11 @@ export default function PropertyDetail() {
         </div>
 
         {/* THUMBNAILS */}
-        {images.length > 1 && (
+        {mediaItems.length > 1 && (
           <div className="flex gap-2 overflow-x-auto border-b border-brand-sand p-4 dark:border-neutral-800">
-            {images.map((src, idx) => (
+            {mediaItems.map((item, idx) => (
               <button
-                key={src}
+                key={`${item.type}-${item.src}-${idx}`}
                 type="button"
                 onClick={() => setActiveImage(idx)}
                 className={`h-14 w-20 shrink-0 overflow-hidden rounded-lg border transition-all ${
@@ -182,11 +210,25 @@ export default function PropertyDetail() {
                     : 'border-transparent opacity-70 hover:opacity-100'
                 }`}
               >
-                <img
-                  src={resolveMediaUrl(src)}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+                {item.type === 'Video' ? (
+                  <div className="relative h-full w-full">
+                    <video
+                      src={item.src}
+                      muted
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                      <Triangle className="h-4 w-4 fill-white text-white" />
+                    </span>
+                  </div>
+                ) : (
+                  <img
+                    src={item.src}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -314,17 +356,21 @@ export default function PropertyDetail() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 flex-1 gap-2 border-brand-sand text-sm font-medium"
-                disabled={isAddingWishlist}
-                onClick={handleAddToWishlist}
+                className={`h-10 flex-1 gap-2 border-brand-sand text-sm font-medium ${
+                  isWishlisted ? 'text-destructive hover:text-destructive' : ''
+                }`}
+                disabled={isTogglingWishlist}
+                onClick={handleToggleWishlist}
               >
-                {isAddingWishlist ? (
+                {isTogglingWishlist ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Heart className="h-4 w-4" />
+                  <Heart
+                    className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`}
+                  />
                 )}
 
-                Add to wishlist
+                {isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
               </Button>
             </div>
           </div>

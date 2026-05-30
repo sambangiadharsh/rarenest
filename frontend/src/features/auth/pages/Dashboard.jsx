@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { SellerDashboard } from '@/features/seller'
 import { logout } from '@/app/store/authSlice'
 import { getAdminLoginUrl } from '@/shared/config/app'
+import RequireAuth from '@/shared/components/auth/RequireAuth'
 
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth)
@@ -21,5 +22,9 @@ export default function Dashboard() {
 
   const isSeller = user?.role?.toLowerCase() === 'seller'
 
-  return <SellerDashboard isSeller={isSeller} />
+  return (
+    <RequireAuth>
+      <SellerDashboard isSeller={isSeller} />
+    </RequireAuth>
+  )
 }

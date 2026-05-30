@@ -25,7 +25,10 @@ app.use(cors({
     },
     credentials: true
 }));
-app.use(helmet());
+app.use(helmet({
+    // Allow frontend apps on different origins to embed uploaded images/videos.
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(morgan('dev'));
 app.use(cookieParser());
 

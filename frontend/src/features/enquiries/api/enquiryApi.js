@@ -7,3 +7,7 @@ export function createEnquiry(propertyId) {
 export function createGuestEnquiry(payload) {
   return apiClient.post('/enquiries/guest', payload)
 }
+
+export function getMyEnquiries() {
+  return apiClient.get('/enquiries')
+}

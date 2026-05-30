@@ -258,10 +258,10 @@ export default function Properties() {
             </div>
           ) : (
             <div className={
-              viewMode === 'grid' 
-                ? "grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300" 
-                : "flex flex-col gap-6 animate-in fade-in duration-300"
-            }>
+  viewMode === 'grid' 
+    ? "grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in duration-300"
+    : "flex flex-col gap-6 animate-in fade-in duration-300"
+}>
               {filtered.map((prop, idx) => (
                 <PropertyCard
                   key={prop.id}

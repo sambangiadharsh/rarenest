@@ -7,6 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -21,19 +22,19 @@ export default defineConfig({
       '@/features': path.resolve(__dirname, './src/features'),
     },
   },
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/uploads': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
+  // server: {
+  //   port: 5173,
+  //   proxy: {
+  //     '/api': {
+  //       target: 'http://localhost:5000',
+  //       changeOrigin: true,
+  //       secure: false,
+  //     },
+  //     '/uploads': {
+  //       target: 'http://localhost:5000',
+  //       changeOrigin: true,
+  //       secure: false,
+  //     },
+  //   },
+  // },
 })

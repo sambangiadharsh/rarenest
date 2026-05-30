@@ -6,7 +6,9 @@ import {
   PropertyDetailPage,
   CreateListingPage,
 } from '@/features/properties'
-import { LoginPage, RegisterPage, DashboardPage } from '@/features/auth'
+import { LoginPage, RegisterPage, DashboardPage, ProfilePage } from '@/features/auth'
+import { MyEnquiriesPage } from '@/features/enquiries'
+import { MyWishlistPage } from '@/features/wishlist'
 import { AboutPage, TermsPage, PrivacyPage } from '@/features/cms'
 import { ContactPage } from '@/features/contact'
 import { FaqsPage } from '@/features/faqs'
@@ -23,6 +25,9 @@ export const router = createBrowserRouter([
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'profile', element: <ProfilePage /> },
+      { path: 'enquiries', element: <MyEnquiriesPage /> },
+      { path: 'wishlist', element: <MyWishlistPage /> },
       { path: 'properties/:id', element: <PropertyDetailPage /> },
       { path: 'properties/create', element: <CreateListingPage /> },
       { path: 'about', element: <AboutPage /> },

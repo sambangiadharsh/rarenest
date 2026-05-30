@@ -14,14 +14,29 @@ class WishlistRepository {
             `);
     }
 
+    async findPropertyIdsByUserId(userId) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('user_id', sql.UniqueIdentifier, userId)
+            .query(`
+                SELECT w.property_id FROM Wishlist w
+                JOIN Properties p ON p.id = w.property_id
+                WHERE w.user_id = @user_id AND p.is_verified = 1 AND p.is_visible = 1
+            `);
+        return result.recordset.map((row) => row.property_id);
+    }
+
     async findPropertiesByUserId(userId) {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('user_id', sql.UniqueIdentifier, userId)
             .query(`
-                SELECT p.* FROM Properties p
+                SELECT p.*, pt.name AS property_type_name
+                FROM Properties p
                 JOIN Wishlist w ON p.id = w.property_id
+                LEFT JOIN PropertyTypes pt ON p.property_type_id = pt.id
                 WHERE w.user_id = @user_id AND p.is_verified = 1 AND p.is_visible = 1
+                ORDER BY w.created_at DESC
             `);
         return result.recordset;
     }

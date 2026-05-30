@@ -71,6 +71,10 @@ function compressVideo(inputPath, outputPath) {
     });
 }
 
+function copyVideoWithoutCompression(inputPath, outputPath) {
+    fs.copyFileSync(inputPath, outputPath);
+}
+
 class MediaService {
     getPropertyMediaDir(propertyId, subfolder) {
         return path.join(UPLOADS_ROOT, 'properties', propertyId, subfolder);
@@ -151,7 +155,9 @@ class MediaService {
         for (const file of videoFiles) {
             preValidateVideo(file);
 
-            const tempInput = path.join(tempDir, `${randomUUID()}-in`);
+            const sourceExt = path.extname(file.originalname || '').toLowerCase() || '.mp4';
+            const inputExt = sourceExt.startsWith('.') ? sourceExt : '.mp4';
+            const tempInput = path.join(tempDir, `${randomUUID()}-in${inputExt}`);
             const filename = `${randomUUID()}.mp4`;
             const outputPath = path.join(videoDir, filename);
             const relativeUrl = this.toPublicUrl(`/uploads/properties/${propertyId}/videos/${filename}`);
@@ -163,7 +169,16 @@ class MediaService {
                 postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
             } catch (err) {
                 if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-                throw Object.assign(new Error(err.message || 'Video processing failed'), { statusCode: 500 });
+                try {
+                    copyVideoWithoutCompression(tempInput, outputPath);
+                    postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
+                } catch (fallbackErr) {
+                    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+                    throw Object.assign(
+                        new Error(fallbackErr.message || err.message || 'Video processing failed'),
+                        { statusCode: fallbackErr.statusCode || 400 },
+                    );
+                }
             } finally {
                 if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
             }

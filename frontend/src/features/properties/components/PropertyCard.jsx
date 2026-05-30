@@ -1,9 +1,14 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
-import { Heart, MapPin, Triangle } from 'lucide-react'
+import { Heart, Loader2, MapPin, Triangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
-import { formatPriceOnwards } from '@/features/properties/lib/propertyUtils'
+import {
+  formatPriceOnwards,
+  PLACEHOLDER_IMAGE,
+} from '@/features/properties/lib/propertyUtils'
+import { useWishlistIds, useToggleWishlist } from '@/features/wishlist'
 
 export default function PropertyCard({
   property,
@@ -11,7 +16,49 @@ export default function PropertyCard({
   layout = 'grid',
   className = '',
 }) {
+  const navigate = useNavigate()
+  const { isAuthenticated } = useSelector((state) => state.auth)
+  const { data: idsData } = useWishlistIds({ enabled: isAuthenticated })
+  const { mutateAsync: toggleWishlist, isPending: isTogglingWishlist } =
+    useToggleWishlist()
+
+  const wishlistedIds = new Set(
+    (idsData?.data ?? []).map((id) => String(id).toLowerCase()),
+  )
+  const isWishlisted = wishlistedIds.has(String(property.id).toLowerCase())
+
   const isList = layout === 'list'
+  const cardImage = property.image || PLACEHOLDER_IMAGE
+
+  const handleWishlistClick = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!isAuthenticated) {
+      toast.error('Please log in to save properties to your wishlist.')
+      navigate('/login')
+      return
+    }
+
+    try {
+      const res = await toggleWishlist({
+        propertyId: property.id,
+        isWishlisted,
+      })
+
+      if (res?.success) {
+        toast.success(
+          isWishlisted
+            ? 'Removed from your wishlist.'
+            : `"${property.title}" added to your wishlist!`,
+        )
+      } else {
+        toast.error(res?.message || 'Could not update wishlist.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Could not update wishlist.')
+    }
+  }
 
   return (
     <motion.div
@@ -33,10 +80,19 @@ export default function PropertyCard({
           }`}
         >
           <img
-            src={property.image}
+            key={`${property.id}-${cardImage}`}
+            src={cardImage}
             alt={property.title}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            className="block h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              const img = e.currentTarget
+              if (!img.dataset.fallback) {
+                img.dataset.fallback = '1'
+                img.src = PLACEHOLDER_IMAGE
+              }
+            }}
           />
           <span className="absolute left-4 top-4 rounded-full bg-brand-forest px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
             {property.regionBadge}
@@ -45,14 +101,22 @@ export default function PropertyCard({
             type="button"
             size="sm"
             variant="ghost"
-            className="absolute right-4 top-4 h-9 w-9 rounded-full bg-white/95 p-0 text-neutral-400 shadow-sm hover:bg-white hover:text-destructive dark:bg-neutral-900/95"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              toast.success(`"${property.title}" added to your wishlist!`)
-            }}
+            disabled={isTogglingWishlist}
+            className={`absolute right-4 top-4 h-9 w-9 rounded-full bg-white/95 p-0 shadow-sm hover:bg-white dark:bg-neutral-900/95 ${
+              isWishlisted
+                ? 'text-destructive hover:text-destructive'
+                : 'text-neutral-400 hover:text-destructive'
+            }`}
+            onClick={handleWishlistClick}
+            aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            <Heart className="h-4 w-4" />
+            {isTogglingWishlist ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Heart
+                className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`}
+              />
+            )}
           </Button>
         </div>
 
