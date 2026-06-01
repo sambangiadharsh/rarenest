@@ -46,7 +46,7 @@ export default function Header() {
   const { mutateAsync: logoutApi } = useLogout()
   const [isOpen, setIsOpen] = React.useState(false)
   
-  const { data: wishlistData } = useWishlist()
+  const { data: wishlistData } = useWishlist({ enabled: isAuthenticated })
   const wishlistCount = wishlistData?.data?.length || 0
   const handleLogout = async () => {
     try {

@@ -62,22 +62,42 @@ function EnquiriesList() {
           </Link>
         </div>
       ) : (
+        // <ul className="space-y-3">
+        //   {enquiries.map((enquiry) => (
+        //     <li
+        //       key={enquiry.id}
+        //       className="rounded-xl border border-border bg-card px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
+        //     >
+        //       <Link
+        //         to={`/properties/${enquiry.property_id}`}
+        //         className="font-semibold text-foreground hover:text-brand-terracotta transition-colors"
+        //       >
+        //         {enquiry.property_title || 'Property'}
+             
+        //       <p className="mt-1 text-xs text-muted-foreground">
+        //         Sent {formatDate(enquiry.created_at)}
+        //       </p>
+        //        </Link>
+        //     </li>
+        //   ))}
+        // </ul>
         <ul className="space-y-3">
           {enquiries.map((enquiry) => (
+          <Link to={`/properties/${enquiry.property_id}`}>
             <li
               key={enquiry.id}
-              className="rounded-xl border border-border bg-card px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
+              className="rounded-xl border border-border bg-card px-4 py-4 mb-3 shadow-sm transition-shadow hover:shadow-md"
             >
-              <Link
-                to={`/properties/${enquiry.property_id}`}
-                className="font-semibold text-foreground hover:text-brand-terracotta transition-colors"
-              >
+             
+              <p className="font-semibold text-foreground hover:text-brand-terracotta transition-colors">
                 {enquiry.property_title || 'Property'}
-              </Link>
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Sent {formatDate(enquiry.created_at)}
               </p>
+             
             </li>
+          </Link>
           ))}
         </ul>
       )}

@@ -189,8 +189,10 @@ export default function Footer() {
             </Link>
           </div>
 
-          <p className="text-center text-xs font-medium tracking-wide text-white/40 sm:text-right">
-            Discover extraordinary living.
+          <p className="text-center text-xs font-medium tracking-wide text-white/80 sm:text-right">
+            
+            <p>Made with love ❤️ by Hesa Engineers</p>
+
           </p>
         </div>
       </div>

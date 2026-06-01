@@ -171,7 +171,7 @@ export default function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         <p className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-          RareNest Admin
+         
         </p>
       </SidebarFooter>
       <SidebarRail />

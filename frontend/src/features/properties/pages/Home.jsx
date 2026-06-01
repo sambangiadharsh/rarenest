@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link,useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Sparkles, 
@@ -34,7 +34,7 @@ export default function Home() {
   const { data: typesRes, isLoading: typesLoading } = usePropertyTypes()
   const realProperties = propertiesRes?.data || []
   const apiTypes = typesRes?.data || []
-
+  const navigate=useNavigate()
   // Category Carousel State
   const [activeCategory, setActiveCategory] = React.useState('All Homes')
 
@@ -530,12 +530,15 @@ export default function Home() {
           </div>
 
           <div className="relative z-10 flex flex-col sm:flex-row gap-4 mt-2 w-full justify-center max-w-sm">
-            <Link
-              to="/register"
-              className="bg-brand-terracotta hover:bg-brand-terracotta-light text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 text-sm shadow-md text-center border-none"
-            >
-              List Your Property
-            </Link>
+           <Button
+                             variant="outline"
+                             size="xl"
+                             onClick={() => navigate('/properties/create')}
+                             className="bg-brand-terracotta hover:bg-brand-terracotta-light text-white px-7 py-4 rounded-xl font-bold shadow-lg shadow-brand-terracotta/20 transition-all duration-300 text-center  border-none"
+                           >
+                             
+                             List a Property
+                           </Button>
             <button
               onClick={() => setShowWaitlist(true)}
               className="bg-brand-forest-mid/60 hover:bg-brand-forest-mid/80 border border-brand-forest-mid/80 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 text-sm"

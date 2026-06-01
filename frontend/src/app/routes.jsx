@@ -6,6 +6,8 @@ import {
   PropertyDetailPage,
   CreateListingPage,
 } from '@/features/properties'
+
+
 import { LoginPage, RegisterPage, DashboardPage, ProfilePage } from '@/features/auth'
 import { MyEnquiriesPage } from '@/features/enquiries'
 import { MyWishlistPage } from '@/features/wishlist'

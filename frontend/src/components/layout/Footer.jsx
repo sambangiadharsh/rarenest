@@ -177,17 +177,7 @@ export default function Footer() {
             &copy; {currentYear} RareNest. All rights reserved.
           </p>
 
-          <div className="flex items-center gap-4 text-xs text-white/45">
-            <Link to="/privacy" className="transition-colors hover:text-white/80">
-              Privacy
-            </Link>
-            <span aria-hidden className="text-white/20">
-              ·
-            </span>
-            <Link to="/terms" className="transition-colors hover:text-white/80">
-              Terms
-            </Link>
-          </div>
+          
 
           <p className="text-center text-xs font-medium tracking-wide text-white/40 sm:text-right">
            Built with ❤️ by the Hesa Engineering Team
