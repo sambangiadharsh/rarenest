@@ -21,11 +21,7 @@ export const mainNavItems = [
     href: '/',
     icon: LayoutDashboard,
   },
-  {
-    title: 'Enquiries',
-    href: '/enquiries',
-    icon: Mail,
-  },
+  
   {
     title: 'Reviews',
     href: '/reviews',
@@ -59,7 +55,7 @@ export const routeTitles = {
   '/': 'Dashboard',
   '/properties': 'All Properties',
   '/properties/types': 'Property Type',
-  '/enquiries': 'Enquiries',
+  // '/enquiries': 'Enquiries',
   '/reviews': 'Reviews',
   '/content/careers': 'Careers',
   '/content/about-us': 'About Us',

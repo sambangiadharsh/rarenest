@@ -62,44 +62,33 @@ function EnquiriesList() {
           </Link>
         </div>
       ) : (
-        // <ul className="space-y-3">
-        //   {enquiries.map((enquiry) => (
-        //     <li
-        //       key={enquiry.id}
-        //       className="rounded-xl border border-border bg-card px-4 py-4 shadow-sm transition-shadow hover:shadow-md"
-        //     >
-        //       <Link
-        //         to={`/properties/${enquiry.property_id}`}
-        //         className="font-semibold text-foreground hover:text-brand-terracotta transition-colors"
-        //       >
-        //         {enquiry.property_title || 'Property'}
-             
-        //       <p className="mt-1 text-xs text-muted-foreground">
-        //         Sent {formatDate(enquiry.created_at)}
-        //       </p>
-        //        </Link>
-        //     </li>
-        //   ))}
-        // </ul>
-        <ul className="space-y-3">
-          {enquiries.map((enquiry) => (
-          <Link to={`/properties/${enquiry.property_id}`}>
-            <li
-              key={enquiry.id}
-              className="rounded-xl border border-border bg-card px-4 py-4 mb-3 shadow-sm transition-shadow hover:shadow-md"
-            >
-             
-              <p className="font-semibold text-foreground hover:text-brand-terracotta transition-colors">
-                {enquiry.property_title || 'Property'}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Sent {formatDate(enquiry.created_at)}
-              </p>
-             
-            </li>
-          </Link>
-          ))}
-        </ul>
+       
+       <ul className="space-y-4">
+  {enquiries.map((enquiry) => (
+    <li key={enquiry.id}>
+      <Link
+        to={`/properties/${enquiry.property_id}`}
+        className="group block rounded-2xl border border-border bg-card p-5 transition-all hover:border-brand-terracotta/30 hover:shadow-md"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-lg group-hover:text-brand-terracotta transition-colors">
+              {enquiry.property_title || 'Property'}
+            </h3>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Enquiry sent on {formatDate(enquiry.created_at)}
+            </p>
+          </div>
+
+          <div className="text-brand-terracotta font-medium">
+            View →
+          </div>
+        </div>
+      </Link>
+    </li>
+  ))}
+</ul>
       )}
     </ContentPageLayout>
   )
@@ -112,3 +101,6 @@ export default function MyEnquiries() {
     </RequireAuth>
   )
 }
+
+
+

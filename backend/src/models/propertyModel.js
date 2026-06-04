@@ -20,6 +20,7 @@ const propertySchema = {
         contact_email: Joi.string().email().required(),
         contact_phone: Joi.string().max(20).required(),
         property_story: Joi.string().required(),
+        property_age: Joi.number().integer().min(0).max(200).required(),
         special_features: specialFeaturesSchema,
     }),
     update: Joi.object({
@@ -33,6 +34,7 @@ const propertySchema = {
         contact_email: Joi.string().email().allow('', null),
         contact_phone: Joi.string().max(20).allow('', null),
         property_story: Joi.string().allow('', null),
+        property_age: Joi.number().integer().min(0).max(200),
         special_features: specialFeaturesSchema,
         status: Joi.string().valid('Available', 'Sold', 'Pending'),
         is_visible: Joi.boolean(),

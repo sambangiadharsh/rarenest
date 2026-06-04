@@ -37,6 +37,7 @@ const listingSchema = z.object({
   contact_email: z.string().email(),
   contact_phone: z.string().min(8).max(20),
   property_story: z.string().min(10),
+  property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
 })
 
@@ -50,6 +51,7 @@ const STEP_CONFIG = [
       'property_type_id',
       'asking_price',
       'size_sqft',
+      'property_age',
       'location_city',
       'location_state',
       'location_district',
@@ -364,17 +366,34 @@ export default function CreateListing() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold">Size (sq ft)</label>
-                <input
-                  type="number"
-                  {...register('size_sqft')}
-                  disabled={!!pendingPropertyId}
-                  className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border max-w-xs"
-                />
-                {errors.size_sqft && (
-                  <span className="text-[10px] text-destructive">{errors.size_sqft.message}</span>
-                )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold">Size (sq ft)</label>
+                  <input
+                    type="number"
+                    {...register('size_sqft')}
+                    disabled={!!pendingPropertyId}
+                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
+                  />
+                  {errors.size_sqft && (
+                    <span className="text-[10px] text-destructive">{errors.size_sqft.message}</span>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold">Property age (years)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={200}
+                    {...register('property_age')}
+                    disabled={!!pendingPropertyId}
+                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
+                    placeholder="e.g. 3"
+                  />
+                  {errors.property_age && (
+                    <span className="text-[10px] text-destructive">{errors.property_age.message}</span>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-xl border border-border/40 bg-muted/10 p-4 sm:p-5 flex flex-col gap-4">

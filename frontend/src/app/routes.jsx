@@ -5,7 +5,9 @@ import {
   PropertiesPage,
   PropertyDetailPage,
   CreateListingPage,
+  EditListingPage,
 } from '@/features/properties'
+import RequireAuth from '@/shared/components/auth/RequireAuth'
 
 
 import { LoginPage, RegisterPage, DashboardPage, ProfilePage } from '@/features/auth'
@@ -31,6 +33,14 @@ export const router = createBrowserRouter([
       { path: 'enquiries', element: <MyEnquiriesPage /> },
       { path: 'wishlist', element: <MyWishlistPage /> },
       { path: 'properties/:id', element: <PropertyDetailPage /> },
+      {
+        path: 'properties/:id/edit',
+        element: (
+          <RequireAuth>
+            <EditListingPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'properties/create', element: <CreateListingPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'terms', element: <TermsPage /> },

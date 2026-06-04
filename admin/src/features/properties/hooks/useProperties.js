@@ -14,8 +14,24 @@ export function useVerifyProperty() {
   return useMutation({
     mutationFn: ({ id, is_verified }) =>
       propertyService.verifyProperty(id, is_verified),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['properties'] })
+      if (variables?.id) {
+        queryClient.invalidateQueries({ queryKey: ['property', variables.id] })
+      }
+    },
+  })
+}
+
+export function useUpdateProperty() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }) => propertyService.updateProperty(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+      if (variables?.id) {
+        queryClient.invalidateQueries({ queryKey: ['property', variables.id] })
+      }
     },
   })
 }

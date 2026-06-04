@@ -34,6 +34,37 @@ class EnquiryRepository {
         return result.recordset[0]?.total ?? 0;
     }
 
+    async countByPropertyId(property_id) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('property_id', sql.UniqueIdentifier, property_id)
+            .query(`
+                SELECT COUNT(*) AS total
+                FROM Enquiries
+                WHERE property_id = @property_id
+            `);
+        return result.recordset[0]?.total ?? 0;
+    }
+
+    async findByPropertyId(property_id) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('property_id', sql.UniqueIdentifier, property_id)
+            .query(`
+                SELECT
+                    e.id,
+                    e.created_at,
+                    u.first_name AS buyer_first_name,
+                    u.last_name AS buyer_last_name,
+                    u.email AS buyer_email
+                FROM Enquiries e
+                LEFT JOIN Users u ON e.from_user_id = u.id
+                WHERE e.property_id = @property_id
+                ORDER BY e.created_at DESC
+            `);
+        return result.recordset;
+    }
+
     async findByFromUserId(from_user_id) {
         const pool = await poolPromise;
         const result = await pool.request()

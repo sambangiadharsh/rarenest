@@ -1,6 +1,6 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
   Star, Eye, ShieldCheck, Home, 
@@ -50,6 +50,15 @@ export default function SellerDashboard({ isSeller = true }) {
     }
   }
 
+  const handleStatusChange = async (propertyId, nextStatus) => {
+    try {
+      await updateProperty({ id: propertyId, status: nextStatus })
+      toast.success(`Property status updated to "${nextStatus}".`)
+    } catch (err) {
+      toast.error(err.message || 'Failed to update status')
+    }
+  }
+
   const displayProperties = myProperties.map((prop) => ({
     id: prop.id,
     title: prop.title,
@@ -63,6 +72,7 @@ export default function SellerDashboard({ isSeller = true }) {
     isVerified: isBitTruthy(prop.is_verified),
     isVisible: isBitTruthy(prop.is_visible),
     image: getPropertyThumbnail(prop),
+    status: prop.status,
   }))
 
   const displayReviews = seller?.recent_reviews?.length > 0
@@ -180,12 +190,12 @@ export default function SellerDashboard({ isSeller = true }) {
                   key={prop.id}
                   className="p-4 rounded-2xl border border-border/40 bg-card flex flex-col sm:flex-row gap-4 sm:items-center hover:shadow-md transition-all duration-300"
                 >
-                  <div className="flex gap-4 items-center flex-grow min-w-0">
+                  <Link to={`/properties/${prop.id}`} className="flex gap-4 items-center flex-grow min-w-0 group hover:opacity-90">
                     <div className="h-20 w-20 rounded-xl overflow-hidden bg-muted shrink-0">
-                      <img src={prop.image} alt={prop.title} className="h-full w-full object-cover" />
+                      <img src={prop.image} alt={prop.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                     </div>
                     <div className="flex-grow min-w-0">
-                      <h3 className="font-bold text-sm sm:text-base text-foreground truncate">{prop.title}</h3>
+                      <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">{prop.title}</h3>
                       <p className="text-xs sm:text-sm font-semibold text-primary">{prop.price}</p>
                       <div className="flex items-center gap-4 mt-2 text-[10px] sm:text-xs text-muted-foreground font-medium">
                         <span>{prop.views} views</span>
@@ -193,7 +203,7 @@ export default function SellerDashboard({ isSeller = true }) {
                         <span>{prop.inquiries} inquiries</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="flex flex-col sm:items-end gap-3 shrink-0 sm:min-w-[180px]">
                     <div className="flex items-center gap-2">
@@ -206,39 +216,64 @@ export default function SellerDashboard({ isSeller = true }) {
                           Pending
                         </span>
                       )}
-                      {prop.isVerified && prop.isVisible && (
+                      {/* {prop.isVerified && prop.isVisible && (
                         <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
                           Public
                         </span>
-                      )}
+                      )} */}
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        prop.status?.toLowerCase() === 'sold'
+                          ? 'bg-rose-500/10 text-rose-700'
+                          : prop.status?.toLowerCase() === 'pending'
+                            ? 'bg-amber-500/10 text-amber-700'
+                            : 'bg-emerald-500/10 text-emerald-700'
+                      }`}>
+                        {prop.status || 'Available'}
+                      </span>
                     </div>
 
-                    <label
-                      className={`flex items-center justify-between gap-3 w-full sm:w-auto ${
-                        !prop.isVerified ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                    >
-                      <span className="text-xs font-medium text-foreground">Visible to public</span>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={prop.isVisible}
-                        disabled={!prop.isVerified || (isUpdating && togglingId === prop.id)}
-                        onClick={() => {
-                          if (!prop.isVerified) return
-                          handleVisibilityToggle(prop, !prop.isVisible)
-                        }}
-                        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                          prop.isVisible ? 'bg-primary' : 'bg-muted'
-                        } ${!prop.isVerified ? 'pointer-events-none' : ''}`}
+                    <div className="flex flex-col sm:items-end gap-2 w-full">
+                      <label
+                        className={`flex items-center justify-between gap-3 w-full sm:w-auto ${
+                          !prop.isVerified ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
                       >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${
-                            prop.isVisible ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </label>
+                        <span className="text-xs font-medium text-foreground">Make Visible</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={prop.isVisible}
+                          disabled={!prop.isVerified || (isUpdating && togglingId === prop.id)}
+                          onClick={() => {
+                            if (!prop.isVerified) return
+                            handleVisibilityToggle(prop, !prop.isVisible)
+                          }}
+                          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                            prop.isVisible ? 'bg-primary' : 'bg-muted'
+                          } ${!prop.isVerified ? 'pointer-events-none' : ''}`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${
+                              prop.isVisible ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </label>
+
+                      <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                        <span className="text-xs font-medium text-foreground">Status</span>
+                        <select
+                          value={prop.status || 'Available'}
+                          onChange={(e) => handleStatusChange(prop.id, e.target.value)}
+                          disabled={isUpdating && togglingId === prop.id}
+                          className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+                        >
+                          <option value="Available">Available</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Sold">Sold</option>
+                        </select>
+                      </div>
+                    </div>
                     {!prop.isVerified && (
                       <p className="text-[10px] text-muted-foreground text-right">
                         Available after admin approval

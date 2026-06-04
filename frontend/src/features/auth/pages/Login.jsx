@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,7 +19,20 @@ const loginSchema = z.object({
 export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { mutateAsync: login, isPending: isLoading } = useLogin()
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('expired') === 'true') {
+      // Small timeout to allow component/toaster mount
+      const t = setTimeout(() => {
+        toast.error('Session Expired. Please log in again.')
+        navigate('/login', { replace: true })
+      }, 100)
+      return () => clearTimeout(t)
+    }
+  }, [location.search, navigate])
 
   const {
     register,

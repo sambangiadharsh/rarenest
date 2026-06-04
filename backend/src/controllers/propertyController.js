@@ -74,6 +74,13 @@ exports.getProperties = async (req, res) => {
             }
         }
 
+        if (filters.is_visible === 'all') {
+            const auth = await getOptionalAuth(req);
+            if (auth?.role !== 'Admin') {
+                delete filters.is_visible;
+            }
+        }
+
         const properties = await propertyService.getAllProperties(filters);
         res.status(200).json({
             success: true,
@@ -90,7 +97,11 @@ exports.getProperties = async (req, res) => {
 // @route   GET /api/properties/:id
 exports.getProperty = async (req, res) => {
     try {
-        const property = await propertyService.getPropertyById(req.params.id);
+        const auth = await getOptionalAuth(req);
+        const isAdmin = auth?.role === 'Admin';
+        const property = await propertyService.getPropertyById(req.params.id, {
+            includeEnquiries: isAdmin,
+        });
         if (!property) {
             return res.status(404).json({ success: false, message: 'Property not found' });
         }

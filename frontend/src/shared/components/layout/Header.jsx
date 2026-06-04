@@ -145,7 +145,7 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          {navIcons}
+          
           {isAuthenticated ? (
             <>
               {!isAdmin && (
@@ -159,6 +159,7 @@ export default function Header() {
                   List a Property
                 </Button>
               )}
+              {navIcons}
               <AccountMenu
                 isAuthenticated={isAuthenticated}
                 user={user}
@@ -166,6 +167,7 @@ export default function Header() {
                 onLogout={handleLogout}
               />
             </>
+            
           ) : (
             <AccountMenu
               isAuthenticated={false}

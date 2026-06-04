@@ -43,6 +43,7 @@ CREATE TABLE Properties (
     contact_email NVARCHAR(255),
     contact_phone NVARCHAR(20),
     property_story NVARCHAR(MAX),
+    property_age INT NULL,
     special_features NVARCHAR(MAX), -- Store as JSON string or text
     status NVARCHAR(20) CHECK (status IN ('Available', 'Sold', 'Pending')) DEFAULT 'Available',
     is_verified BIT DEFAULT 0,

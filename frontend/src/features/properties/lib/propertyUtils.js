@@ -63,7 +63,20 @@ export function mapPropertyForCard(apiProperty) {
     asking_price: apiProperty.asking_price,
     size_sqft: apiProperty.size_sqft,
     image: getPropertyThumbnail(apiProperty),
+    status: apiProperty.status || 'Available',
+    created_at: apiProperty.created_at,
   }
+}
+
+export function getDaysAgo(dateString) {
+  if (!dateString) return 'Listed 10 days ago' // Default fallback matching the design
+  const date = new Date(dateString)
+  const today = new Date()
+  const diffTime = Math.abs(today - date)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  if (diffDays <= 0) return 'Listed today'
+  if (diffDays === 1) return 'Listed 1 day ago'
+  return `Listed ${diffDays} days ago`
 }
 
 export function getPropertyImages(property) {

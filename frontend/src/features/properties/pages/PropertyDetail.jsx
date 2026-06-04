@@ -20,6 +20,7 @@ import { useCreateEnquiry } from '@/features/enquiries'
 import { useProperty } from '@/features/properties'
 import { useWishlistIds, useToggleWishlist } from '@/features/wishlist'
 
+import { formatPropertyAge } from '@/features/properties/constants/propertyAge'
 import {
   formatPriceOnwards,
   getPropertyImages,
@@ -31,7 +32,7 @@ import {
 export default function PropertyDetail() {
   const { id } = useParams()
 
-  const { isAuthenticated } = useSelector((state) => state.auth)
+  const { isAuthenticated, user } = useSelector((state) => state.auth)
 
   const [enquiryOpen, setEnquiryOpen] = useState(false)
 
@@ -50,6 +51,7 @@ export default function PropertyDetail() {
     useCreateEnquiry()
 
   const property = data?.data
+  const isOwner = isAuthenticated && user && property && String(user.id) === String(property.seller_id)
 
   const requireAuth = (actionLabel) => {
     if (isAuthenticated) return true
@@ -128,6 +130,10 @@ export default function PropertyDetail() {
   const locationLabel = [city, state].filter(Boolean).join(', ')
 
   const features = parseSpecialFeatures(property?.special_features)
+  const propertyAgeLabel =
+    property?.property_age != null && property.property_age !== ''
+      ? formatPropertyAge(property.property_age)
+      : null
 
   if (isLoading) {
     return (
@@ -257,6 +263,12 @@ export default function PropertyDetail() {
 
                 {Number(property.size_sqft).toLocaleString('en-IN')} sqft
               </div>
+
+              {propertyAgeLabel && (
+                <div className="text-neutral-600 dark:text-neutral-400">
+                  Property age: {propertyAgeLabel}
+                </div>
+              )}
             </div>
           </div>
 
@@ -275,7 +287,7 @@ export default function PropertyDetail() {
           {property.property_story && (
             <section>
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
-                The story
+                Property story
               </h2>
 
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-neutral-600 dark:text-neutral-400">
@@ -337,42 +349,53 @@ export default function PropertyDetail() {
 
           {/* ACTION BUTTONS */}
           <div className="border-t border-brand-sand pt-5 dark:border-neutral-800">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                className="h-10 flex-1 gap-2 bg-brand-terracotta text-sm font-medium hover:bg-brand-terracotta/90"
-                disabled={isSendingEnquiry}
-                onClick={handleSendEnquiry}
-              >
-                {isSendingEnquiry ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+            {isOwner ? (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to={`/properties/${id}/edit`}
+                  className="h-10 flex-1 gap-2 bg-brand-terracotta hover:bg-brand-terracotta/90 text-white text-sm font-semibold rounded-xl shadow-md transition-colors flex items-center justify-center"
+                >
+                  Edit Listing
+                </Link>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  type="button"
+                  className="h-10 flex-1 gap-2 bg-brand-terracotta text-sm font-medium hover:bg-brand-terracotta/90"
+                  disabled={isSendingEnquiry}
+                  onClick={handleSendEnquiry}
+                >
+                  {isSendingEnquiry ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
 
-                Send enquiry
-              </Button>
+                  Send enquiry
+                </Button>
 
-              <Button
-                type="button"
-                variant="outline"
-                className={`h-10 flex-1 gap-2 border-brand-sand text-sm font-medium ${
-                  isWishlisted ? 'text-destructive hover:text-destructive' : ''
-                }`}
-                disabled={isTogglingWishlist}
-                onClick={handleToggleWishlist}
-              >
-                {isTogglingWishlist ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Heart
-                    className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`}
-                  />
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={`h-10 flex-1 gap-2 border-brand-sand text-sm font-medium ${
+                    isWishlisted ? 'text-destructive hover:text-destructive' : ''
+                  }`}
+                  disabled={isTogglingWishlist}
+                  onClick={handleToggleWishlist}
+                >
+                  {isTogglingWishlist ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Heart
+                      className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`}
+                    />
+                  )}
 
-                {isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-              </Button>
-            </div>
+                  {isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

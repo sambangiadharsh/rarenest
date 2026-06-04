@@ -1,14 +1,19 @@
 const { poolPromise, sql } = require('../config/db');
 
 const PROPERTY_SELECT = `
-    SELECT p.*, pt.name AS property_type_name
+    SELECT p.*, pt.name AS property_type_name,
+        u.first_name AS seller_first_name,
+        u.last_name AS seller_last_name,
+        u.email AS seller_email,
+        u.phone AS seller_phone
     FROM Properties p
     LEFT JOIN PropertyTypes pt ON p.property_type_id = pt.id
+    LEFT JOIN Users u ON p.seller_id = u.id
 `;
 
 class PropertyRepository {
     async findAll(filters = {}) {
-        const { city, type, minPrice, maxPrice, minSize, maxSize, seller_id, is_verified } = filters;
+        const { city, type, minPrice, maxPrice, minSize, maxSize, seller_id, is_verified, is_visible } = filters;
         const pool = await poolPromise;
 
         let query = `${PROPERTY_SELECT} WHERE 1=1`;
@@ -56,7 +61,9 @@ class PropertyRepository {
             query += ' AND p.is_verified = @is_verified';
         }
 
-        if (!isPortfolioQuery) {
+        if (is_visible === 'all') {
+            // no is_visible filter (admin portfolio)
+        } else if (!isPortfolioQuery) {
             request.input('is_visible', sql.Bit, 1);
             query += ' AND p.is_visible = @is_visible';
         }
@@ -104,19 +111,20 @@ class PropertyRepository {
         request.input('contact_email', sql.NVarChar, propertyData.contact_email || null);
         request.input('contact_phone', sql.NVarChar, propertyData.contact_phone || null);
         request.input('property_story', sql.NVarChar, propertyData.property_story || null);
+        request.input('property_age', sql.Int, propertyData.property_age ?? null);
         request.input('special_features', sql.NVarChar, specialFeatures);
 
         const result = await request.query(`
             INSERT INTO Properties (
                 seller_id, title, property_type_id, asking_price, size_sqft,
                 location_city, location_state, location_district, contact_email,
-                contact_phone, property_story, special_features
+                contact_phone, property_story, property_age, special_features
             )
             OUTPUT inserted.*
             VALUES (
                 @seller_id, @title, @property_type_id, @asking_price, @size_sqft,
                 @location_city, @location_state, @location_district, @contact_email,
-                @contact_phone, @property_story, @special_features
+                @contact_phone, @property_story, @property_age, @special_features
             )
         `);
         return this.findById(result.recordset[0].id);
@@ -130,7 +138,7 @@ class PropertyRepository {
         const allowedKeys = [
             'title', 'property_type_id', 'asking_price', 'size_sqft',
             'location_city', 'location_state', 'location_district',
-            'contact_email', 'contact_phone', 'property_story', 'special_features', 'status',
+            'contact_email', 'contact_phone', 'property_story', 'property_age', 'special_features', 'status',
             'is_visible',
         ];
 
@@ -145,6 +153,8 @@ class PropertyRepository {
 
             if (key === 'asking_price' || key === 'size_sqft') {
                 request.input(key, sql.Decimal(18, 2), value);
+            } else if (key === 'property_age') {
+                request.input(key, sql.Int, value);
             } else if (key === 'property_type_id') {
                 request.input(key, sql.UniqueIdentifier, value);
             } else if (key === 'is_visible') {

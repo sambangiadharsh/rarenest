@@ -42,12 +42,15 @@ export default function Home() {
   const [minPrice, setMinPrice] = React.useState('')
   const [maxPrice, setMaxPrice] = React.useState('')
   const [maxSize, setMaxSize] = React.useState(3500)
+  const [statusFilter, setStatusFilter] = React.useState('All')
+  const [statusOpen, setStatusOpen] = React.useState(false)
   
   // Applied filters state
   const [appliedFilters, setAppliedFilters] = React.useState({
     minPrice: '',
     maxPrice: '',
-    maxSize: 3500
+    maxSize: 3500,
+    status: 'All'
   })
 
   // Waitlist State
@@ -80,6 +83,11 @@ export default function Home() {
     apiTypes.length === 0 ? 'All Homes' : activeCategory
 
   const filteredProperties = displayProperties.filter((prop) => {
+    // 0. Status Filter
+    const status = prop.status?.toLowerCase() || 'available'
+    const appliedStatus = appliedFilters.status.toLowerCase()
+    if (appliedStatus !== 'all' && status !== appliedStatus) return false
+
     // 1. Category Filter
     if (!categoryMatches(prop.property_type, effectiveCategory)) return false
 
@@ -98,7 +106,8 @@ export default function Home() {
     setAppliedFilters({
       minPrice,
       maxPrice,
-      maxSize
+      maxSize,
+      status: statusFilter
     })
     toast.success('Filters applied successfully!')
   }
@@ -107,10 +116,13 @@ export default function Home() {
     setMinPrice('')
     setMaxPrice('')
     setMaxSize(3500)
+    setStatusFilter('All')
+    setStatusOpen(false)
     setAppliedFilters({
       minPrice: '',
       maxPrice: '',
-      maxSize: 3500
+      maxSize: 3500,
+      status: 'All'
     })
     toast.success('Filters reset!')
   }
@@ -273,7 +285,7 @@ export default function Home() {
             <div className="lg:col-span-1 lg:sticky lg:top-28 h-fit bg-brand-cream border border-brand-sand rounded-2xl p-5 flex flex-col gap-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="font-serif text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-brand-terracotta" /> Filter Dwellings
+                  <SlidersHorizontal className="h-4 w-4 text-brand-terracotta" /> Filter
                 </span>
                 <button 
                   onClick={clearActiveFilters}
@@ -303,6 +315,61 @@ export default function Home() {
                     onChange={(e) => setMaxPrice(e.target.value)}
                     className="w-full bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-terracotta/50 transition-colors"
                   />
+                </div>
+              </div>
+
+              {/* Property Status Filter (Custom Dropdown) */}
+              <div className="flex flex-col gap-2 relative z-20">
+                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
+                  Property Status
+                </label>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setStatusOpen(!statusOpen)}
+                    className="w-full flex items-center justify-between bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-terracotta/50 transition-all cursor-pointer text-left font-sans font-medium text-neutral-700 dark:text-neutral-300"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        statusFilter === 'Available' ? 'bg-emerald-500' :
+                        statusFilter === 'Pending' ? 'bg-amber-500' :
+                        statusFilter === 'Sold' ? 'bg-rose-500' : 'bg-neutral-400'
+                      }`} />
+                      {statusFilter === 'All' ? 'All Statuses' : statusFilter}
+                    </span>
+                    <span className="text-neutral-400 text-xs">▼</span>
+                  </button>
+                  
+                  {statusOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />
+                      <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl shadow-xl z-40 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                        {[
+                          { label: 'All Statuses', value: 'All', color: 'bg-neutral-400' },
+                          { label: 'Available', value: 'Available', color: 'bg-emerald-500' },
+                          { label: 'Pending', value: 'Pending', color: 'bg-amber-500' },
+                          { label: 'Sold', value: 'Sold', color: 'bg-rose-500' }
+                        ].map((item) => (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => {
+                              setStatusFilter(item.value)
+                              setStatusOpen(false)
+                            }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-left cursor-pointer transition-colors duration-200 ${
+                              statusFilter === item.value
+                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold'
+                                : 'text-neutral-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800'
+                            }`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

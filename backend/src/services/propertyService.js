@@ -1,14 +1,25 @@
 const propertyRepository = require('../repositories/propertyRepository');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
+const enquiryRepository = require('../repositories/enquiryRepository');
 const mediaService = require('./mediaService');
 
 class PropertyService {
-    async getPropertyById(id) {
+    async getPropertyById(id, options = {}) {
         const property = await propertyRepository.findById(id);
         if (!property) return null;
 
         property.media = await propertyRepository.findMediaByPropertyId(id);
         this._parseSpecialFeatures(property);
+
+        const first = property.seller_first_name || '';
+        const last = property.seller_last_name || '';
+        property.seller_name = [first, last].filter(Boolean).join(' ') || null;
+
+        property.enquiry_count = await enquiryRepository.countByPropertyId(id);
+        if (options.includeEnquiries) {
+            property.enquiries = await enquiryRepository.findByPropertyId(id);
+        }
+
         return property;
     }
 
