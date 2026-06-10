@@ -79,9 +79,7 @@ export default function Register() {
 
         {/* Title */}
         <div className="flex flex-col items-center text-center gap-2">
-          <div className="inline-flex items-center gap-1.5 text-[9px] font-bold text-brand-bronze tracking-widest uppercase bg-brand-bronze/10 px-3 py-1 rounded-full mb-1">
-            <Sparkles className="h-3 w-3" /> New Journey
-          </div>
+          
           <h1 className="font-serif text-3xl font-bold tracking-tight text-neutral-950 dark:text-white">Create Account</h1>
           <p className="text-xs text-neutral-500 max-w-[280px]">
             Sign up to discover alternative dwellings or list your custom residences.
@@ -106,7 +104,7 @@ export default function Register() {
                     : 'border-neutral-200 dark:border-neutral-850 bg-transparent text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-950/40 hover:text-neutral-600'
                 }`}
               >
-                <span>Buyer</span>
+                <span>Buyer</span>  
                 <span className="text-[9px] font-semibold opacity-75">Find Rare Homes</span>
               </button>
               <button

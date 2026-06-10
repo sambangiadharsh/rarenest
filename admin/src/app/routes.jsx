@@ -10,6 +10,7 @@ import { CareersPage } from '@/features/careers'
 import { AboutUsPage, TermsPage, PrivacyPage } from '@/features/cms'
 import { ContactInfoPage } from '@/features/contact'
 import { FaqsPage } from '@/features/faqs'
+import { HeroBannersPage } from '@/features/heroBanners'
 import { NotFoundPage } from '@/features/notFound'
 
 export const router = createBrowserRouter([
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: 'content/terms', element: <TermsPage /> },
           { path: 'content/privacy', element: <PrivacyPage /> },
           { path: 'content/faqs', element: <FaqsPage /> },
+          { path: 'content/hero-banners', element: <HeroBannersPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

@@ -1,24 +1,21 @@
 import React from 'react'
 import { Link,useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Sparkles, 
-  ArrowRight, 
-  Loader2, 
-  MapPin, 
-  SlidersHorizontal, 
-  X, 
-  Mail, 
+import {
+  Loader2,
+  MapPin,
+  SlidersHorizontal,
+  X,
+  Mail,
   ChevronRight,
-  ShieldCheck,
   CheckCircle2,
-  DollarSign
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import PropertyCard from '@/features/properties/components/PropertyCard'
 import { useProperties } from '@/features/properties'
 import { usePropertyTypes } from '@/features/properties'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
+import { HeroSwiper, useActiveBanners } from '@/features/heroBanners'
 import { toast } from 'sonner'
 
 const typeIcons = {
@@ -32,6 +29,8 @@ const typeIcons = {
 export default function Home() {
   const { data: propertiesRes, isLoading } = useProperties()
   const { data: typesRes, isLoading: typesLoading } = usePropertyTypes()
+  const { data: bannersRes } = useActiveBanners()
+  const activeBanners = bannersRes?.data ?? []
   const realProperties = propertiesRes?.data || []
   const apiTypes = typesRes?.data || []
   const navigate=useNavigate()
@@ -197,45 +196,11 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-16 md:gap-24 w-full pb-16">
       
-      {/* 1. HERO HERO INTRO (FULL-WIDTH EDGE-TO-EDGE) */}
-      <section className="relative bg-green-20 text-white min-h-[540px] flex  items-center w-full shadow-lg">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=2000&q=80" 
-            alt="Hero mountain background" 
-            className="w-full h-full object-cover brightness-[0.25] opacity-40 mix-blend-overlay"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-forest via-brand-forest/90 to-transparent"></div>
-        </div>
-
-        <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-20 sm:py-24 flex flex-col gap-6 items-center justify-center text-center">
-          <div className="inline-flex items-center gap-2 bg-brand-terracotta/25 border border-brand-terracotta/40 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider text-brand-terracotta-light uppercase max-w-max">
-            <Sparkles className="h-3.5 w-3.5" /> RareNest Marketplace
-          </div>
-          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-[1.1] tracking-tight max-w-3xl">
-            Own a home that <br />
-            <span className="italic text-brand-terracotta font-medium font-serif">tells a story.</span>
-          </h1>
-          <p className="text-brand-warm-white/85 font-sans font-light text-base sm:text-lg max-w-2xl leading-relaxed">
-            Discover and acquire extraordinary alternative dwellings worldwide. Vetted micro-dwellings, clay earthships, timber cabins, and custom container sanctuaries built by master craftsmen.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <a 
-              href="#dwellings" 
-              className="bg-brand-terracotta hover:bg-brand-terracotta-light text-white px-7 py-4 rounded-xl font-bold shadow-lg shadow-brand-terracotta/20 transition-all duration-300 text-center flex items-center justify-center gap-2 group border-none"
-            >
-              Explore Dwellings
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </a>
-            <button 
-              onClick={() => setShowWaitlist(true)}
-              className="bg-brand-forest-mid/60 hover:bg-brand-forest-mid/80 text-white border border-brand-forest-mid/80 px-7 py-4 rounded-xl font-bold backdrop-blur-sm transition-all duration-300"
-            >
-              Join Waitlist
-            </button>
-          </div>
-        </div>
-      </section>
+      {/* 1. HERO CAROUSEL */}
+      <HeroSwiper
+        banners={activeBanners}
+        onWaitlist={() => setShowWaitlist(true)}
+      />
 
       {/* CENTERED LAYOUT WRAPPER FOR REST OF CONTENT */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex flex-col gap-16 md:gap-24">

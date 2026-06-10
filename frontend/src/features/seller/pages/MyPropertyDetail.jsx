@@ -6,13 +6,13 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  MoreVertical,
+ 
   CheckCircle2,
   XCircle,
   Clock,
   AlertCircle,
   RefreshCw,
-  Upload,
+ 
   Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -145,12 +145,12 @@ function VerificationStatusSection({ property, onResubmit, isResubmitting }) {
 
       {canResubmit && (
         <div className="mt-4 flex flex-col gap-2">
-          <Link
+          {/* <Link
             to={`/properties/${property.id}/edit`}
             className="flex items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
           >
             <Upload className="h-4 w-4" /> Edit & Upload Documents
-          </Link>
+          </Link> */}
           <button
             type="button"
             disabled={isResubmitting}
@@ -246,7 +246,7 @@ export default function MyPropertyDetail() {
   const navigate = useNavigate()
   const { user } = useSelector((state) => state.auth)
   const [activeTab, setActiveTab] = useState('Overview')
-  const [menuOpen, setMenuOpen] = useState(false)
+ 
 
   const { data, isLoading, isError, error } = useProperty(id)
   const { data: historyRes, isLoading: isHistoryLoading } = usePropertyVerificationHistory(id)
@@ -372,26 +372,7 @@ export default function MyPropertyDetail() {
                 >
                   <Pencil className="h-3.5 w-3.5" /> Edit Property
                 </Link>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setMenuOpen((o) => !o)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 transition-colors dark:border-neutral-600 dark:bg-neutral-800"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                  {menuOpen && (
-                    <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-neutral-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
-                      <Link
-                        to={`/properties/${id}/edit`}
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-700"
-                      >
-                        <Pencil className="h-4 w-4 text-neutral-400" /> Edit Property
-                      </Link>
-                    </div>
-                  )}
-                </div>
+               
               </div>
             </div>
           </div>
@@ -512,6 +493,7 @@ export default function MyPropertyDetail() {
                 <tr className="border-b border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Buyer</th>
                   <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500 sm:table-cell">Email</th>
+                  <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500 md:table-cell">Phone</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Date</th>
                 </tr>
               </thead>
@@ -522,6 +504,7 @@ export default function MyPropertyDetail() {
                     <tr key={enquiry.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                       <td className="px-4 py-3 font-medium text-neutral-800 dark:text-neutral-100">{name}</td>
                       <td className="hidden px-4 py-3 text-neutral-500 sm:table-cell">{enquiry.buyer_email || '—'}</td>
+                      <td className="hidden px-4 py-3 text-neutral-500 md:table-cell">{enquiry.buyer_phone || '—'}</td>
                       <td className="px-4 py-3 text-neutral-500">{formatDate(enquiry.created_at)}</td>
                     </tr>
                   )

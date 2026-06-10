@@ -56,7 +56,8 @@ class EnquiryRepository {
                     e.created_at,
                     u.first_name AS buyer_first_name,
                     u.last_name AS buyer_last_name,
-                    u.email AS buyer_email
+                    u.email AS buyer_email,
+                    u.phone AS buyer_phone
                 FROM Enquiries e
                 LEFT JOIN Users u ON e.from_user_id = u.id
                 WHERE e.property_id = @property_id

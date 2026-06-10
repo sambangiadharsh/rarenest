@@ -365,6 +365,46 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                       </p>
                     </div>
                   )}
+
+                  <div className="col-span-full space-y-3 border-t border-border pt-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Verification Status</label>
+                      <select
+                        value={effectiveStatus}
+                        onChange={(e) => setSelectedStatus(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Select status…</option>
+                        {VERIFICATION_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Reason
+                        {(effectiveStatus === 'Rejected' || effectiveStatus === 'RequestChanges') && (
+                          <span className="ml-1 text-destructive">*</span>
+                        )}
+                      </label>
+                      <textarea
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        placeholder="Add a reason or note for the seller…"
+                        rows={3}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full bg-brand-forest hover:bg-brand-forest/90"
+                      disabled={isSaving || !effectiveStatus}
+                      onClick={handleSave}
+                    >
+                      {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      Save Verification
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -406,47 +446,6 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
         )}
       </div>
 
-      {property && (
-        <div className="space-y-3 border-t border-border bg-background p-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Verification Status</label>
-            <select
-              value={effectiveStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Select status…</option>
-              {VERIFICATION_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Reason
-              {(effectiveStatus === 'Rejected' || effectiveStatus === 'RequestChanges') && (
-                <span className="ml-1 text-destructive">*</span>
-              )}
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Add a reason or note for the seller…"
-              rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-            />
-          </div>
-          <Button
-            type="button"
-            className="w-full bg-brand-forest hover:bg-brand-forest/90"
-            disabled={isSaving || !effectiveStatus}
-            onClick={handleSave}
-          >
-            {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-            Save Verification
-          </Button>
-        </div>
-      )}
     </aside>
   )
 }

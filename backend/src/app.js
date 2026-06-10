@@ -48,6 +48,7 @@ app.use('/api/cms', require('./routes/cmsRoutes'));
 app.use('/api/faqs', require('./routes/faqRoutes'));
 app.use('/api/contact-info', require('./routes/contactInfoRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
+app.use('/api/hero-banners', require('./routes/heroBannerRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {

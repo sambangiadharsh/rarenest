@@ -207,6 +207,22 @@ CREATE TABLE ContactInfo (
     FOREIGN KEY (updated_by) REFERENCES Users(id)
 );
 
+-- 12. HeroBanners Table
+CREATE TABLE HeroBanners (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+
+    title NVARCHAR(255) NOT NULL,
+    subtitle NVARCHAR(500),
+
+    image_url NVARCHAR(1000) NOT NULL,
+
+    display_order INT NOT NULL DEFAULT 1,
+    is_active BIT NOT NULL DEFAULT 1,
+
+    created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+    updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+);
+
 --11 Careers table
 
 CREATE TABLE Careers (

@@ -3,7 +3,6 @@ import {
   Building2,
   List,
   Tags,
-  Mail,
   Star,
   Briefcase,
   FileText,
@@ -13,6 +12,7 @@ import {
   Shield,
   HelpCircle,
   ChevronRight,
+  Images,
 } from 'lucide-react'
 
 export const mainNavItems = [
@@ -48,6 +48,7 @@ export const contentNavGroup = {
     { title: 'Privacy Policy', href: '/content/privacy', icon: Shield },
     { title: 'FAQs', href: '/content/faqs', icon: HelpCircle },
     { title: 'Careers', href: '/content/careers', icon: Briefcase },
+    { title: 'Hero Banners', href: '/content/hero-banners', icon: Images },
   ],
 }
 
@@ -63,6 +64,7 @@ export const routeTitles = {
   '/content/terms': 'Terms and Conditions',
   '/content/privacy': 'Privacy Policy',
   '/content/faqs': 'FAQs',
+  '/content/hero-banners': 'Hero Banners',
   '/login': 'Sign in',
 }
 
