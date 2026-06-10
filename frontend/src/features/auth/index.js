@@ -1,5 +1,6 @@
 export { default as LoginPage } from './pages/Login'
 export { default as RegisterPage } from './pages/Register'
+export { default as GuestRoute } from './components/GuestRoute'
 export { default as DashboardPage } from './pages/Dashboard'
 export { default as ProfilePage } from './pages/Profile'
 export { useLogin, useRegister, useLogout } from './hooks/useAuth'

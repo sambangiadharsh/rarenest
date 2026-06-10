@@ -12,35 +12,44 @@ const apiClient = axios.create({
   },
 })
 
+let isHandling401 = false
+
+function isAuthRouteRequest(config) {
+  const url = config?.url || ''
+  return url.includes('/auth/')
+}
+
+function resetHandling401() {
+  isHandling401 = false
+}
+
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth state
-      localStorage.removeItem('user')
-      try {
-        store.dispatch(logout())
-      } catch (e) {
-        // Fallback
-      }
-      
-      // Clear react-query cache
-      try {
-        queryClient.clear()
-      } catch (e) {
-        // Fallback
-      }
-      
-      // Redirect to Login page and show Session Expired
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login?expired=true'
-      }
-    }
-
+    const status = error.response?.status
     const data = error.response?.data
     const err = new Error(data?.message || 'An error occurred')
     err.requiresLogin = data?.requiresLogin === true
-    err.status = error.response?.status
+    err.status = status
+
+    if (status === 401 && !isAuthRouteRequest(error.config) && !isHandling401) {
+      isHandling401 = true
+
+      try { localStorage.removeItem('user') } catch { /* ignore */ }
+      try { store.dispatch(logout()) } catch { /* ignore */ }
+      try { queryClient.clear() } catch { /* ignore */ }
+
+      if (!window.location.pathname.includes('/login')) {
+        // Full-page redirect clears module state on reload.
+        // Safety reset in case navigation is blocked by the browser.
+        setTimeout(resetHandling401, 8_000)
+        window.location.href = '/login?expired=true'
+      } else {
+        // Already on login — just unlock so future errors can be handled
+        resetHandling401()
+      }
+    }
+
     return Promise.reject(err)
   },
 )

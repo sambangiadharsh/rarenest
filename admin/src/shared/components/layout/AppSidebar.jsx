@@ -43,20 +43,20 @@ export default function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border pb-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link to="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-brand-forest text-sidebar-primary-foreground">
-                  <span className="font-heading text-sm font-bold">R</span>
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-brand-forest shadow-sm">
+                  <span className="font-heading text-sm font-bold text-white">R</span>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold font-heading text-brand-forest">
+                  <span className="truncate font-bold font-heading text-brand-forest">
                     RareNest
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Admin
+                  <span className="truncate text-[10px] font-medium uppercase tracking-wider text-brand-terracotta">
+                    Admin Console
                   </span>
                 </div>
               </Link>
@@ -65,9 +65,11 @@ export default function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="py-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Main
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => {
@@ -75,7 +77,12 @@ export default function AppSidebar() {
                 const active = isPathActive(pathname, item.href)
                 return (
                   <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className={active ? 'bg-brand-forest text-white hover:bg-brand-forest-mid hover:text-white font-medium' : ''}
+                    >
                       <Link to={item.href}>
                         <Icon />
                         <span>{item.title}</span>
@@ -89,7 +96,9 @@ export default function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Property</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Property
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible defaultOpen={propertyOpen} className="group/collapsible">
@@ -98,10 +107,11 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       tooltip={propertyNavGroup.title}
                       isActive={propertyOpen}
+                      className={propertyOpen ? 'text-brand-forest font-medium' : ''}
                     >
                       <propertyNavGroup.icon />
                       <span>{propertyNavGroup.title}</span>
-                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -111,7 +121,11 @@ export default function AppSidebar() {
                         const active = isPathActive(pathname, item.href)
                         return (
                           <SidebarMenuSubItem key={item.href}>
-                            <SidebarMenuSubButton asChild isActive={active}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={active}
+                              className={active ? 'text-brand-forest font-medium' : ''}
+                            >
                               <Link to={item.href}>
                                 <Icon />
                                 <span>{item.title}</span>
@@ -129,7 +143,9 @@ export default function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Content</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Content
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible defaultOpen={contentOpen} className="group/collapsible">
@@ -138,10 +154,11 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       tooltip={contentNavGroup.title}
                       isActive={contentOpen}
+                      className={contentOpen ? 'text-brand-forest font-medium' : ''}
                     >
                       <contentNavGroup.icon />
                       <span>{contentNavGroup.title}</span>
-                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -151,7 +168,11 @@ export default function AppSidebar() {
                         const active = isPathActive(pathname, item.href)
                         return (
                           <SidebarMenuSubItem key={item.href}>
-                            <SidebarMenuSubButton asChild isActive={active}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={active}
+                              className={active ? 'text-brand-forest font-medium' : ''}
+                            >
                               <Link to={item.href}>
                                 <Icon />
                                 <span>{item.title}</span>
@@ -169,9 +190,9 @@ export default function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <p className="px-2 py-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-         
+      <SidebarFooter className="border-t border-sidebar-border pt-2">
+        <p className="px-2 py-1 text-[10px] text-muted-foreground/50 group-data-[collapsible=icon]:hidden">
+          v1.0 · RareNest Admin
         </p>
       </SidebarFooter>
       <SidebarRail />

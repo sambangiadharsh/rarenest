@@ -62,7 +62,7 @@ class PropertyMediaRepository {
         const pool = await poolPromise;
         await pool.request()
             .input('property_id', sql.UniqueIdentifier, propertyId)
-            .query('UPDATE PropertyMedia SET is_thumbnail = 0 WHERE property_id = @property_id');
+            .query('UPDATE PropertyMedia SET is_thumbnail = 0, updated_at = GETDATE() WHERE property_id = @property_id');
     }
 
     async setThumbnail(propertyId, mediaId) {
@@ -73,7 +73,7 @@ class PropertyMediaRepository {
             .input('id', sql.UniqueIdentifier, mediaId)
             .query(`
                 UPDATE PropertyMedia
-                SET is_thumbnail = 1
+                SET is_thumbnail = 1, updated_at = GETDATE()
                 OUTPUT INSERTED.*
                 WHERE id = @id AND property_id = @property_id AND media_type = 'Image'
             `);

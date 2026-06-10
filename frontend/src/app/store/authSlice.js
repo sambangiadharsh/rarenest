@@ -1,8 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit'
 
+function loadPersistedUser() {
+  const raw = localStorage.getItem('user')
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
+const persistedUser = loadPersistedUser()
+
 const initialState = {
-  user: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null,
-  isAuthenticated: !!localStorage.getItem('user'),
+  user: persistedUser,
+  isAuthenticated: !!persistedUser,
   activeFilters: {},
 }
 

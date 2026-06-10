@@ -10,7 +10,14 @@ import {
 import RequireAuth from '@/shared/components/auth/RequireAuth'
 
 
-import { LoginPage, RegisterPage, DashboardPage, ProfilePage } from '@/features/auth'
+import {
+  LoginPage,
+  RegisterPage,
+  DashboardPage,
+  ProfilePage,
+  GuestRoute,
+} from '@/features/auth'
+import { MyPropertyDetailPage } from '@/features/seller'
 import { MyEnquiriesPage } from '@/features/enquiries'
 import { MyWishlistPage } from '@/features/wishlist'
 import { AboutPage, TermsPage, PrivacyPage } from '@/features/cms'
@@ -26,9 +33,23 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'properties', element: <PropertiesPage /> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
+      {
+        element: <GuestRoute />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'register', element: <RegisterPage /> },
+          { path: 'signup', element: <RegisterPage /> },
+        ],
+      },
       { path: 'dashboard', element: <DashboardPage /> },
+      {
+        path: 'my-properties/:id',
+        element: (
+          <RequireAuth>
+            <MyPropertyDetailPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'enquiries', element: <MyEnquiriesPage /> },
       { path: 'wishlist', element: <MyWishlistPage /> },

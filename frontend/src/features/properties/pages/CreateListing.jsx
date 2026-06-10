@@ -14,6 +14,15 @@ import {
   Sparkles,
   ArrowLeft,
   X,
+  Check,
+  IndianRupee,
+  Maximize2,
+  Clock,
+  FileText,
+  Phone,
+  Mail,
+  Tag,
+  Camera,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { usePropertyTypes } from '@/features/properties'
@@ -44,32 +53,57 @@ const listingSchema = z.object({
 const STEP_CONFIG = [
   {
     number: 1,
-    title: 'Basic details & location',
-    description: 'Start with your property basics and location.',
+    label: 'Basics',
+    title: 'Property Basics',
+    description: 'Title, type, price, size, age and location.',
     fields: [
-      'title',
-      'property_type_id',
-      'asking_price',
-      'size_sqft',
-      'property_age',
-      'location_city',
-      'location_state',
-      'location_district',
+      'title', 'property_type_id', 'asking_price',
+      'size_sqft', 'property_age', 'location_city',
+      'location_state', 'location_district',
     ],
   },
   {
     number: 2,
-    title: 'Contact, story & features',
-    description: 'Tell buyers how to reach you and what makes this place unique.',
+    label: 'Details',
+    title: 'Story & Contact',
+    description: 'How buyers reach you and what makes this place rare.',
     fields: ['contact_email', 'contact_phone', 'property_story', 'special_features'],
   },
   {
     number: 3,
-    title: 'Photos & videos',
-    description: 'Upload media and choose your cover image.',
+    label: 'Media',
+    title: 'Photos & Videos',
+    description: 'Show the world what makes your property unique.',
     fields: [],
   },
 ]
+
+function FieldLabel({ icon: Icon, children }) {
+  return (
+    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+      {Icon && <Icon className="h-3.5 w-3.5 text-brand-bronze" />}
+      {children}
+    </label>
+  )
+}
+
+function FieldInput({ error, ...props }) {
+  return (
+    <input
+      {...props}
+      className={`h-11 w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 text-sm border outline-none transition-all placeholder:text-neutral-400 font-sans ${
+        error
+          ? 'border-destructive ring-1 ring-destructive'
+          : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-bronze/50 focus:ring-1 focus:ring-brand-bronze/20'
+      }`}
+    />
+  )
+}
+
+function FieldError({ message }) {
+  if (!message) return null
+  return <span className="text-[10px] text-destructive font-semibold">{message}</span>
+}
 
 export default function CreateListing() {
   const navigate = useNavigate()
@@ -99,122 +133,75 @@ export default function CreateListing() {
   })
 
   React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login', { replace: true })
-    }
+    if (!isAuthenticated) navigate('/login', { replace: true })
   }, [isAuthenticated, navigate])
 
   const validateAndSetImages = (fileList) => {
     const files = Array.from(fileList)
-    if (files.length === 0) return
-    if (images.length + files.length > MAX_IMAGES) {
-      toast.error(`Maximum ${MAX_IMAGES} images allowed`)
-      return
-    }
+    if (!files.length) return
+    if (images.length + files.length > MAX_IMAGES) { toast.error(`Maximum ${MAX_IMAGES} images allowed`); return }
     for (const f of files) {
-      if (f.size > MAX_IMAGE_BYTES) {
-        toast.error(`"${f.name}" exceeds 5MB`)
-        return
-      }
-      if (!f.type.startsWith('image/')) {
-        toast.error(`"${f.name}" is not an image`)
-        return
-      }
+      if (f.size > MAX_IMAGE_BYTES) { toast.error(`"${f.name}" exceeds 5MB`); return }
+      if (!f.type.startsWith('image/')) { toast.error(`"${f.name}" is not an image`); return }
     }
-    const previews = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }))
+    const previews = files.map((file) => ({ file, preview: URL.createObjectURL(file) }))
     setImages((prev) => [...prev, ...previews])
     if (images.length === 0) setThumbnailIndex(0)
   }
 
   const validateAndSetVideos = (fileList) => {
     const files = Array.from(fileList)
-    if (files.length === 0) return
-    if (videos.length + files.length > MAX_VIDEOS) {
-      toast.error(`Maximum ${MAX_VIDEOS} videos allowed`)
-      return
-    }
+    if (!files.length) return
+    if (videos.length + files.length > MAX_VIDEOS) { toast.error(`Maximum ${MAX_VIDEOS} videos allowed`); return }
     for (const f of files) {
-      if (f.size > MAX_VIDEO_BYTES) {
-        toast.error(`"${f.name}" exceeds 50MB`)
-        return
-      }
-      if (!f.type.startsWith('video/')) {
-        toast.error(`"${f.name}" is not a video`)
-        return
-      }
+      if (f.size > MAX_VIDEO_BYTES) { toast.error(`"${f.name}" exceeds 50MB`); return }
+      if (!f.type.startsWith('video/')) { toast.error(`"${f.name}" is not a video`); return }
     }
     setVideos((prev) => [...prev, ...files.map((file) => ({ file, name: file.name }))])
   }
 
-  const removeImageAt = (indexToRemove) => {
+  const removeImageAt = (i) => {
     setImages((prev) => {
-      const target = prev[indexToRemove]
-      if (target?.preview) URL.revokeObjectURL(target.preview)
-      return prev.filter((_, index) => index !== indexToRemove)
+      const t = prev[i]; if (t?.preview) URL.revokeObjectURL(t.preview)
+      return prev.filter((_, idx) => idx !== i)
     })
-    setThumbnailIndex((prev) => {
-      if (indexToRemove === prev) return 0
-      if (indexToRemove < prev) return prev - 1
-      return prev
-    })
+    setThumbnailIndex((prev) => i === prev ? 0 : i < prev ? prev - 1 : prev)
   }
 
-  const removeVideoAt = (indexToRemove) => {
-    setVideos((prev) => prev.filter((_, index) => index !== indexToRemove))
-  }
+  const removeVideoAt = (i) => setVideos((prev) => prev.filter((_, idx) => idx !== i))
 
+  React.useEffect(() => { imagesRef.current = images }, [images])
   React.useEffect(() => {
-    imagesRef.current = images
-  }, [images])
-
-  React.useEffect(() => {
-    return () => {
-      imagesRef.current.forEach((img) => {
-        if (img.preview) URL.revokeObjectURL(img.preview)
-      })
-    }
+    return () => { imagesRef.current.forEach((img) => { if (img.preview) URL.revokeObjectURL(img.preview) }) }
   }, [])
 
   const uploadFilesForProperty = async (propertyId) => {
-    if (images.length === 0 && videos.length === 0) return true
-
+    if (!images.length && !videos.length) return
     const formData = new FormData()
     images.forEach(({ file }) => formData.append('images', file))
     videos.forEach(({ file }) => formData.append('videos', file))
     formData.append('thumbnail_index', String(thumbnailIndex))
-
     await uploadMedia({ propertyId, formData })
-    return true
   }
 
   const onSubmit = async (data) => {
     try {
       let propertyId = pendingPropertyId
-
       if (!propertyId) {
         const res = await createProperty({
           ...data,
           special_features: data.special_features?.length ? data.special_features : undefined,
         })
-        if (!res.success) {
-          toast.error(res.message || 'Failed to create listing')
-          return
-        }
+        if (!res.success) { toast.error(res.message || 'Failed to create listing'); return }
         propertyId = res.data.id
       }
-
       try {
         await uploadFilesForProperty(propertyId)
-        toast.success('Listing created successfully! Pending admin verification.')
+        toast.success('Listing submitted! Pending admin verification.')
         navigate('/dashboard')
       } catch (uploadErr) {
         setPendingPropertyId(propertyId)
-        toast.error(
-          uploadErr.message || 'Listing saved but media upload failed. Click Submit to retry upload.',
-        )
+        toast.error(uploadErr.message || 'Listing saved but media upload failed — click Publish to retry.')
       }
     } catch (err) {
       toast.error(err.message || 'Failed to create listing')
@@ -224,415 +211,515 @@ export default function CreateListing() {
   const isSubmitting = isCreating || isUploading
   const totalSteps = STEP_CONFIG.length
   const activeStep = STEP_CONFIG[currentStep - 1]
-  const progress = (currentStep / totalSteps) * 100
 
   const goToNextStep = async () => {
-    const stepFields = activeStep?.fields || []
-    if (stepFields.length > 0) {
-      const isValid = await trigger(stepFields)
-      if (!isValid) return
-    }
-    setCurrentStep((prev) => Math.min(prev + 1, totalSteps))
+    const fields = activeStep?.fields || []
+    if (fields.length && !(await trigger(fields))) return
+    setCurrentStep((p) => Math.min(p + 1, totalSteps))
   }
 
-  const goToPreviousStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1))
-  }
+  const goToPreviousStep = () => setCurrentStep((p) => Math.max(p - 1, 1))
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault()
-    if (currentStep < totalSteps) {
-      await goToNextStep()
-      return
-    }
+  const handleFormSubmit = async (e) => {
+    e.preventDefault()
+    if (currentStep < totalSteps) { await goToNextStep(); return }
   }
-
-  const handlePublishClick = handleSubmit(onSubmit)
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 pb-20 flex flex-col gap-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <div className="inline-flex items-center gap-1 text-[10px] font-bold text-primary tracking-wider uppercase bg-primary/10 px-2.5 py-0.5 rounded-full w-fit mb-1">
-            <Sparkles className="h-3 w-3" /> New listing
-          </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">List your property</h1>
-          <p className="text-sm text-muted-foreground">
-            Add details, special features, and up to {MAX_IMAGES} images / {MAX_VIDEOS} videos.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-brand-cream/30">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
 
-      {pendingPropertyId && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
-          Listing saved. Submit again to retry uploading photos and videos.
-        </div>
-      )}
+        {/* Back */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-500 hover:text-brand-forest transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
 
-      <form onSubmit={handleFormSubmit} className="flex flex-col gap-6">
-        <section className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-bold text-base sm:text-lg">Listing progress</h2>
-            <span className="text-xs text-muted-foreground">
-              Step {currentStep} of {totalSteps}
-            </span>
-          </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            {STEP_CONFIG.map((step) => {
-              const isActive = currentStep === step.number
-              const isDone = currentStep > step.number
-              return (
-                <div
-                  key={step.number}
-                  className={`rounded-xl border px-3 py-2 transition-colors ${
-                    isActive
-                      ? 'border-primary bg-primary/10'
-                      : isDone
-                        ? 'border-primary/30 bg-primary/5'
-                        : 'border-border/50 bg-background'
-                  }`}
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Step {step.number}
-                  </p>
-                  <p className="text-sm font-semibold">{step.title}</p>
+        <div className="grid lg:grid-cols-[300px_1fr] gap-8 items-start">
+
+          {/* ── LEFT SIDEBAR ── */}
+          <div className="lg:sticky lg:top-28 flex flex-col gap-4">
+
+            {/* Brand panel */}
+            <div className="rounded-3xl bg-brand-forest text-white p-7 relative overflow-hidden shadow-xl">
+              {/* decorative circle */}
+              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5" />
+              <div className="absolute -right-2 -bottom-10 h-48 w-48 rounded-full bg-white/[0.03]" />
+
+              <div className="relative">
+                <div className="inline-flex items-center gap-1.5 text-[9px] font-bold text-brand-terracotta-light tracking-widest uppercase bg-white/10 px-3 py-1 rounded-full mb-4">
+                  <Sparkles className="h-3 w-3" /> New Listing
                 </div>
-              )
-            })}
-          </div>
-        </section>
+                <h1 className="font-serif text-2xl font-bold leading-snug mb-1">
+                  List Your<br />Property
+                </h1>
+                <p className="text-xs text-white/60 leading-relaxed mb-8">
+                  Reach rare-home seekers across India. Your listing goes live after admin review.
+                </p>
 
-        <section className="rounded-2xl border border-border/40 bg-card p-5 sm:p-6 flex flex-col gap-4">
-          <div className="space-y-1">
-            <h2 className="font-bold text-lg">{activeStep.title}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">{activeStep.description}</p>
-          </div>
-
-          {currentStep === 1 && (
-            <>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold">Property title</label>
-                <input
-                  type="text"
-                  {...register('title')}
-                  disabled={!!pendingPropertyId}
-                  className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  placeholder="Himalayan Earthship Retreat"
-                />
-                {errors.title && <span className="text-[10px] text-destructive">{errors.title.message}</span>}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Property type</label>
-                  <select
-                    {...register('property_type_id')}
-                    disabled={typesLoading || !!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  >
-                    <option value="">Select type</option>
-                    {propertyTypes.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.property_type_id && (
-                    <span className="text-[10px] text-destructive">{errors.property_type_id.message}</span>
-                  )}
-                  {!typesLoading && propertyTypes.length === 0 && (
-                    <span className="text-[10px] text-muted-foreground">
-                      No types in catalog. Ask admin to add property types.
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Asking price (INR)</label>
-                  <input
-                    type="number"
-                    {...register('asking_price')}
-                    disabled={!!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  />
-                  {errors.asking_price && (
-                    <span className="text-[10px] text-destructive">{errors.asking_price.message}</span>
-                  )}
+                {/* Vertical stepper */}
+                <div className="flex flex-col gap-0">
+                  {STEP_CONFIG.map((step, idx) => {
+                    const isDone = currentStep > step.number
+                    const isActive = currentStep === step.number
+                    const isLast = idx === STEP_CONFIG.length - 1
+                    return (
+                      <div key={step.number} className="flex items-start gap-3">
+                        {/* Line + circle column */}
+                        <div className="flex flex-col items-center">
+                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-300 ${
+                            isDone
+                              ? 'border-brand-terracotta bg-brand-terracotta text-white'
+                              : isActive
+                                ? 'border-brand-terracotta bg-transparent text-brand-terracotta-light'
+                                : 'border-white/20 bg-transparent text-white/30'
+                          }`}>
+                            {isDone ? <Check className="h-3.5 w-3.5" /> : step.number}
+                          </div>
+                          {!isLast && (
+                            <div className={`w-0.5 h-10 mt-0.5 transition-all duration-300 ${
+                              isDone ? 'bg-brand-terracotta/60' : 'bg-white/10'
+                            }`} />
+                          )}
+                        </div>
+                        {/* Text */}
+                        <div className="pb-10 last:pb-0 pt-1">
+                          <p className={`text-xs font-bold uppercase tracking-wider transition-colors ${
+                            isActive ? 'text-brand-terracotta-light' : isDone ? 'text-white/70' : 'text-white/30'
+                          }`}>
+                            {step.label}
+                          </p>
+                          <p className={`text-[11px] leading-relaxed transition-colors ${
+                            isActive ? 'text-white/80' : isDone ? 'text-white/40' : 'text-white/20'
+                          }`}>
+                            {step.description}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Size (sq ft)</label>
-                  <input
-                    type="number"
-                    {...register('size_sqft')}
-                    disabled={!!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  />
-                  {errors.size_sqft && (
-                    <span className="text-[10px] text-destructive">{errors.size_sqft.message}</span>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Property age (years)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={200}
-                    {...register('property_age')}
-                    disabled={!!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                    placeholder="e.g. 3"
-                  />
-                  {errors.property_age && (
-                    <span className="text-[10px] text-destructive">{errors.property_age.message}</span>
-                  )}
-                </div>
+            {/* Retry banner */}
+            {pendingPropertyId && (
+              <div className="rounded-2xl border border-amber-400/30 bg-amber-50 px-4 py-3 text-xs text-amber-800 font-medium leading-relaxed">
+                Your listing was saved. Click <strong>Publish Listing</strong> to retry the media upload.
               </div>
+            )}
+          </div>
 
-              <div className="rounded-xl border border-border/40 bg-muted/10 p-4 sm:p-5 flex flex-col gap-4">
-                <h3 className="font-semibold text-base flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" /> Location
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">City</label>
-                    <input
-                      type="text"
-                      {...register('location_city')}
-                      disabled={!!pendingPropertyId}
-                      className="h-10 rounded-lg bg-background px-3 text-sm border border-border"
-                    />
-                    {errors.location_city && <span className="text-[10px] text-destructive">{errors.location_city.message}</span>}
+          {/* ── RIGHT FORM CARD ── */}
+          <div className="rounded-3xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-xl relative overflow-hidden">
+            {/* Top bronze accent */}
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-brand-bronze" />
+
+            <form onSubmit={handleFormSubmit}>
+              <div className="p-7 sm:p-9 pt-10">
+
+                {/* Step header */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-1.5 text-[9px] font-bold text-brand-bronze tracking-widest uppercase bg-brand-bronze/10 px-3 py-1 rounded-full mb-3">
+                    Step {currentStep} of {totalSteps}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">State</label>
-                    <input
-                      type="text"
-                      {...register('location_state')}
-                      disabled={!!pendingPropertyId}
-                      className="h-10 rounded-lg bg-background px-3 text-sm border border-border"
-                    />
-                    {errors.location_state && <span className="text-[10px] text-destructive">{errors.location_state.message}</span>}
+                  <h2 className="font-serif text-3xl font-bold text-neutral-950 dark:text-white leading-tight mb-1">
+                    {activeStep.title}
+                  </h2>
+                  <p className="text-sm text-neutral-500">{activeStep.description}</p>
+                </div>
+
+                {/* ─── STEP 1: Basics ─── */}
+                {currentStep === 1 && (
+                  <div className="flex flex-col gap-6">
+                    {/* Title */}
+                    <div className="flex flex-col gap-2">
+                      <FieldLabel icon={Tag}>Property Title</FieldLabel>
+                      <FieldInput
+                        type="text"
+                        {...register('title')}
+                        disabled={!!pendingPropertyId}
+                        placeholder="e.g. Himalayan Earthship Retreat"
+                        error={errors.title}
+                      />
+                      <FieldError message={errors.title?.message} />
+                    </div>
+
+                    {/* Type + Price */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Tag}>Property Type</FieldLabel>
+                        <select
+                          {...register('property_type_id')}
+                          disabled={typesLoading || !!pendingPropertyId}
+                          className={`h-11 w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 text-sm border outline-none transition-all font-sans ${
+                            errors.property_type_id
+                              ? 'border-destructive ring-1 ring-destructive'
+                              : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-bronze/50 focus:ring-1 focus:ring-brand-bronze/20'
+                          }`}
+                        >
+                          <option value="">Select type…</option>
+                          {propertyTypes.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                        <FieldError message={errors.property_type_id?.message} />
+                        {!typesLoading && !propertyTypes.length && (
+                          <span className="text-[10px] text-neutral-400">No types available — ask admin.</span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={IndianRupee}>Asking Price (INR)</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          {...register('asking_price')}
+                          disabled={!!pendingPropertyId}
+                          placeholder="e.g. 4500000"
+                          error={errors.asking_price}
+                        />
+                        <FieldError message={errors.asking_price?.message} />
+                      </div>
+                    </div>
+
+                    {/* Size + Age */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Maximize2}>Size (sq ft)</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          {...register('size_sqft')}
+                          disabled={!!pendingPropertyId}
+                          placeholder="e.g. 1200"
+                          error={errors.size_sqft}
+                        />
+                        <FieldError message={errors.size_sqft?.message} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Clock}>Property Age (years)</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          min={0}
+                          max={200}
+                          {...register('property_age')}
+                          disabled={!!pendingPropertyId}
+                          placeholder="e.g. 3"
+                          error={errors.property_age}
+                        />
+                        <FieldError message={errors.property_age?.message} />
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div className="rounded-2xl border border-brand-sand/70 bg-brand-cream/40 p-5 flex flex-col gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-forest/10">
+                          <MapPin className="h-3.5 w-3.5 text-brand-forest" />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-wider text-brand-forest">Location</span>
+                      </div>
+                      <div className="grid sm:grid-cols-3 gap-3">
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>City</FieldLabel>
+                          <FieldInput
+                            type="text"
+                            {...register('location_city')}
+                            disabled={!!pendingPropertyId}
+                            placeholder="Rishikesh"
+                            error={errors.location_city}
+                          />
+                          <FieldError message={errors.location_city?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>State</FieldLabel>
+                          <FieldInput
+                            type="text"
+                            {...register('location_state')}
+                            disabled={!!pendingPropertyId}
+                            placeholder="Uttarakhand"
+                            error={errors.location_state}
+                          />
+                          <FieldError message={errors.location_state?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>District</FieldLabel>
+                          <FieldInput
+                            type="text"
+                            {...register('location_district')}
+                            disabled={!!pendingPropertyId}
+                            placeholder="Tehri Garhwal"
+                            error={errors.location_district}
+                          />
+                          <FieldError message={errors.location_district?.message} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold">District</label>
-                    <input
-                      type="text"
-                      {...register('location_district')}
-                      disabled={!!pendingPropertyId}
-                      className="h-10 rounded-lg bg-background px-3 text-sm border border-border"
-                    />
-                    {errors.location_district && (
-                      <span className="text-[10px] text-destructive">{errors.location_district.message}</span>
+                )}
+
+                {/* ─── STEP 2: Details ─── */}
+                {currentStep === 2 && (
+                  <div className="flex flex-col gap-6">
+                    {/* Contact */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Mail}>Contact Email</FieldLabel>
+                        <FieldInput
+                          type="email"
+                          {...register('contact_email')}
+                          disabled={!!pendingPropertyId}
+                          placeholder="seller@example.com"
+                          error={errors.contact_email}
+                        />
+                        <FieldError message={errors.contact_email?.message} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Phone}>Contact Phone</FieldLabel>
+                        <FieldInput
+                          type="tel"
+                          {...register('contact_phone')}
+                          disabled={!!pendingPropertyId}
+                          placeholder="+91 98765 43210"
+                          error={errors.contact_phone}
+                        />
+                        <FieldError message={errors.contact_phone?.message} />
+                      </div>
+                    </div>
+
+                    {/* Story */}
+                    <div className="flex flex-col gap-2">
+                      <FieldLabel icon={FileText}>Property Story</FieldLabel>
+                      <textarea
+                        {...register('property_story')}
+                        disabled={!!pendingPropertyId}
+                        rows={6}
+                        placeholder="Describe what makes this property truly rare — the land, the build, the lifestyle it offers…"
+                        className={`w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 py-3 text-sm border outline-none transition-all placeholder:text-neutral-400 font-sans resize-y leading-relaxed ${
+                          errors.property_story
+                            ? 'border-destructive ring-1 ring-destructive'
+                            : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-bronze/50 focus:ring-1 focus:ring-brand-bronze/20'
+                        }`}
+                      />
+                      <FieldError message={errors.property_story?.message} />
+                    </div>
+
+                    {/* Special features */}
+                    <div className="flex flex-col gap-3">
+                      <FieldLabel icon={Sparkles}>Special Features</FieldLabel>
+                      <Controller
+                        name="special_features"
+                        control={control}
+                        render={({ field }) => (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {SPECIAL_FEATURES.map((feature) => {
+                              const checked = (field.value || []).includes(feature)
+                              return (
+                                <button
+                                  key={feature}
+                                  type="button"
+                                  disabled={!!pendingPropertyId}
+                                  onClick={() => {
+                                    const next = checked
+                                      ? (field.value || []).filter((f) => f !== feature)
+                                      : [...(field.value || []), feature]
+                                    field.onChange(next)
+                                  }}
+                                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all duration-200 text-left ${
+                                    checked
+                                      ? 'border-brand-bronze bg-brand-bronze/10 text-brand-bronze shadow-sm scale-[1.01]'
+                                      : 'border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:border-brand-bronze/30 hover:bg-brand-bronze/5'
+                                  }`}
+                                >
+                                  <div className={`h-3.5 w-3.5 shrink-0 rounded-full border transition-all ${
+                                    checked ? 'bg-brand-bronze border-brand-bronze' : 'border-neutral-300'
+                                  }`}>
+                                    {checked && <Check className="h-3.5 w-3.5 text-white p-[1px]" />}
+                                  </div>
+                                  {feature}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── STEP 3: Media ─── */}
+                {currentStep === 3 && (
+                  <div className="flex flex-col gap-6">
+                    <p className="text-sm text-neutral-500 leading-relaxed">
+                      Upload up to <strong>{MAX_IMAGES} images</strong> (5 MB each) and <strong>{MAX_VIDEOS} videos</strong> (50 MB each).
+                      Click an image to mark it as the cover photo.
+                    </p>
+
+                    {/* Upload zones */}
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <label className={`group flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 transition-all cursor-pointer ${
+                        images.length >= MAX_IMAGES
+                          ? 'border-neutral-200 opacity-50 cursor-not-allowed'
+                          : 'border-brand-sand hover:border-brand-bronze/50 hover:bg-brand-bronze/5'
+                      }`}>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-forest/10 group-hover:bg-brand-bronze/10 transition-colors">
+                          <ImagePlus className="h-5 w-5 text-brand-forest group-hover:text-brand-bronze transition-colors" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-neutral-700">Add Images</p>
+                          <p className="text-xs text-neutral-400 mt-0.5">JPG, PNG, WebP · 5 MB max</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          multiple
+                          disabled={images.length >= MAX_IMAGES}
+                          className="hidden"
+                          onChange={(e) => { validateAndSetImages(e.target.files); e.target.value = '' }}
+                        />
+                      </label>
+
+                      <label className={`group flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 transition-all cursor-pointer ${
+                        videos.length >= MAX_VIDEOS
+                          ? 'border-neutral-200 opacity-50 cursor-not-allowed'
+                          : 'border-brand-sand hover:border-brand-bronze/50 hover:bg-brand-bronze/5'
+                      }`}>
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-forest/10 group-hover:bg-brand-bronze/10 transition-colors">
+                          <Video className="h-5 w-5 text-brand-forest group-hover:text-brand-bronze transition-colors" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold text-neutral-700">Add Videos</p>
+                          <p className="text-xs text-neutral-400 mt-0.5">MP4, WebM, MOV · 50 MB max</p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="video/mp4,video/webm,video/quicktime"
+                          multiple
+                          disabled={videos.length >= MAX_VIDEOS}
+                          className="hidden"
+                          onChange={(e) => { validateAndSetVideos(e.target.files); e.target.value = '' }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Image grid */}
+                    {images.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Camera className="h-3.5 w-3.5 text-brand-bronze" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                            Images ({images.length}/{MAX_IMAGES}) — click to set cover
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          {images.map((img, idx) => (
+                            <div
+                              key={img.preview}
+                              className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                                thumbnailIndex === idx
+                                  ? 'border-brand-bronze ring-2 ring-brand-bronze/30 shadow-md'
+                                  : 'border-neutral-200 hover:border-brand-bronze/40'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => removeImageAt(idx)}
+                                className="absolute top-1.5 right-1.5 z-10 rounded-full bg-black/60 p-1 text-white hover:bg-black/80 transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                              <button type="button" onClick={() => setThumbnailIndex(idx)} className="h-full w-full">
+                                <img src={img.preview} alt="" className="h-full w-full object-cover" />
+                              </button>
+                              {thumbnailIndex === idx && (
+                                <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-brand-bronze px-2 py-0.5 text-[9px] font-bold text-white">
+                                  <Star className="h-2.5 w-2.5 fill-current" /> Cover
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Video list */}
+                    {videos.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Video className="h-3.5 w-3.5 text-brand-bronze" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+                            Videos ({videos.length}/{MAX_VIDEOS})
+                          </span>
+                        </div>
+                        <ul className="flex flex-col gap-2">
+                          {videos.map((v, idx) => (
+                            <li
+                              key={`${v.name}-${idx}`}
+                              className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 px-4 py-2.5"
+                            >
+                              <span className="flex items-center gap-2 text-sm text-neutral-700 truncate">
+                                <Video className="h-3.5 w-3.5 shrink-0 text-neutral-400" />
+                                {v.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => removeVideoAt(idx)}
+                                className="shrink-0 rounded-full p-1 text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 transition-colors"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {currentStep === 2 && (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Email</label>
-                  <input
-                    type="email"
-                    {...register('contact_email')}
-                    disabled={!!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  />
-                  {errors.contact_email && <span className="text-[10px] text-destructive">{errors.contact_email.message}</span>}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold">Phone</label>
-                  <input
-                    type="tel"
-                    {...register('contact_phone')}
-                    disabled={!!pendingPropertyId}
-                    className="h-10 rounded-lg bg-muted/30 px-3 text-sm border border-border"
-                  />
-                  {errors.contact_phone && <span className="text-[10px] text-destructive">{errors.contact_phone.message}</span>}
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold">Property story</label>
-                <textarea
-                  {...register('property_story')}
-                  disabled={!!pendingPropertyId}
-                  rows={5}
-                  className="rounded-lg bg-muted/30 px-3 py-2 text-sm border border-border resize-y"
-                  placeholder="Describe what makes this property unique..."
-                />
-                {errors.property_story && <span className="text-[10px] text-destructive">{errors.property_story.message}</span>}
+                )}
               </div>
 
-              <div className="rounded-xl border border-border/40 bg-muted/10 p-4 sm:p-5 flex flex-col gap-4">
-                <h3 className="font-semibold text-base">Special features</h3>
-                <Controller
-                  name="special_features"
-                  control={control}
-                  render={({ field }) => (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {SPECIAL_FEATURES.map((feature) => {
-                        const checked = (field.value || []).includes(feature)
-                        return (
-                          <label
-                            key={feature}
-                            className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
-                              checked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/30'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={!!pendingPropertyId}
-                              onChange={(e) => {
-                                const next = e.target.checked
-                                  ? [...(field.value || []), feature]
-                                  : (field.value || []).filter((f) => f !== feature)
-                                field.onChange(next)
-                              }}
-                              className="rounded border-border"
-                            />
-                            {feature}
-                          </label>
-                        )
-                      })}
-                    </div>
+              {/* Footer nav */}
+              <div className="flex items-center justify-between gap-4 px-7 sm:px-9 py-5 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/30 rounded-b-3xl">
+                <div className="text-xs text-neutral-400">
+                  {currentStep < totalSteps ? 'Fill in the details and continue.' : 'Review your media and publish.'}
+                </div>
+                <div className="flex items-center gap-3">
+                  {currentStep > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={goToPreviousStep}
+                      disabled={isSubmitting}
+                      className="rounded-xl border-neutral-200 text-neutral-600 hover:border-brand-forest/30 hover:text-brand-forest"
+                    >
+                      Back
+                    </Button>
                   )}
-                />
-              </div>
-            </>
-          )}
-
-          {currentStep === 3 && (
-            <>
-              <p className="text-xs text-muted-foreground">
-                Up to {MAX_IMAGES} images (5MB each), {MAX_VIDEOS} videos (50MB each). Click an image to set as thumbnail.
-              </p>
-
-              <div className="flex flex-wrap gap-3">
-                <label className="inline-flex items-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-3 text-sm hover:bg-muted/30">
-                  <ImagePlus className="h-4 w-4 text-primary" />
-                  Add images
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    disabled={images.length >= MAX_IMAGES}
-                    className="hidden"
-                    onChange={(e) => {
-                      validateAndSetImages(e.target.files)
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-                <label className="inline-flex items-center gap-2 cursor-pointer rounded-xl border border-dashed border-border px-4 py-3 text-sm hover:bg-muted/30">
-                  <Video className="h-4 w-4 text-primary" />
-                  Add videos
-                  <input
-                    type="file"
-                    accept="video/mp4,video/webm,video/quicktime"
-                    multiple
-                    disabled={videos.length >= MAX_VIDEOS}
-                    className="hidden"
-                    onChange={(e) => {
-                      validateAndSetVideos(e.target.files)
-                      e.target.value = ''
-                    }}
-                  />
-                </label>
-              </div>
-
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {images.map((img, idx) => (
-                    <div
-                      key={img.preview}
-                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                        thumbnailIndex === idx ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'
-                      }`}
+                  {currentStep < totalSteps ? (
+                    <Button
+                      type="button"
+                      onClick={goToNextStep}
+                      disabled={isSubmitting}
+                      className="rounded-xl bg-brand-forest hover:bg-brand-forest-mid text-white font-bold px-6 shadow-md shadow-brand-forest/20"
                     >
-                      <button
-                        type="button"
-                        onClick={() => removeImageAt(idx)}
-                        className="absolute top-1 right-1 z-10 rounded-full bg-black/70 p-1 text-white hover:bg-black"
-                        aria-label="Remove image"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                      <button type="button" onClick={() => setThumbnailIndex(idx)} className="h-full w-full">
-                        <img src={img.preview} alt="" className="h-full w-full object-cover" />
-                        {thumbnailIndex === idx && (
-                          <span className="absolute bottom-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                            <Star className="h-3 w-3 fill-current" />
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                  ))}
+                      Continue
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleSubmit(onSubmit)}
+                      disabled={isSubmitting}
+                      className="rounded-xl bg-brand-bronze hover:bg-brand-bronze-dark text-white font-bold px-6 shadow-lg shadow-brand-bronze/20 gap-2"
+                    >
+                      {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {pendingPropertyId ? 'Retry Upload' : 'Publish Listing'}
+                    </Button>
+                  )}
                 </div>
-              )}
-
-              {videos.length > 0 && (
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  {videos.map((v, idx) => (
-                    <li
-                      key={`${v.name}-${idx}`}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border/50 px-2 py-1.5"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Video className="h-3.5 w-3.5" /> {v.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeVideoAt(idx)}
-                        className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        aria-label="Remove video"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </section>
-
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="text-xs text-muted-foreground">
-            {currentStep < totalSteps
-              ? 'Complete this step and continue to the next one.'
-              : 'Review media and publish your listing.'}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            {currentStep > 1 && (
-              <Button type="button" variant="outline" onClick={goToPreviousStep} disabled={isSubmitting}>
-                Back
-              </Button>
-            )}
-            {currentStep < totalSteps ? (
-              <Button type="button" onClick={goToNextStep} disabled={isSubmitting}>
-                Next
-              </Button>
-            ) : (
-              <Button type="button" onClick={handlePublishClick} disabled={isSubmitting} className="gap-2">
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {pendingPropertyId ? 'Retry media upload' : 'Publish listing'}
-              </Button>
-            )}
+              </div>
+            </form>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }

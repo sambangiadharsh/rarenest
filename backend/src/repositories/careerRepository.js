@@ -1,37 +1,42 @@
 const { poolPromise, sql } = require('../config/db');
 
+const SELECT_FIELDS = `
+    c.id, c.title, c.department, c.location, c.employment_type, c.experience_level,
+    c.description, c.requirements, c.salary_range, c.application_email, c.status,
+    c.created_by, c.updated_by,
+    c.created_at, c.updated_at,
+    LTRIM(RTRIM(CONCAT(creator.first_name, ' ', creator.last_name))) AS created_by_name,
+    LTRIM(RTRIM(CONCAT(updater.first_name, ' ', updater.last_name))) AS updated_by_name
+`;
+
+const FROM_JOIN = `
+    FROM Careers c
+    LEFT JOIN Users creator ON c.created_by = creator.id
+    LEFT JOIN Users updater ON c.updated_by = updater.id
+`;
+
 class CareerRepository {
     async findAll({ openOnly = false } = {}) {
         const pool = await poolPromise;
-        let where = '';
-        if (openOnly) {
-            where = "WHERE status = 'Open'";
-        }
+        const where = openOnly ? "WHERE c.status = 'Open'" : '';
         const result = await pool.request().query(`
-            SELECT id, title, department, location, employment_type, experience_level,
-                   description, requirements, salary_range, application_email, status,
-                   created_at, updated_at
-            FROM Careers
+            SELECT ${SELECT_FIELDS}
+            ${FROM_JOIN}
             ${where}
-            ORDER BY created_at DESC
+            ORDER BY c.created_at DESC
         `);
         return result.recordset;
     }
 
     async findById(id, { openOnly = false } = {}) {
         const pool = await poolPromise;
-        let statusFilter = '';
-        if (openOnly) {
-            statusFilter = "AND status = 'Open'";
-        }
+        const statusFilter = openOnly ? "AND c.status = 'Open'" : '';
         const result = await pool.request()
             .input('id', sql.UniqueIdentifier, id)
             .query(`
-                SELECT id, title, department, location, employment_type, experience_level,
-                       description, requirements, salary_range, application_email, status,
-                       created_at, updated_at
-                FROM Careers
-                WHERE id = @id ${statusFilter}
+                SELECT ${SELECT_FIELDS}
+                ${FROM_JOIN}
+                WHERE c.id = @id ${statusFilter}
             `);
         return result.recordset[0] || null;
     }
@@ -49,23 +54,32 @@ class CareerRepository {
             .input('salary_range', sql.NVarChar, data.salary_range || null)
             .input('application_email', sql.NVarChar, data.application_email || null)
             .input('status', sql.NVarChar, data.status || 'Open')
+            .input('created_by', sql.UniqueIdentifier, data.created_by || null)
+            .input('updated_by', sql.UniqueIdentifier, data.created_by || null)
             .query(`
-                INSERT INTO Careers (title, department, location, employment_type, experience_level,
-                    description, requirements, salary_range, application_email, status)
-                OUTPUT INSERTED.id, INSERTED.title, INSERTED.department, INSERTED.location,
-                       INSERTED.employment_type, INSERTED.experience_level, INSERTED.description,
-                       INSERTED.requirements, INSERTED.salary_range, INSERTED.application_email,
-                       INSERTED.status, INSERTED.created_at, INSERTED.updated_at
-                VALUES (@title, @department, @location, @employment_type, @experience_level,
-                    @description, @requirements, @salary_range, @application_email, @status)
+                INSERT INTO Careers (
+                    title, department, location, employment_type, experience_level,
+                    description, requirements, salary_range, application_email, status,
+                    created_by, updated_by
+                )
+                OUTPUT INSERTED.id
+                VALUES (
+                    @title, @department, @location, @employment_type, @experience_level,
+                    @description, @requirements, @salary_range, @application_email, @status,
+                    @created_by, @updated_by
+                )
             `);
-        return result.recordset[0];
+        return this.findById(result.recordset[0].id);
     }
 
     async update(id, data) {
         const pool = await poolPromise;
         const fields = [];
-        const request = pool.request().input('id', sql.UniqueIdentifier, id);
+        const request = pool.request()
+            .input('id', sql.UniqueIdentifier, id)
+            .input('updated_by', sql.UniqueIdentifier, data.updated_by || null);
+
+        fields.push('updated_by = @updated_by');
 
         const map = {
             title: sql.NVarChar,
@@ -91,13 +105,12 @@ class CareerRepository {
 
         const result = await request.query(`
             UPDATE Careers SET ${fields.join(', ')}
-            OUTPUT INSERTED.id, INSERTED.title, INSERTED.department, INSERTED.location,
-                   INSERTED.employment_type, INSERTED.experience_level, INSERTED.description,
-                   INSERTED.requirements, INSERTED.salary_range, INSERTED.application_email,
-                   INSERTED.status, INSERTED.created_at, INSERTED.updated_at
+            OUTPUT INSERTED.id
             WHERE id = @id
         `);
-        return result.recordset[0] || null;
+
+        if (!result.recordset[0]) return null;
+        return this.findById(id);
     }
 
     async delete(id) {

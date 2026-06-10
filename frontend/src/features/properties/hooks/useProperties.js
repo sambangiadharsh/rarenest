@@ -28,6 +28,22 @@ export function useCreateProperty() {
   })
 }
 
+export function useGuestCreateProperty() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: propertyService.guestCreateProperty,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+    },
+  })
+}
+
+export function useGuestCreateSellerAccount() {
+  return useMutation({
+    mutationFn: propertyService.guestCreateSellerAccount,
+  })
+}
+
 export function useUpdateProperty() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -71,5 +87,35 @@ export function useVerifyProperty() {
       queryClient.invalidateQueries({ queryKey: ['properties'] })
       queryClient.invalidateQueries({ queryKey: ['property', id] })
     },
+  })
+}
+
+export function usePropertyVerificationHistory(id, options = {}) {
+  return useQuery({
+    queryKey: ['property-verification-history', id],
+    queryFn: () => propertyService.getPropertyVerificationHistory(id),
+    enabled: !!id,
+    ...options,
+  })
+}
+
+export function useResubmitProperty() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => propertyService.resubmitProperty(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['property', id] })
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+      queryClient.invalidateQueries({ queryKey: ['property-verification-history', id] })
+    },
+  })
+}
+
+export function usePropertyEnquiries(id, options = {}) {
+  return useQuery({
+    queryKey: ['property-enquiries', id],
+    queryFn: () => propertyService.getPropertyEnquiries(id),
+    enabled: !!id,
+    ...options,
   })
 }

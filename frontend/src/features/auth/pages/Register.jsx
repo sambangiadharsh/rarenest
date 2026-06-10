@@ -9,6 +9,7 @@ import { useRegister } from '@/features/auth'
 import { Button } from '@/shared/components/ui/button'
 import { toast } from 'sonner'
 import { Sparkles, Mail, Lock, User, Loader2, Award, Phone, MapPin } from 'lucide-react'
+import { mapApiUserToCredentials } from '@/shared/lib/authHelpers'
 
 const registerSchema = z.object({
   first_name: z.string().min(2, 'First name must be at least 2 characters long'),
@@ -58,15 +59,10 @@ export default function Register() {
 
       const res = await registerUser(payload)
       if (res.success) {
-        const userData = {
-          id: res.user.id,
-          name: `${res.user.first_name || ''} ${res.user.last_name || ''}`.trim() || res.user.email.split('@')[0],
-          email: res.user.email,
-          role: res.user.role.toLowerCase()
-        }
+        const userData = mapApiUserToCredentials(res.user)
         dispatch(setCredentials(userData))
         toast.success(`Welcome to Rarenest, ${userData.name}!`)
-        navigate('/')
+        navigate('/', { replace: true })
       } else {
         toast.error(res.message || 'Registration failed.')
       }

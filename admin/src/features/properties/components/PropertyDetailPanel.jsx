@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Car,
   Check,
@@ -8,6 +8,7 @@ import {
   Loader2,
   MapPin,
   Shield,
+  Play,
   Sun,
   Trees,
   Wifi,
@@ -18,13 +19,14 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useProperty } from '@/features/properties/hooks/useProperty'
-import { useUpdateProperty, useVerifyProperty } from '@/features/properties/hooks/useProperties'
+import { useVerifyProperty } from '@/features/properties/hooks/useProperties'
 import StatusBadge from './StatusBadge'
 import VerificationBadge from './VerificationBadge'
 import {
   formatINR,
   formatPropertyAge,
   getPropertyImages,
+  getPropertyMediaItems,
   getPropertyThumbnail,
   getSellerName,
   getVerificationStatus,
@@ -60,21 +62,44 @@ function DetailField({ label, value }) {
   )
 }
 
+const VERIFICATION_OPTIONS = [
+  { value: 'Approved', label: 'Approve' },
+  { value: 'Rejected', label: 'Reject' },
+  { value: 'RequestChanges', label: 'Request Changes' },
+]
+
 export default function PropertyDetailPanel({ propertyId, onClose }) {
   const [activeTab, setActiveTab] = useState('property-info')
-  const [activeImage, setActiveImage] = useState(0)
+  const [activeMedia, setActiveMedia] = useState(0)
+  // tracks the last propertyId we have reset state for
+  const [resetForId, setResetForId] = useState(propertyId)
+  // user-selected status override; '' means "use whatever the property currently has"
+  const [selectedStatus, setSelectedStatus] = useState('')
+  const [reason, setReason] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // React-recommended "adjusting state during render" pattern to reset on prop change
+  if (propertyId !== resetForId) {
+    setResetForId(propertyId)
+    setActiveMedia(0)
+    setActiveTab('property-info')
+    setReason('')
+    setSelectedStatus('')
+  }
 
   const { data, isLoading, isError, error } = useProperty(propertyId, {
     enabled: Boolean(propertyId),
   })
-  const { mutateAsync: verifyProperty, isPending: isVerifying } = useVerifyProperty()
-  const { mutateAsync: updateProperty, isPending: isUpdating } = useUpdateProperty()
+  const { mutateAsync: verifyProperty } = useVerifyProperty()
 
   const property = data?.data
+  const mediaItems = property ? getPropertyMediaItems(property) : []
   const images = property ? getPropertyImages(property) : []
-  const imageCount = Math.max(images.length, 1)
+  const mediaCount = Math.max(mediaItems.length, 1)
   const heroImage =
-    images[activeImage] || (property ? getPropertyThumbnail(property) : PLACEHOLDER_IMAGE)
+    images[0] || (property ? getPropertyThumbnail(property) : PLACEHOLDER_IMAGE)
+  const displayMedia =
+    mediaItems[activeMedia] || { type: 'Image', src: heroImage }
 
   const features = parseSpecialFeatures(property?.special_features)
   const ageLabel =
@@ -84,43 +109,32 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
 
   const verificationStatus = property ? getVerificationStatus(property) : 'Pending'
   const enquiryCount = property?.enquiry_count ?? property?.enquiries?.length ?? 0
-  const isBusy = isVerifying || isUpdating
 
-  useEffect(() => {
-    setActiveImage(0)
-    setActiveTab('property-info')
-  }, [propertyId])
+  // Derive effective status: user pick → current property status → nothing
+  const effectiveStatus = selectedStatus || property?.verification_status || ''
 
-  const goPrev = () => setActiveImage((i) => (i <= 0 ? imageCount - 1 : i - 1))
-  const goNext = () => setActiveImage((i) => (i >= imageCount - 1 ? 0 : i + 1))
+  const goPrev = () => setActiveMedia((i) => (i <= 0 ? mediaCount - 1 : i - 1))
+  const goNext = () => setActiveMedia((i) => (i >= mediaCount - 1 ? 0 : i + 1))
 
-  const handleApprove = async () => {
-    if (!propertyId) return
-    try {
-      await updateProperty({ id: propertyId, is_visible: true })
-      const res = await verifyProperty({ id: propertyId, is_verified: true })
-      if (!res?.success) {
-        toast.error(res?.message || 'Failed to approve property.')
-        return
-      }
-      toast.success('Property approved.')
-    } catch (err) {
-      toast.error(err.message || 'Failed to approve property.')
+  const handleSave = async () => {
+    if (!propertyId || !effectiveStatus) return
+    if ((effectiveStatus === 'Rejected' || effectiveStatus === 'RequestChanges') && !reason.trim()) {
+      toast.error('Please provide a reason for this status.')
+      return
     }
-  }
-
-  const handleReject = async () => {
-    if (!propertyId) return
+    setIsSaving(true)
     try {
-      await verifyProperty({ id: propertyId, is_verified: false })
-      const res = await updateProperty({ id: propertyId, is_visible: false })
+      const res = await verifyProperty({ id: propertyId, status: effectiveStatus, reason: reason.trim() || null })
       if (!res?.success) {
-        toast.error(res?.message || 'Failed to reject property.')
+        toast.error(res?.message || 'Failed to update verification status.')
         return
       }
-      toast.success('Property rejected.')
+      const label = VERIFICATION_OPTIONS.find((o) => o.value === effectiveStatus)?.label ?? effectiveStatus
+      toast.success(`Property marked as "${label}".`)
     } catch (err) {
-      toast.error(err.message || 'Failed to reject property.')
+      toast.error(err.message || 'Failed to update verification status.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -130,8 +144,8 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
         .join(', ')
     : ''
 
-  const visibleThumbs = images.slice(0, 4)
-  const extraImages = Math.max(0, images.length - 4)
+  const visibleThumbs = mediaItems.slice(0, 4)
+  const extraMedia = Math.max(0, mediaItems.length - 4)
 
   const tabs = [
     { id: 'property-info', label: 'Property Info' },
@@ -140,10 +154,10 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
   ]
 
   return (
-    <aside className="hidden lg:flex h-full w-[480px] min-w-[480px] max-w-[480px] shrink-0 flex-col border-l border-border bg-background overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+      <aside className="flex h-full w-[450px] min-w-[450px] max-w-[450px] shrink-0 flex-col border-l border-border bg-card">
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-base font-semibold text-foreground">Property Details</h2>
+          <h2 className="font-heading text-base font-semibold text-brand-forest">Property Details</h2>
           {property && <VerificationBadge status={verificationStatus} />}
         </div>
         {onClose && (
@@ -172,19 +186,28 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
         {!isLoading && !isError && property && (
           <>
             <div className="relative aspect-[16/10] bg-muted">
-              <img
-                src={heroImage}
-                alt=""
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (!img.dataset.fallback) {
-                    img.dataset.fallback = '1'
-                    img.src = PLACEHOLDER_IMAGE
-                  }
-                }}
-              />
-              {imageCount > 1 && (
+              {displayMedia.type === 'Video' ? (
+                <video
+                  key={displayMedia.src}
+                  src={displayMedia.src}
+                  controls
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <img
+                  src={displayMedia.src}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    const img = e.currentTarget
+                    if (!img.dataset.fallback) {
+                      img.dataset.fallback = '1'
+                      img.src = PLACEHOLDER_IMAGE
+                    }
+                  }}
+                />
+              )}
+              {mediaCount > 1 && (
                 <>
                   <button
                     type="button"
@@ -201,27 +224,41 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                     <ChevronRight className="size-4" />
                   </button>
                   <span className="absolute bottom-2 right-2 rounded-md bg-black/60 px-2 py-0.5 text-xs text-white">
-                    {activeImage + 1}/{imageCount}
+                    {activeMedia + 1}/{mediaCount}
                   </span>
                 </>
               )}
             </div>
 
-            {images.length > 0 && (
+            {mediaItems.length > 0 && (
               <div className="flex gap-2 border-b border-border px-4 py-3">
-                {visibleThumbs.map((src, idx) => (
+                {visibleThumbs.map((item, idx) => (
                   <button
-                    key={src}
+                    key={`${item.type}-${item.src}-${idx}`}
                     type="button"
-                    onClick={() => setActiveImage(idx)}
+                    onClick={() => setActiveMedia(idx)}
                     className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-md border-2 ${
-                      activeImage === idx ? 'border-blue-600' : 'border-transparent'
+                      activeMedia === idx ? 'border-brand-forest' : 'border-transparent'
                     }`}
                   >
-                    <img src={src} alt="" className="h-full w-full object-cover" />
-                    {idx === 3 && extraImages > 0 && (
+                    {item.type === 'Video' ? (
+                      <div className="relative h-full w-full">
+                        <video
+                          src={item.src}
+                          muted
+                          preload="metadata"
+                          className="h-full w-full object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                          <Play className="size-4 fill-white text-white" />
+                        </span>
+                      </div>
+                    ) : (
+                      <img src={item.src} alt="" className="h-full w-full object-cover" />
+                    )}
+                    {idx === 3 && extraMedia > 0 && (
                       <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-semibold text-white">
-                        +{extraImages}
+                        +{extraMedia}
                       </span>
                     )}
                   </button>
@@ -255,7 +292,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                     onClick={() => setActiveTab(tab.id)}
                     className={`border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? 'border-blue-600 text-blue-600'
+                        ? 'border-brand-forest text-brand-forest'
                         : 'border-transparent text-muted-foreground hover:text-foreground'
                     }`}
                   >
@@ -265,26 +302,33 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
               </div>
 
               {activeTab === 'property-info' && (
-                <div className="grid gap-4 lg:grid-cols-[1fr_200px]">
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-                    <DetailField label="Property Type" value={property.property_type_name} />
-                    <DetailField
-                      label="Built-up Area"
-                      value={
-                        property.size_sqft
-                          ? `${Number(property.size_sqft).toLocaleString('en-IN')} sq.ft`
-                          : null
-                      }
-                    />
-                    <DetailField label="Property Age" value={ageLabel} />
-                    <DetailField label="City" value={property.location_city} />
-                    <DetailField label="State" value={property.location_state} />
-                    <DetailField label="District" value={property.location_district} />
-                    <DetailField label="Contact email" value={property.contact_email} />
-                    <DetailField label="Contact phone" value={property.contact_phone} />
+                <div className="grid gap-4 lg:grid-cols-[1fr_200px] min-w-0">
+                  <div>
+                    <div className="grid grid-cols-[1fr_1fr] gap-y-3 gap-x-8">
+                      {[
+                        { label: 'Property Type', value: property.property_type_name },
+                        {
+                          label: 'Built-up Area',
+                          value: property.size_sqft
+                            ? `${Number(property.size_sqft).toLocaleString('en-IN')} sq.ft`
+                            : null,
+                        },
+                        { label: 'Property Age', value: ageLabel },
+                        { label: 'City', value: property.location_city },
+                        { label: 'State', value: property.location_state },
+                        { label: 'District', value: property.location_district },
+                        { label: 'Contact email', value: property.contact_email },
+                        { label: 'Contact phone', value: property.contact_phone },
+                      ].map((f) => (
+                        <div key={f.label} className="contents">
+                          <p className="text-xs text-muted-foreground">{f.label}</p>
+                          <p className="mt-0.5 text-sm font-medium text-foreground">{f.value || '—'}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 min-w-0 w-full">
                     <h4 className="text-sm font-semibold text-foreground">Amenities</h4>
                     <ul className="mt-3 space-y-2">
                       {features.length === 0 && (
@@ -296,7 +340,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                           <li key={feature} className="flex items-center gap-2 text-sm">
                             <Icon className="size-4 text-emerald-600" />
                             <span className="flex-1">{feature}</span>
-                            <Check className="size-3.5 text-emerald-600" />
+                            {/* <Check className="size-3.5 text-emerald-600" /> */}
                           </li>
                         )
                       })}
@@ -304,7 +348,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                         <li>
                           <button
                             type="button"
-                            className="text-xs font-medium text-blue-600 hover:underline"
+                            className="text-xs font-medium text-brand-forest hover:underline"
                           >
                             View all amenities
                           </button>
@@ -363,25 +407,43 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
       </div>
 
       {property && (
-        <div className="flex gap-2 border-t border-border bg-background p-4">
+        <div className="space-y-3 border-t border-border bg-background p-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Verification Status</label>
+            <select
+              value={effectiveStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select status…</option>
+              {VERIFICATION_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Reason
+              {(effectiveStatus === 'Rejected' || effectiveStatus === 'RequestChanges') && (
+                <span className="ml-1 text-destructive">*</span>
+              )}
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Add a reason or note for the seller…"
+              rows={3}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+          </div>
           <Button
             type="button"
-            variant="outline"
-            className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
-            disabled={isBusy}
-            onClick={handleReject}
+            className="w-full bg-brand-forest hover:bg-brand-forest/90"
+            disabled={isSaving || !effectiveStatus}
+            onClick={handleSave}
           >
-            {isBusy ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
-            Reject Property
-          </Button>
-          <Button
-            type="button"
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-            disabled={isBusy}
-            onClick={handleApprove}
-          >
-            {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-            Approve Property
+            {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            Save Verification
           </Button>
         </div>
       )}

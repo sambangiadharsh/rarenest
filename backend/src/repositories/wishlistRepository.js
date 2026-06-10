@@ -21,7 +21,11 @@ class WishlistRepository {
             .query(`
                 SELECT w.property_id FROM Wishlist w
                 JOIN Properties p ON p.id = w.property_id
-                WHERE w.user_id = @user_id AND p.is_verified = 1 AND p.is_visible = 1
+                LEFT JOIN PropertyTypes pt ON p.property_type_id = pt.id
+                WHERE w.user_id = @user_id
+                  AND p.is_verified = 1
+                  AND p.is_visible = 1
+                  AND (p.property_type_id IS NULL OR pt.is_active = 1)
             `);
         return result.recordset.map((row) => row.property_id);
     }
@@ -35,7 +39,10 @@ class WishlistRepository {
                 FROM Properties p
                 JOIN Wishlist w ON p.id = w.property_id
                 LEFT JOIN PropertyTypes pt ON p.property_type_id = pt.id
-                WHERE w.user_id = @user_id AND p.is_verified = 1 AND p.is_visible = 1
+                WHERE w.user_id = @user_id
+                  AND p.is_verified = 1
+                  AND p.is_visible = 1
+                  AND (p.property_type_id IS NULL OR pt.is_active = 1)
                 ORDER BY w.created_at DESC
             `);
         return result.recordset;

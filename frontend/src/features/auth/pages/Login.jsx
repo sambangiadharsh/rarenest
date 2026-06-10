@@ -10,6 +10,7 @@ import { Button } from '@/shared/components/ui/button'
 import { toast } from 'sonner'
 import { LogIn, Sparkles, Mail, Lock, Loader2 } from 'lucide-react'
 import { getAdminLoginUrl } from '@/shared/config/app'
+import { mapApiUserToCredentials } from '@/shared/lib/authHelpers'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -52,16 +53,10 @@ export default function Login() {
           return
         }
 
-        // Backend user contains id, email, role, first_name, last_name
-        const userData = {
-          id: res.user.id,
-          name: `${res.user.first_name || ''} ${res.user.last_name || ''}`.trim() || res.user.email.split('@')[0],
-          email: res.user.email,
-          role: res.user.role.toLowerCase(), // frontend expects lowercase ('seller', 'buyer')
-        }
+        const userData = mapApiUserToCredentials(res.user)
         dispatch(setCredentials(userData))
         toast.success(`Welcome back, ${userData.name}!`)
-        navigate('/')
+        navigate('/', { replace: true })
       } else {
         toast.error(res.message || 'Login failed.')
       }

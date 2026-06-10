@@ -1,336 +1,333 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { 
-  Star, Eye, ShieldCheck, Home, 
-  PlusCircle, Loader2, Clock 
-} from 'lucide-react'
+import { Home, PlusCircle, Loader2, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
-import { useSellerProfile } from '@/features/seller'
-import { useProperties, useUpdateProperty } from '@/features/properties'
+import { useProperties, useDeleteProperty, useUpdateProperty } from '@/features/properties'
 import { getPropertyThumbnail } from '@/features/properties/lib/propertyUtils'
 
-function isBitTruthy(value) {
-  return value === true || value === 1 || value === '1'
+function isBitTruthy(v) {
+  return v === true || v === 1 || v === '1'
 }
 
-export default function SellerDashboard({ isSeller = true }) {
+function formatDate(value) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function VerificationBadge({ status }) {
+  switch (status) {
+    case 'Approved':
+      return (
+        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-700 border border-green-200">
+          Verified
+        </span>
+      )
+    case 'Rejected':
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-red-700 border border-red-200">
+            Rejected
+          </span>
+          <span className="text-[11px] text-red-500 flex items-center gap-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-400" />
+            Reason available
+          </span>
+        </div>
+      )
+    case 'RequestChanges':
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-orange-700 border border-orange-200">
+            Changes Requested
+          </span>
+          <span className="text-[11px] text-orange-500 flex items-center gap-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-400" />
+            Reason available
+          </span>
+        </div>
+      )
+    case 'Resubmitted':
+      return (
+        <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-blue-700 border border-blue-200">
+          Resubmitted
+        </span>
+      )
+    default:
+      return (
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-amber-700 border border-amber-200">
+          Pending
+        </span>
+      )
+  }
+}
+
+function ActionMenu({ propertyId, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 transition-colors"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-20 w-44 rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+          <button
+            type="button"
+            onClick={() => { navigate(`/my-properties/${propertyId}`); setOpen(false) }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            <Eye className="h-4 w-4 text-neutral-400" /> View Details
+          </button>
+          <button
+            type="button"
+            onClick={() => { navigate(`/properties/${propertyId}/edit`); setOpen(false) }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            <Pencil className="h-4 w-4 text-neutral-400" /> Edit Property
+          </button>
+          <div className="my-1 border-t border-neutral-100" />
+          <button
+            type="button"
+            onClick={() => { onDelete(propertyId); setOpen(false) }}
+            className="flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function SellerDashboard() {
   const { user } = useSelector((state) => state.auth)
   const navigate = useNavigate()
 
-  const { data: sellerRes, isLoading: isSellerLoading } = useSellerProfile(user?.id, {
-    enabled: !!user?.id && isSeller,
-  })
-  const seller = sellerRes?.data
-
-  const { data: propertiesRes, isLoading: isPropertiesLoading } = useProperties(
+  const { data: propertiesRes, isLoading } = useProperties(
     { seller_id: user?.id, is_verified: 'all' },
     { enabled: !!user?.id },
   )
   const myProperties = propertiesRes?.data || []
 
-  const { mutateAsync: updateProperty, isPending: isUpdating } = useUpdateProperty()
-  const [togglingId, setTogglingId] = React.useState(null)
+  const { mutateAsync: deleteProperty } = useDeleteProperty()
+  const { mutateAsync: updateProperty } = useUpdateProperty()
+  const [deletingId, setDeletingId] = useState(null)
 
-  const handleVisibilityToggle = async (prop, nextVisible) => {
-    setTogglingId(prop.id)
+  const handleVisibilityToggle = async (prop) => {
+    const isVerified = prop.verification_status === 'Approved'
+    if (!isVerified) return
+    const nextVisible = !isBitTruthy(prop.is_visible)
     try {
       await updateProperty({ id: prop.id, is_visible: nextVisible })
-      toast.success(
-        nextVisible
-          ? 'Listing is now visible in the public catalog.'
-          : 'Listing hidden from the public catalog.',
-      )
+      toast.success(nextVisible ? 'Property is now visible in the feed.' : 'Property hidden from the feed.')
     } catch (err) {
-      toast.error(err.message || 'Failed to update visibility')
-    } finally {
-      setTogglingId(null)
+      toast.error(err.message || 'Failed to update visibility.')
     }
   }
 
-  const handleStatusChange = async (propertyId, nextStatus) => {
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this property?')) return
+    setDeletingId(id)
     try {
-      await updateProperty({ id: propertyId, status: nextStatus })
-      toast.success(`Property status updated to "${nextStatus}".`)
+      await deleteProperty(id)
+      toast.success('Property deleted.')
     } catch (err) {
-      toast.error(err.message || 'Failed to update status')
+      toast.error(err.message || 'Failed to delete property.')
+    } finally {
+      setDeletingId(null)
     }
   }
 
-  const displayProperties = myProperties.map((prop) => ({
-    id: prop.id,
-    title: prop.title,
-    price: new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(prop.asking_price),
-    views: Math.max(5, Math.floor(prop.asking_price / 30000)) || 0,
-    inquiries: Math.max(1, Math.floor(prop.asking_price / 1200000)) || 0,
-    isVerified: isBitTruthy(prop.is_verified),
-    isVisible: isBitTruthy(prop.is_visible),
-    image: getPropertyThumbnail(prop),
-    status: prop.status,
-  }))
+  const totalCount = myProperties.length
+  const verifiedCount = myProperties.filter((p) => p.verification_status === 'Approved' || (!p.verification_status && isBitTruthy(p.is_verified))).length
+  const rejectedCount = myProperties.filter((p) => p.verification_status === 'Rejected' || p.verification_status === 'RequestChanges').length
+  const pendingCount = myProperties.filter((p) => !p.verification_status || p.verification_status === 'PendingReview' || p.verification_status === 'Resubmitted').length
 
-  const displayReviews = seller?.recent_reviews?.length > 0
-    ? seller.recent_reviews.map((rev) => ({
-        id: rev.id,
-        buyer: `${rev.first_name || ''} ${rev.last_name || ''}`.trim() || 'Prestige Client',
-        rating: rev.rating,
-        comment: rev.comment,
-        date: new Date(rev.created_at).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-      }))
-    : []
-
-  const verifiedListingsCount = myProperties.filter((p) => isBitTruthy(p.is_verified)).length
-  const pendingListingsCount = myProperties.filter((p) => !isBitTruthy(p.is_verified)).length
-  const totalViews = displayProperties.reduce((sum, p) => sum + p.views, 0)
-  const averageRating = seller?.average_rating
-    ? `${parseFloat(seller.average_rating).toFixed(1)} / 5`
-    : 'N/A'
-
-  const stats = [
-    { label: 'Verified Listings', value: String(verifiedListingsCount), icon: Home, color: 'text-blue-500 bg-blue-500/10' },
-    { label: 'Pending Approval', value: String(pendingListingsCount), icon: Clock, color: 'text-amber-500 bg-amber-500/10' },
-    { label: 'Total Views', value: new Intl.NumberFormat('en-US').format(totalViews), icon: Eye, color: 'text-purple-500 bg-purple-500/10' },
-    { label: 'Seller Rating', value: averageRating, icon: Star, color: 'text-yellow-500 bg-yellow-500/10' },
+  const summaryCards = [
+    { label: 'Total Properties', value: totalCount, color: 'bg-violet-50 text-violet-700 border-violet-100' },
+    { label: 'Verified', value: verifiedCount, color: 'bg-green-50 text-green-700 border-green-100' },
+    { label: 'Rejected', value: rejectedCount, color: 'bg-red-50 text-red-700 border-red-100' },
+    { label: 'Pending', value: pendingCount, color: 'bg-amber-50 text-amber-700 border-amber-100' },
   ]
 
-  if ((isSeller && isSellerLoading) || isPropertiesLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-10 pt-10 pb-16 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 relative">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="mx-auto max-w-6xl w-full px-4 sm:px-6 py-8">
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          {isSeller && (
-            <div className="flex items-center gap-1 text-xs font-semibold text-primary">
-              <ShieldCheck className="h-3.5 w-3.5" /> Professional Seller Access
-            </div>
-          )}
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            My Properties
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {isSeller
-              ? 'Manage your listings, visibility, and portfolio.'
-              : 'View your listings and control what appears in the public catalog.'}
-          </p>
+          <h1 className="text-2xl font-bold text-neutral-900 dark:text-white">My Properties</h1>
+          <p className="mt-1 text-sm text-neutral-500">Manage all your properties in one place</p>
         </div>
-        <Button 
-          onClick={() => navigate('/properties/create')} 
-          className="gap-1.5 shadow-md shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+        <Button
+          onClick={() => navigate('/properties/create')}
+          className="gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-sm"
         >
-          <PlusCircle className="h-4 w-4" /> Add Listing
+          <PlusCircle className="h-4 w-4" /> Add Property
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => {
-          const Icon = stat.icon
-          return (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="p-5 rounded-2xl border border-border/40 bg-card flex items-center gap-4 hover:shadow-md transition-shadow"
-            >
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${stat.color}`}>
-                <Icon className="h-6 w-6" />
-              </div>
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
-                  {stat.label}
-                </span>
-                <span className="text-lg sm:text-xl font-black text-foreground truncate">
-                  {stat.value}
-                </span>
-              </div>
-            </motion.div>
-          )
-        })}
+      {/* Summary Cards */}
+      <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {summaryCards.map((card) => (
+          <div
+            key={card.label}
+            className={`rounded-xl border p-4 ${card.color}`}
+          >
+            <p className="text-xs font-medium opacity-70">{card.label}</p>
+            <p className="mt-1 text-2xl font-bold">{card.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 flex flex-col gap-5">
-          <h2 className="text-xl font-bold text-foreground">My Portfolio</h2>
-          
-          {displayProperties.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center p-12 border border-dashed border-border/60 rounded-3xl bg-card gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Home className="h-6 w-6" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <h3 className="font-bold text-base text-foreground">No Listings Yet</h3>
-                <p className="text-sm text-muted-foreground max-w-xs">
-                  Create your first listing to present it in the catalog after admin approval.
-                </p>
-              </div>
-              <Button onClick={() => navigate('/properties/create')} variant="outline" size="sm" className="mt-2">
-                Create First Listing
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {displayProperties.map((prop) => (
-                <div
+      {/* Properties Table */}
+      {myProperties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 py-16 text-center dark:border-neutral-700 dark:bg-neutral-900">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+            <Home className="h-6 w-6" />
+          </div>
+          <h3 className="text-base font-semibold text-neutral-900 dark:text-white">No Properties Yet</h3>
+          <p className="mt-1 max-w-xs text-sm text-neutral-500">
+            Add your first property to get started. Properties appear here after you list them.
+          </p>
+          <Button
+            onClick={() => navigate('/properties/create')}
+            variant="outline"
+            className="mt-4 gap-2"
+          >
+            <PlusCircle className="h-4 w-4" /> Add First Property
+          </Button>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-neutral-100 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Property
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Status
+                </th>
+                <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500 sm:table-cell">
+                  Last Updated
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700">
+              {myProperties.map((prop) => (
+                <tr
                   key={prop.id}
-                  className="p-4 rounded-2xl border border-border/40 bg-card flex flex-col sm:flex-row gap-4 sm:items-center hover:shadow-md transition-all duration-300"
+                  className={`hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors ${deletingId === prop.id ? 'opacity-50' : ''}`}
                 >
-                  <Link to={`/properties/${prop.id}`} className="flex gap-4 items-center flex-grow min-w-0 group hover:opacity-90">
-                    <div className="h-20 w-20 rounded-xl overflow-hidden bg-muted shrink-0">
-                      <img src={prop.image} alt={prop.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors truncate">{prop.title}</h3>
-                      <p className="text-xs sm:text-sm font-semibold text-primary">{prop.price}</p>
-                      <div className="flex items-center gap-4 mt-2 text-[10px] sm:text-xs text-muted-foreground font-medium">
-                        <span>{prop.views} views</span>
-                        <span>•</span>
-                        <span>{prop.inquiries} inquiries</span>
+                  {/* Property cell */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+                        <img
+                          src={getPropertyThumbnail(prop)}
+                          alt={prop.title}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=200&q=60' }}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-neutral-900 dark:text-white max-w-[160px] sm:max-w-xs">
+                          {prop.title}
+                        </p>
+                        <p className="truncate text-xs text-neutral-500 max-w-[160px] sm:max-w-xs">
+                          {[prop.location_city, prop.location_state].filter(Boolean).join(', ') || prop.location_district || '—'}
+                        </p>
                       </div>
                     </div>
-                  </Link>
+                  </td>
 
-                  <div className="flex flex-col sm:items-end gap-3 shrink-0 sm:min-w-[180px]">
-                    <div className="flex items-center gap-2">
-                      {prop.isVerified ? (
-                        <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                          Pending
-                        </span>
-                      )}
-                      {/* {prop.isVerified && prop.isVisible && (
-                        <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-                          Public
-                        </span>
-                      )} */}
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        prop.status?.toLowerCase() === 'sold'
-                          ? 'bg-rose-500/10 text-rose-700'
-                          : prop.status?.toLowerCase() === 'pending'
-                            ? 'bg-amber-500/10 text-amber-700'
-                            : 'bg-emerald-500/10 text-emerald-700'
-                      }`}>
-                        {prop.status || 'Available'}
-                      </span>
-                    </div>
+                  {/* Status cell */}
+                  <td className="px-4 py-3">
+                    <VerificationBadge status={prop.verification_status} />
+                  </td>
 
-                    <div className="flex flex-col sm:items-end gap-2 w-full">
-                      <label
-                        className={`flex items-center justify-between gap-3 w-full sm:w-auto ${
-                          !prop.isVerified ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                        }`}
-                      >
-                        <span className="text-xs font-medium text-foreground">Make Visible</span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={prop.isVisible}
-                          disabled={!prop.isVerified || (isUpdating && togglingId === prop.id)}
-                          onClick={() => {
-                            if (!prop.isVerified) return
-                            handleVisibilityToggle(prop, !prop.isVisible)
-                          }}
-                          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                            prop.isVisible ? 'bg-primary' : 'bg-muted'
-                          } ${!prop.isVerified ? 'pointer-events-none' : ''}`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${
-                              prop.isVisible ? 'translate-x-5' : 'translate-x-0'
+                  {/* Last Updated cell */}
+                  <td className="hidden px-4 py-3 text-neutral-500 sm:table-cell">
+                    {formatDate(prop.updated_at)}
+                  </td>
+
+                  {/* Actions cell */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* Visibility toggle */}
+                      {(() => {
+                        const isVerified = prop.verification_status === 'Approved'
+                        const isVisible = isBitTruthy(prop.is_visible)
+                        return (
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isVisible && isVerified}
+                            disabled={!isVerified}
+                            onClick={() => handleVisibilityToggle(prop)}
+                            title={isVerified ? (isVisible ? 'Hide from feed' : 'Show in feed') : 'Available after verification'}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none ${
+                              !isVerified
+                                ? 'cursor-not-allowed bg-neutral-200 opacity-50'
+                                : isVisible
+                                  ? 'cursor-pointer bg-green-500'
+                                  : 'cursor-pointer bg-neutral-300'
                             }`}
-                          />
-                        </button>
-                      </label>
-
-                      <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
-                        <span className="text-xs font-medium text-foreground">Status</span>
-                        <select
-                          value={prop.status || 'Available'}
-                          onChange={(e) => handleStatusChange(prop.id, e.target.value)}
-                          disabled={isUpdating && togglingId === prop.id}
-                          className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary outline-none cursor-pointer"
-                        >
-                          <option value="Available">Available</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Sold">Sold</option>
-                        </select>
-                      </div>
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                                isVisible && isVerified ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        )
+                      })()}
+                      <Link
+                        to={`/my-properties/${prop.id}`}
+                        className="hidden rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors sm:block dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                      >
+                        View Details
+                      </Link>
+                      <ActionMenu propertyId={prop.id} onDelete={handleDelete} />
                     </div>
-                    {!prop.isVerified && (
-                      <p className="text-[10px] text-muted-foreground text-right">
-                        Available after admin approval
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
-
-        <div className="flex flex-col gap-5">
-          <h2 className="text-xl font-bold text-foreground">{isSeller ? 'Recent Reviews' : 'Quick actions'}</h2>
-          {!isSeller && (
-            <div className="p-6 rounded-2xl border border-border/40 bg-card flex flex-col gap-3">
-              <p className="text-sm text-muted-foreground">
-                Any registered user can list a property. Toggle visibility after your listing is verified.
-              </p>
-              <Button onClick={() => navigate('/properties/create')} className="w-fit gap-2">
-                <PlusCircle className="h-4 w-4" /> Create a listing
-              </Button>
-            </div>
-          )}
-          {isSeller && (
-          <>
-          {displayReviews.length === 0 ? (
-            <div className="p-6 rounded-2xl border border-border/40 bg-card text-center flex flex-col items-center justify-center gap-2">
-              <Star className="h-8 w-8 text-muted-foreground/45" />
-              <p className="text-xs text-muted-foreground">No client feedback has been submitted yet.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {displayReviews.map((rev) => (
-                <div key={rev.id} className="p-5 rounded-2xl border border-border/40 bg-card flex flex-col gap-3">
-                  <div className="flex justify-between items-center">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-bold text-xs sm:text-sm text-foreground">{rev.buyer}</span>
-                      <span className="text-[10px] text-muted-foreground">{rev.date}</span>
-                    </div>
-                    <div className="flex items-center gap-0.5 text-yellow-500 shrink-0">
-                      {[...Array(rev.rating)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 fill-current" />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed italic">
-                    &quot;{rev.comment}&quot;
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-          </>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

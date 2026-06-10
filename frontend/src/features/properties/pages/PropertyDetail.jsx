@@ -18,7 +18,8 @@ import { Button } from '@/shared/components/ui/button'
 
 import { useCreateEnquiry } from '@/features/enquiries'
 import { useProperty } from '@/features/properties'
-import { useWishlistIds, useToggleWishlist } from '@/features/wishlist'
+import { useToggleWishlist } from '@/features/wishlist'
+import { useWishlistContext } from '@/features/wishlist/context/WishlistContext'
 
 import { formatPropertyAge } from '@/features/properties/constants/propertyAge'
 import {
@@ -38,14 +39,11 @@ export default function PropertyDetail() {
 
   const { data, isLoading, isError, error } = useProperty(id)
 
-  const { data: wishlistIdsData } = useWishlistIds({ enabled: isAuthenticated })
+  const { isWishlisted: checkWishlisted } = useWishlistContext()
   const { mutateAsync: toggleWishlist, isPending: isTogglingWishlist } =
     useToggleWishlist()
 
-  const wishlistedIds = new Set(
-    (wishlistIdsData?.data ?? []).map((pid) => String(pid).toLowerCase()),
-  )
-  const isWishlisted = wishlistedIds.has(String(id).toLowerCase())
+  const isWishlisted = checkWishlisted(id)
 
   const { mutateAsync: createEnquiry, isPending: isSendingEnquiry } =
     useCreateEnquiry()

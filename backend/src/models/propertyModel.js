@@ -9,6 +9,23 @@ const specialFeaturesSchema = Joi.array()
     .optional();
 
 const propertySchema = {
+    guestCreate: Joi.object({
+        name: Joi.string().min(2).max(150).required(),
+        email: Joi.string().email().required(),
+        phone: Joi.string().min(8).max(20).required(),
+        title: Joi.string().max(255).required(),
+        property_type_id: uuid.required(),
+        asking_price: Joi.number().precision(2).required(),
+        size_sqft: Joi.number().precision(2).required(),
+        location_city: Joi.string().max(100).required(),
+        location_state: Joi.string().max(100).required(),
+        location_district: Joi.string().max(100).required(),
+        contact_email: Joi.string().email().required(),
+        contact_phone: Joi.string().max(20).required(),
+        property_story: Joi.string().required(),
+        property_age: Joi.number().integer().min(0).max(200).required(),
+        special_features: specialFeaturesSchema,
+    }),
     create: Joi.object({
         title: Joi.string().max(255).required(),
         property_type_id: uuid.required(),

@@ -180,9 +180,7 @@ export default function Footer() {
          
 
           <p className="text-center text-xs font-medium tracking-wide text-white/80 sm:text-right">
-            
-            <p>Made with love ❤️ by Hesa Engineers</p>
-
+            Made with ❤️ by Hesa Engineers
           </p>
         </div>
       </div>

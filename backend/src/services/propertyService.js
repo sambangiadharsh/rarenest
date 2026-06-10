@@ -1,7 +1,11 @@
+const crypto = require('crypto');
 const propertyRepository = require('../repositories/propertyRepository');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
 const enquiryRepository = require('../repositories/enquiryRepository');
 const mediaService = require('./mediaService');
+const authService = require('./authService');
+const sendEmail = require('../utils/sendEmail');
+const { hashPassword } = require('../utils/authUtils');
 
 class PropertyService {
     async getPropertyById(id, options = {}) {
@@ -53,6 +57,111 @@ class PropertyService {
         return propertyRepository.create(propertyData);
     }
 
+    async createGuestSellerAccount({ name, email, phone }) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const existingUser = await authService.findUserByEmail(normalizedEmail);
+        if (existingUser) {
+            return { error: 'requires_login' };
+        }
+
+        const trimmedName = name.trim();
+        const spaceIdx = trimmedName.indexOf(' ');
+        const first_name = spaceIdx === -1 ? trimmedName : trimmedName.slice(0, spaceIdx);
+        const last_name = spaceIdx === -1 ? '' : trimmedName.slice(spaceIdx + 1).trim();
+
+        const plainPassword = crypto.randomBytes(9).toString('base64url');
+        const password_hash = await hashPassword(plainPassword);
+
+        const newUser = await authService.createUser({
+            email: normalizedEmail,
+            password_hash,
+            first_name,
+            last_name,
+            phone: phone.trim(),
+            role: 'Seller',
+        });
+
+        const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        let emailSent = false;
+        try {
+            await sendEmail({
+                email: newUser.email,
+                subject: 'Your RareNest seller account',
+                message: [
+                    `Welcome to RareNest!`,
+                    '',
+                    'Your seller account has been created:',
+                    `Email: ${newUser.email}`,
+                    `Temporary password: ${plainPassword}`,
+                    '',
+                    `Log in anytime at: ${loginUrl}`,
+                    '',
+                    'You can now list your properties on RareNest.',
+                ].join('\n'),
+            });
+            emailSent = true;
+        } catch (mailErr) {
+            console.error('Guest seller account welcome email failed:', mailErr);
+        }
+
+        return { user: newUser, emailSent };
+    }
+
+    async createGuestListing({ name, email, phone, ...propertyData }) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const existingUser = await authService.findUserByEmail(normalizedEmail);
+        if (existingUser) {
+            return { error: 'requires_login' };
+        }
+
+        const trimmedName = name.trim();
+        const spaceIdx = trimmedName.indexOf(' ');
+        const first_name = spaceIdx === -1 ? trimmedName : trimmedName.slice(0, spaceIdx);
+        const last_name = spaceIdx === -1 ? '' : trimmedName.slice(spaceIdx + 1).trim();
+
+        const plainPassword = crypto.randomBytes(9).toString('base64url');
+        const password_hash = await hashPassword(plainPassword);
+
+        const newUser = await authService.createUser({
+            email: normalizedEmail,
+            password_hash,
+            first_name,
+            last_name,
+            phone: phone.trim(),
+            role: 'Seller',
+        });
+
+        const property = await propertyRepository.create({
+            ...propertyData,
+            seller_id: newUser.id,
+        });
+
+        const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        let emailSent = false;
+        try {
+            await sendEmail({
+                email: newUser.email,
+                subject: 'Your RareNest listing & account details',
+                message: [
+                    `Thank you for listing "${property.title}" on RareNest.`,
+                    '',
+                    'We created a RareNest account for you:',
+                    `Email: ${newUser.email}`,
+                    `Temporary password: ${plainPassword}`,
+                    '',
+                    `Log in anytime at: ${loginUrl}`,
+                    '',
+                    'Your listing is pending admin verification.',
+                ].join('\n'),
+            });
+            emailSent = true;
+        } catch (mailErr) {
+            console.error('Guest listing welcome email failed:', mailErr);
+        }
+
+        return { property, user: newUser, emailSent };
+    }
+
     async updateProperty(id, propertyData) {
         return propertyRepository.update(id, propertyData);
     }
@@ -68,8 +177,20 @@ class PropertyService {
         return sellerId === userId;
     }
 
-    async verifyProperty(id, isVerified) {
-        return propertyRepository.setVerified(id, isVerified);
+    async verifyProperty(id, { status, reason, adminId }) {
+        return propertyRepository.setVerified(id, { status, reason, adminId });
+    }
+
+    async getVerificationHistory(propertyId) {
+        return propertyRepository.findVerificationHistory(propertyId);
+    }
+
+    async resubmitProperty(propertyId, sellerId) {
+        return propertyRepository.resubmit(propertyId, sellerId);
+    }
+
+    async getPropertyEnquiries(propertyId) {
+        return enquiryRepository.findByPropertyId(propertyId);
     }
 }
 

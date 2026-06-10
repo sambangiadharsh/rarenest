@@ -12,8 +12,8 @@ export function useProperties(params = {}, options = {}) {
 export function useVerifyProperty() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, is_verified }) =>
-      propertyService.verifyProperty(id, is_verified),
+    mutationFn: ({ id, status, reason }) =>
+      propertyService.verifyProperty(id, { status, reason }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['properties'] })
       if (variables?.id) {

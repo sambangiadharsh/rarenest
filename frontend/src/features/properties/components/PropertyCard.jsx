@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
-import { Heart, Loader2, MapPin, Calendar, ArrowRight } from 'lucide-react'
+import { Heart, MapPin, Calendar, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -9,7 +9,8 @@ import {
   PLACEHOLDER_IMAGE,
   getDaysAgo,
 } from '@/features/properties/lib/propertyUtils'
-import { useWishlistIds, useToggleWishlist } from '@/features/wishlist'
+import { useToggleWishlist } from '@/features/wishlist'
+import { useWishlistContext } from '@/features/wishlist/context/WishlistContext'
 
 export default function PropertyCard({
   property,
@@ -19,14 +20,11 @@ export default function PropertyCard({
 }) {
   const navigate = useNavigate()
   const { isAuthenticated } = useSelector((state) => state.auth)
-  const { data: idsData } = useWishlistIds({ enabled: isAuthenticated })
+  const { isWishlisted: checkWishlisted } = useWishlistContext()
   const { mutateAsync: toggleWishlist, isPending: isTogglingWishlist } =
     useToggleWishlist()
 
-  const wishlistedIds = new Set(
-    (idsData?.data ?? []).map((id) => String(id).toLowerCase()),
-  )
-  const isWishlisted = wishlistedIds.has(String(property.id).toLowerCase())
+  const isWishlisted = checkWishlisted(property.id)
 
   const isList = layout === 'list'
   const cardImage = property.image || PLACEHOLDER_IMAGE
@@ -118,15 +116,11 @@ export default function PropertyCard({
             onClick={handleWishlistClick}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
           >
-            {isTogglingWishlist ? (
-              <Loader2 className="h-4 w-4 animate-spin text-[#B05B3B]" />
-            ) : (
-              <Heart
-                className={`h-4.5 w-4.5 transition-transform duration-300 hover:scale-110 ${
-                  isWishlisted ? 'fill-[#B05B3B] text-[#B05B3B]' : 'text-[#B05B3B]'
-                }`}
-              />
-            )}
+            <Heart
+              className={`h-4.5 w-4.5 transition-transform duration-300 hover:scale-110 ${
+                isWishlisted ? 'fill-[#B05B3B] text-[#B05B3B]' : 'text-[#B05B3B]'
+              }`}
+            />
           </Button>
 
           {/* Bottom-Left Availability/Status Badge */}

@@ -1,22 +1,29 @@
 import { useEffect, useState } from 'react'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, Globe, FileText, Eye, EyeOff, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/shared/components/ui/card'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import RichTextEditor from '@/shared/components/editors/RichTextEditor'
 import { useCmsPageAdmin, useUpdateCmsPage } from '@/features/cms'
 
-const selectClassName =
-  'flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+const STATUS_OPTIONS = [
+  { value: 'Published', label: 'Published', icon: Eye, color: 'text-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+  { value: 'Draft', label: 'Draft', icon: EyeOff, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' },
+]
+
+function SectionCard({ title, icon: Icon, children, className }) {
+  return (
+    <div className={`overflow-hidden rounded-xl border border-border bg-card shadow-xs ${className ?? ''}`}>
+      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-3">
+        {Icon && <Icon className="size-3.5 text-muted-foreground" />}
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  )
+}
 
 export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
   const { data, isLoading, isError, error } = useCmsPageAdmin(pageKey)
@@ -48,7 +55,6 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
       toast.error('Content is required.')
       return
     }
-
     try {
       const res = await updatePage({
         title: title.trim(),
@@ -67,8 +73,198 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
     }
   }
 
+  const currentStatus = STATUS_OPTIONS.find((s) => s.value === status) ?? STATUS_OPTIONS[0]
+  const StatusIcon = currentStatus.icon
+
+  // ── Loading skeleton ─────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader pageTitle={pageTitle} pageDescription={pageDescription} />
+        <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+          <div className="space-y-4">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-[420px] w-full rounded-xl" />
+          </div>
+          <div className="space-y-4">
+            <Skeleton className="h-40 w-full rounded-xl" />
+            <Skeleton className="h-48 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Error state ───────────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <PageHeader pageTitle={pageTitle} pageDescription={pageDescription} />
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-5 py-4">
+          <p className="text-sm text-destructive">{error?.message || 'Failed to load page.'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Main editor layout ────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
+      <PageHeader pageTitle={pageTitle} pageDescription={pageDescription} />
+
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+
+        {/* ── Left: main editing area ── */}
+        <div className="space-y-4 min-w-0">
+          {/* Title */}
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+            <div className="border-b border-border bg-muted/30 px-4 py-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Page Title</span>
+            </div>
+            <div className="p-3">
+              <input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter a clear, descriptive title…"
+                className="w-full bg-transparent font-heading text-xl font-semibold text-foreground placeholder:font-sans placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/50 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Body */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Body Content</span>
+            </div>
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Start writing your content here… Use the toolbar to add headings, bold text, lists, quotes, and more."
+              minHeight={380}
+            />
+          </div>
+        </div>
+
+        {/* ── Right: sidebar ── */}
+        <div className="space-y-4">
+
+          {/* Publish card */}
+          <SectionCard title="Publish" icon={Globe}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Visibility</Label>
+                <div className="flex gap-2">
+                  {STATUS_OPTIONS.map((opt) => {
+                    const Icon = opt.icon
+                    const selected = status === opt.value
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setStatus(opt.value)}
+                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
+                          selected
+                            ? `${opt.bg} ${opt.color} border-current`
+                            : 'border-border text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <Icon className="size-3.5" />
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">
+                  {status === 'Published'
+                    ? 'Visible to all visitors on the public site.'
+                    : 'Hidden from the public site until published.'}
+                </p>
+              </div>
+
+              <Button
+                onClick={handleSave}
+                disabled={isPending}
+                className="w-full gap-2 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Save className="size-4" />
+                    Save changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </SectionCard>
+
+          {/* SEO card */}
+          <SectionCard title="SEO & Meta" icon={FileText}>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="meta_title" className="text-xs">
+                  Meta title
+                </Label>
+                <Input
+                  id="meta_title"
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  placeholder="Leave blank to use page title"
+                  className="h-8 text-xs"
+                />
+                <p className="text-[11px] text-muted-foreground/60">
+                  {metaTitle.length}/60 characters
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="meta_description" className="text-xs">
+                  Meta description
+                </Label>
+                <textarea
+                  id="meta_description"
+                  value={metaDescription}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  rows={4}
+                  className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/50 resize-none"
+                  placeholder="Brief description shown in search results…"
+                />
+                <p className="text-[11px] text-muted-foreground/60">
+                  {metaDescription.length}/160 characters
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Tips card */}
+          <div className="rounded-xl border border-brand-sand bg-brand-cream/50 p-4">
+            <div className="flex items-start gap-2.5">
+              <Info className="mt-0.5 size-4 shrink-0 text-brand-terracotta" />
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-brand-forest">Editor tips</p>
+                <ul className="space-y-1 text-[11px] text-muted-foreground">
+                  <li>⌘B / ⌘I — Bold / Italic</li>
+                  <li>⌘E — Inline code</li>
+                  <li>⌘Z / ⌘⇧Z — Undo / Redo</li>
+                  <li>Tab — Indent list items</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PageHeader({ pageTitle, pageDescription }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight text-brand-forest">
           {pageTitle}
@@ -77,95 +273,6 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
           <p className="mt-1 text-sm text-muted-foreground">{pageDescription}</p>
         )}
       </div>
-
-      {isLoading ? (
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <Skeleton className="h-9 w-full" />
-            <Skeleton className="h-[240px] w-full" />
-          </CardContent>
-        </Card>
-      ) : isError ? (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{error?.message || 'Failed to load page.'}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Page content</CardTitle>
-            <CardDescription>
-              Changes are reflected on the public site when status is Published.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Page title"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Content</Label>
-              <RichTextEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Write page content..."
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="meta_title">Meta title</Label>
-                <Input
-                  id="meta_title"
-                  value={metaTitle}
-                  onChange={(e) => setMetaTitle(e.target.value)}
-                  placeholder="SEO title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className={selectClassName}
-                >
-                  <option value="Published">Published</option>
-                  <option value="Draft">Draft</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="meta_description">Meta description</Label>
-              <textarea
-                id="meta_description"
-                value={metaDescription}
-                onChange={(e) => setMetaDescription(e.target.value)}
-                rows={3}
-                className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="SEO description"
-              />
-            </div>
-
-            <Button onClick={handleSave} disabled={isPending}>
-              {isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Save className="size-4" />
-              )}
-              Save changes
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

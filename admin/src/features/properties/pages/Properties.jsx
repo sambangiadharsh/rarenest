@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Building2,
   ChevronRight,
   Clock,
-  Filter,
   Search,
   ShieldCheck,
   ShieldX,
@@ -50,15 +49,18 @@ function formatDate(value) {
   })
 }
 
-function StatCard({ label, value, icon: Icon, iconClass }) {
+function StatCard({ label, value, icon: Icon, iconClass, valueClass }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-      <div className={`flex size-10 items-center justify-center rounded-lg ${iconClass}`}>
-        <Icon className="size-5" />
-      </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-2xl font-semibold text-foreground">{value}</p>
+    <div className="group relative overflow-hidden rounded-xl border border-border bg-card px-5 py-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-forest/30 via-brand-terracotta/30 to-transparent" />
+      <div className="flex items-center gap-3.5">
+        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+          <Icon className="size-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground">{label}</p>
+          <p className={`font-sans text-2xl font-bold tabular-nums tracking-tight ${valueClass ?? 'text-foreground'}`}>{value}</p>
+        </div>
       </div>
     </div>
   )
@@ -79,8 +81,8 @@ export default function Properties() {
     is_visible: 'all',
   })
   const { data: typesRes } = usePropertyTypes()
-  const propertyTypes = typesRes?.data ?? []
-  const properties = data?.data ?? []
+  const propertyTypes = useMemo(() => typesRes?.data ?? [], [typesRes])
+  const properties = useMemo(() => data?.data ?? [], [data])
 
   const stats = useMemo(() => {
     let pending = 0
@@ -88,9 +90,9 @@ export default function Properties() {
     let rejected = 0
     for (const p of properties) {
       const status = getVerificationStatus(p)
-      if (status === 'Verified') verified += 1
+      if (status === 'Approved') verified += 1
       else if (status === 'Rejected') rejected += 1
-      else pending += 1
+      else pending += 1  // Pending, RequestChanges, Resubmitted
     }
     return { pending, verified, rejected, total: properties.length }
   }, [properties])
@@ -107,8 +109,9 @@ export default function Properties() {
     const q = search.trim().toLowerCase()
     return properties.filter((p) => {
       const vStatus = getVerificationStatus(p)
-      if (verificationFilter === 'pending' && vStatus !== 'Pending') return false
-      if (verificationFilter === 'verified' && vStatus !== 'Verified') return false
+      if (verificationFilter === 'pending' && vStatus === 'Approved') return false
+      if (verificationFilter === 'pending' && vStatus === 'Rejected') return false
+      if (verificationFilter === 'verified' && vStatus !== 'Approved') return false
       if (verificationFilter === 'rejected' && vStatus !== 'Rejected') return false
 
       if (
@@ -131,26 +134,24 @@ export default function Properties() {
     })
   }, [properties, search, verificationFilter, statusFilter, typeFilter, cityFilter])
 
+  // Reset to page 1 when any filter changes (state-during-render pattern)
+  const [prevFilterKey, setPrevFilterKey] = useState('')
+  const filterKey = `${search}|${verificationFilter}|${statusFilter}|${typeFilter}|${cityFilter}`
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
   const pageStart = (safePage - 1) * PAGE_SIZE
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE)
 
-  useEffect(() => {
-    setPage(1)
-  }, [search, verificationFilter, statusFilter, typeFilter, cityFilter])
-
-  useEffect(() => {
-    if (pageItems.length === 0) {
-      setSelectedId(null)
-      return
-    }
-    if (!isDetailOpen) return
-
-    const stillVisible = selectedId && pageItems.some((p) => p.id === selectedId)
-    if (!stillVisible) {
-      setSelectedId(pageItems[0].id)
-    }
+  // Derive the active selected ID without an effect — clamp to current page
+  const validSelectedId = useMemo(() => {
+    if (!isDetailOpen || pageItems.length === 0) return null
+    if (selectedId && pageItems.some((p) => p.id === selectedId)) return selectedId
+    return pageItems[0]?.id ?? null
   }, [pageItems, selectedId, isDetailOpen])
 
   const pageNumbers = useMemo(() => {
@@ -167,7 +168,7 @@ export default function Properties() {
   const showingTo = Math.min(pageStart + PAGE_SIZE, filtered.length)
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-[640px] flex-col gap-4">
+    <div className="flex h-[calc(100vh-7rem)] min-h-[640px] w-full min-w-0 flex-col gap-4 overflow-x-hidden">
       <div>
         <nav className="text-xs text-muted-foreground">
           <Link to="/" className="hover:text-foreground">
@@ -186,25 +187,29 @@ export default function Properties() {
           label="Pending Verification"
           value={stats.pending}
           icon={Clock}
-          iconClass="bg-amber-100 text-amber-700"
+          iconClass="bg-amber-50 text-amber-600"
+          valueClass="text-amber-700"
         />
         <StatCard
           label="Verified"
           value={stats.verified}
           icon={ShieldCheck}
-          iconClass="bg-emerald-100 text-emerald-700"
+          iconClass="bg-emerald-50 text-emerald-600"
+          valueClass="text-emerald-700"
         />
         <StatCard
           label="Rejected"
           value={stats.rejected}
           icon={ShieldX}
-          iconClass="bg-red-100 text-red-700"
+          iconClass="bg-red-50 text-red-600"
+          valueClass="text-red-700"
         />
         <StatCard
           label="Total Properties"
           value={stats.total}
           icon={Building2}
-          iconClass="bg-blue-100 text-blue-700"
+          iconClass="bg-brand-forest/8 text-brand-forest"
+          valueClass="text-brand-forest"
         />
       </div>
 
@@ -269,15 +274,6 @@ export default function Properties() {
             </option>
           ))}
         </select>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-9 min-w-[7.5rem] flex-1 basis-0 gap-1.5"
-        >
-          <Filter className="size-4" />
-          Filter
-        </Button>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -305,8 +301,9 @@ export default function Properties() {
 
           {!isLoading && !isError && filtered.length > 0 && (
             <>
-              <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full text-sm">
+                 
+  <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+    <table className="w-full min-w-[1100px] text-sm">
                   <thead className="sticky top-0 z-10 bg-muted/80 backdrop-blur-sm">
                     <tr className="border-b border-border text-left">
                       <th className="px-4 py-3 font-medium w-16">Image</th>
@@ -332,7 +329,7 @@ export default function Properties() {
                             setIsDetailOpen(true)
                           }}
                           className={`cursor-pointer border-b border-border transition-colors last:border-0 ${
-                            isSelected ? 'bg-blue-50/80' : 'hover:bg-muted/40'
+                            isSelected ? 'bg-brand-forest/5 border-l-2 border-l-brand-forest' : 'hover:bg-muted/40'
                           }`}
                         >
                           <td className="px-4 py-3">
@@ -350,14 +347,14 @@ export default function Properties() {
                               }}
                             />
                           </td>
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-foreground">{prop.title}</p>
-                            <p className="text-xs text-muted-foreground">{getSellerName(prop)}</p>
+                          <td className="px-4 py-3 min-w-0">
+                            <p className="font-medium text-foreground truncate">{prop.title}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getSellerName(prop)}</p>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                             {prop.property_type_name || '—'}
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground">
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                             {prop.location_city || '—'}
                           </td>
                           <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
@@ -381,7 +378,7 @@ export default function Properties() {
                   </tbody>
                 </table>
               </div>
-
+             
               <div className="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-muted-foreground">
                   Showing {showingFrom} to {showingTo} of {filtered.length} properties
@@ -419,24 +416,17 @@ export default function Properties() {
                   </Button>
                 </div>
               </div>
+              
             </>
           )}
         </div>
 
-        {isDetailOpen && selectedId ? (
+        {validSelectedId ? (
           <PropertyDetailPanel
-            propertyId={selectedId}
+            propertyId={validSelectedId}
             onClose={() => setIsDetailOpen(false)}
           />
-        ) : (
-          !isLoading &&
-          !isError &&
-          filtered.length > 0 && (
-            <aside className="hidden w-[480px] shrink-0 items-center justify-center border-l border-border bg-muted/20 p-8 text-center text-sm text-muted-foreground lg:flex">
-              Select a property to view details
-            </aside>
-          )
-        )}
+        ) : null}
       </div>
     </div>
   )

@@ -59,3 +59,41 @@ exports.createPropertyType = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// @desc    Update property type
+// @route   PUT /api/property-types/:id
+exports.updatePropertyType = async (req, res) => {
+    try {
+        const { error } = propertyTypeSchema.update.validate(req.body);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        const updates = { updated_by: req.user.id };
+        if (req.body.name !== undefined) {
+            updates.name = req.body.name.trim();
+        }
+        if (req.body.is_active !== undefined) {
+            updates.is_active = req.body.is_active;
+        }
+        if (req.body.display_order !== undefined) {
+            updates.display_order = req.body.display_order;
+        }
+
+        const propertyType = await propertyTypeService.updatePropertyType(req.params.id, updates);
+
+        res.status(200).json({
+            success: true,
+            data: propertyType,
+        });
+    } catch (err) {
+        if (err.statusCode === 404) {
+            return res.status(404).json({ success: false, message: err.message });
+        }
+        if (err.statusCode === 400) {
+            return res.status(400).json({ success: false, message: err.message });
+        }
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

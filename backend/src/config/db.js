@@ -13,11 +13,17 @@ const dbConfig = {
     }
 };
 
-const poolPromise = new sql.ConnectionPool(dbConfig)
+const pool = new sql.ConnectionPool(dbConfig);
+
+pool.on('error', (err) => {
+    console.error('SQL pool error:', err.message);
+});
+
+const poolPromise = pool
     .connect()
-    .then(pool => {
+    .then(p => {
         console.log('Connected to MS SQL');
-        return pool;
+        return p;
     })
     .catch(err => {
         console.error('Database Connection Failed! Bad Config: ', err);

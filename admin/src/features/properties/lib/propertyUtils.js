@@ -7,6 +7,10 @@ function isImageMedia(media) {
   return String(media?.media_type || '').toLowerCase() === 'image'
 }
 
+function isVideoMedia(media) {
+  return String(media?.media_type || '').toLowerCase() === 'video'
+}
+
 function isThumbnailMedia(media) {
   return media?.is_thumbnail === true || media?.is_thumbnail === 1 || media?.is_thumbnail === '1'
 }
@@ -36,6 +40,17 @@ export function getPropertyImages(property) {
   return property.media
     .filter(isImageMedia)
     .map((m) => resolveMediaUrl(m.media_url))
+}
+
+export function getPropertyMediaItems(property) {
+  if (!property?.media?.length) return []
+  return property.media
+    .filter((m) => isImageMedia(m) || isVideoMedia(m))
+    .map((m) => ({
+      type: isVideoMedia(m) ? 'Video' : 'Image',
+      src: resolveMediaUrl(m.media_url),
+      isThumbnail: isThumbnailMedia(m),
+    }))
 }
 
 export function parseSpecialFeatures(value) {
@@ -75,7 +90,12 @@ function isBitTruthy(value) {
 
 export function getVerificationStatus(property) {
   if (!property) return 'Pending'
-  if (isBitTruthy(property.is_verified)) return 'Verified'
+  const vs = property.verification_status
+  if (vs === 'Approved') return 'Approved'
+  if (vs === 'Rejected') return 'Rejected'
+  if (vs === 'RequestChanges') return 'RequestChanges'
+  // Fallback for legacy data without verification_status
+  if (isBitTruthy(property.is_verified)) return 'Approved'
   const visible =
     property.is_visible !== false &&
     property.is_visible !== 0 &&
@@ -86,11 +106,14 @@ export function getVerificationStatus(property) {
 
 export function getVerificationBadgeClass(status) {
   const key = String(status || '').toLowerCase()
-  if (key === 'verified') {
+  if (key === 'verified' || key === 'approved') {
     return 'inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800'
   }
   if (key === 'rejected') {
     return 'inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800'
+  }
+  if (key === 'requestchanges') {
+    return 'inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'
   }
   return 'inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800'
 }

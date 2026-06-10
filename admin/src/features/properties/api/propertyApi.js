@@ -8,8 +8,8 @@ export function getProperty(id) {
   return apiClient.get(`/properties/${id}`)
 }
 
-export function verifyProperty(id, is_verified) {
-  return apiClient.put(`/properties/${id}/verify`, { is_verified })
+export function verifyProperty(id, { status, reason }) {
+  return apiClient.put(`/properties/${id}/verify`, { status, reason })
 }
 
 export function updateProperty(id, data) {

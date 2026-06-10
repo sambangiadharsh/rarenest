@@ -8,7 +8,8 @@ import { useLogout } from '@/features/auth'
 import { toast } from 'sonner'
 import { getAdminLoginUrl } from '@/shared/config/app'
 import AccountMenu from './AccountMenu'
-import { useWishlist } from '@/features/wishlist/hooks/useWishlist'
+import { useWishlistContext } from '@/features/wishlist'
+import GuestListingModal from '@/features/properties/components/GuestListingModal'
 
 
 function NavIconButton({
@@ -45,9 +46,10 @@ export default function Header() {
   const navigate = useNavigate()
   const { mutateAsync: logoutApi } = useLogout()
   const [isOpen, setIsOpen] = React.useState(false)
+  const [guestListingOpen, setGuestListingOpen] = React.useState(false)
   
-  const { data: wishlistData } = useWishlist({ enabled: isAuthenticated })
-  const wishlistCount = wishlistData?.data?.length || 0
+  const { wishlistedIds } = useWishlistContext()
+  const wishlistCount = wishlistedIds.size
   const handleLogout = async () => {
     try {
       await logoutApi()
@@ -103,6 +105,7 @@ export default function Header() {
   )
 
   return (
+    <>
     <header className="sticky top-0 z-50 w-full border-b border-brand-forest-mid/30 bg-brand-forest text-white backdrop-blur-md transition-all duration-300 shadow-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2">
@@ -145,20 +148,19 @@ export default function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          
+          {!isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => isAuthenticated ? navigate('/properties/create') : setGuestListingOpen(true)}
+              className="gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold transition-all duration-300"
+            >
+              <PlusCircle className="h-4 w-4" />
+              List a Property
+            </Button>
+          )}
           {isAuthenticated ? (
             <>
-              {!isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/properties/create')}
-                  className="gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold transition-all duration-300"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  List a Property
-                </Button>
-              )}
               {navIcons}
               <AccountMenu
                 isAuthenticated={isAuthenticated}
@@ -167,7 +169,6 @@ export default function Header() {
                 onLogout={handleLogout}
               />
             </>
-            
           ) : (
             <AccountMenu
               isAuthenticated={false}
@@ -249,33 +250,37 @@ export default function Header() {
 
             <hr className="border-brand-forest-mid/50 my-2" />
 
-            {isAuthenticated ? (
-              <div className="flex flex-col gap-3 px-2">
-                <div className="px-2 text-xs font-semibold text-brand-warm-white/60">
-                  Signed in as:{' '}
-                  <span className="text-white font-bold">
-                    {user.name || user.email}
-                  </span>
-                </div>
-                {!isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      closeMobile()
-                      navigate('/properties/create')
-                    }}
-                    className="justify-start gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold rounded-xl"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    List a Property
-                  </Button>
-                )}
+            {!isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  closeMobile()
+                  isAuthenticated ? navigate('/properties/create') : setGuestListingOpen(true)
+                }}
+                className="justify-start gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold rounded-xl"
+              >
+                <PlusCircle className="h-4 w-4" />
+                List a Property
+              </Button>
+            )}
+            {isAuthenticated && (
+              <div className="px-2 text-xs font-semibold text-brand-warm-white/60">
+                Signed in as:{' '}
+                <span className="text-white font-bold">
+                  {user.name || user.email}
+                </span>
               </div>
-            ) : null}
+            )}
           </div>
         </div>
       )}
     </header>
+
+    <GuestListingModal
+      open={guestListingOpen}
+      onClose={() => setGuestListingOpen(false)}
+    />
+    </>
   )
 }

@@ -1,7 +1,7 @@
 const { poolPromise, sql } = require('../config/db');
 
 const PROPERTY_SELECT = `
-    SELECT p.*, pt.name AS property_type_name,
+    SELECT p.*, pt.name AS property_type_name, pt.is_active AS property_type_is_active,
         u.first_name AS seller_first_name,
         u.last_name AS seller_last_name,
         u.email AS seller_email,
@@ -10,6 +10,8 @@ const PROPERTY_SELECT = `
     LEFT JOIN PropertyTypes pt ON p.property_type_id = pt.id
     LEFT JOIN Users u ON p.seller_id = u.id
 `;
+
+const ACTIVE_PROPERTY_TYPE_FILTER = ' AND (p.property_type_id IS NULL OR pt.is_active = 1)';
 
 class PropertyRepository {
     async findAll(filters = {}) {
@@ -49,6 +51,8 @@ class PropertyRepository {
         }
 
         const isPortfolioQuery = seller_id && is_verified === 'all';
+        const isAdminPortfolio = is_visible === 'all';
+        const requireActivePropertyType = !isPortfolioQuery && !isAdminPortfolio;
 
         if (is_verified === 'all') {
             // no is_verified filter (owner portfolio)
@@ -66,6 +70,10 @@ class PropertyRepository {
         } else if (!isPortfolioQuery) {
             request.input('is_visible', sql.Bit, 1);
             query += ' AND p.is_visible = @is_visible';
+        }
+
+        if (requireActivePropertyType) {
+            query += ACTIVE_PROPERTY_TYPE_FILTER;
         }
 
         query += ' ORDER BY p.created_at DESC';
@@ -170,6 +178,8 @@ class PropertyRepository {
             return this.findById(id);
         }
 
+        updateClauses.push('updated_at = GETDATE()');
+
         await request.query(`
             UPDATE Properties
             SET ${updateClauses.join(', ')}
@@ -193,20 +203,89 @@ class PropertyRepository {
         return result.recordset[0]?.seller_id ?? null;
     }
 
-    async setVerified(id, isVerified) {
-        const verified =
-            isVerified === true || isVerified === 1 || isVerified === '1' || isVerified === 'true';
+    async setVerified(id, { status, reason, adminId }) {
         const pool = await poolPromise;
-        const result = await pool.request()
+
+        // Fetch current verification_status for history
+        const current = await pool.request()
+            .input('id_cur', sql.UniqueIdentifier, id)
+            .query('SELECT verification_status FROM Properties WHERE id = @id_cur');
+        const previousStatus = current.recordset[0]?.verification_status ?? null;
+
+        const isVerified = status === 'Approved' ? 1 : 0;
+        const isVisible = status === 'Approved' ? 1 : 0;
+
+        await pool.request()
             .input('id', sql.UniqueIdentifier, id)
-            .input('is_verified', sql.Bit, verified ? 1 : 0)
+            .input('is_verified', sql.Bit, isVerified)
+            .input('is_visible', sql.Bit, isVisible)
+            .input('verification_status', sql.NVarChar, status)
             .query(`
                 UPDATE Properties
-                SET is_verified = @is_verified
-                OUTPUT inserted.*
+                SET is_verified = @is_verified, is_visible = @is_visible,
+                    verification_status = @verification_status, updated_at = GETDATE()
                 WHERE id = @id
             `);
-        return this.findById(result.recordset[0].id);
+
+        await pool.request()
+            .input('property_id', sql.UniqueIdentifier, id)
+            .input('previous_status', sql.NVarChar, previousStatus)
+            .input('new_status', sql.NVarChar, status)
+            .input('reason', sql.NVarChar, reason || null)
+            .input('action_by', sql.UniqueIdentifier, adminId)
+            .query(`
+                INSERT INTO PropertyVerificationHistory (property_id, previous_status, new_status, reason, action_by)
+                VALUES (@property_id, @previous_status, @new_status, @reason, @action_by)
+            `);
+
+        return this.findById(id);
+    }
+
+    async findVerificationHistory(propertyId) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('property_id', sql.UniqueIdentifier, propertyId)
+            .query(`
+                SELECT pvh.id, pvh.property_id, pvh.previous_status, pvh.new_status,
+                       pvh.reason, pvh.created_at,
+                       u.first_name AS admin_first_name, u.last_name AS admin_last_name
+                FROM PropertyVerificationHistory pvh
+                LEFT JOIN Users u ON pvh.action_by = u.id
+                WHERE pvh.property_id = @property_id
+                ORDER BY pvh.created_at DESC
+            `);
+        return result.recordset;
+    }
+
+    async resubmit(id, sellerId) {
+        const pool = await poolPromise;
+
+        const current = await pool.request()
+            .input('id_cur', sql.UniqueIdentifier, id)
+            .query('SELECT verification_status FROM Properties WHERE id = @id_cur');
+        const previousStatus = current.recordset[0]?.verification_status ?? null;
+
+        await pool.request()
+            .input('id', sql.UniqueIdentifier, id)
+            .input('verification_status', sql.NVarChar, 'Resubmitted')
+            .query(`
+                UPDATE Properties
+                SET verification_status = @verification_status, updated_at = GETDATE()
+                WHERE id = @id
+            `);
+
+        await pool.request()
+            .input('property_id', sql.UniqueIdentifier, id)
+            .input('previous_status', sql.NVarChar, previousStatus)
+            .input('new_status', sql.NVarChar, 'Resubmitted')
+            .input('reason', sql.NVarChar, null)
+            .input('action_by', sql.UniqueIdentifier, sellerId)
+            .query(`
+                INSERT INTO PropertyVerificationHistory (property_id, previous_status, new_status, reason, action_by)
+                VALUES (@property_id, @previous_status, @new_status, @reason, @action_by)
+            `);
+
+        return this.findById(id);
     }
 
     async countAll() {

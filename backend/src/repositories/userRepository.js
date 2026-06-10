@@ -37,7 +37,7 @@ class UserRepository {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('id', sql.UniqueIdentifier, id)
-            .query('SELECT id, email, first_name, last_name, phone, address, role, created_at FROM Users WHERE id = @id');
+            .query('SELECT id, email, first_name, last_name, phone, address, role, created_at, updated_at FROM Users WHERE id = @id');
         return result.recordset[0];
     }
 
@@ -91,10 +91,11 @@ class UserRepository {
             .input('id', sql.UniqueIdentifier, userId)
             .input('password', sql.NVarChar, hashedPassword)
             .query(`
-                UPDATE Users 
-                SET password_hash = @password, 
-                    reset_password_token = NULL, 
-                    reset_password_expire = NULL 
+                UPDATE Users
+                SET password_hash = @password,
+                    reset_password_token = NULL,
+                    reset_password_expire = NULL,
+                    updated_at = GETDATE()
                 WHERE id = @id
             `);
     }
@@ -113,8 +114,10 @@ class UserRepository {
                 SET first_name = COALESCE(@first_name, first_name),
                     last_name = COALESCE(@last_name, last_name),
                     phone = COALESCE(@phone, phone),
-                    address = COALESCE(@address, address)
-                OUTPUT inserted.id, inserted.email, inserted.first_name, inserted.last_name, inserted.phone, inserted.address, inserted.role
+                    address = COALESCE(@address, address),
+                    updated_at = GETDATE()
+                OUTPUT inserted.id, inserted.email, inserted.first_name, inserted.last_name,
+                       inserted.phone, inserted.address, inserted.role, inserted.updated_at
                 WHERE id = @id
             `);
         return result.recordset[0];

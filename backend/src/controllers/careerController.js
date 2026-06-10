@@ -41,7 +41,7 @@ exports.createCareer = async (req, res) => {
             return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
-        const career = await careerService.createCareer(req.body);
+        const career = await careerService.createCareer({ ...req.body, created_by: req.user.id });
         res.status(201).json({ success: true, data: career });
     } catch (err) {
         console.error(err);
@@ -56,7 +56,7 @@ exports.updateCareer = async (req, res) => {
             return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
-        const career = await careerService.updateCareer(req.params.id, req.body);
+        const career = await careerService.updateCareer(req.params.id, { ...req.body, updated_by: req.user.id });
         res.status(200).json({ success: true, data: career });
     } catch (err) {
         if (err.statusCode === 404) {

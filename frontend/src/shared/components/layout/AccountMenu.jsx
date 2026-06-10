@@ -105,6 +105,9 @@ export default function AccountMenu({
             <MenuLinkItem to="/contact" icon={LifeBuoy} onNavigate={onNavigate}>
               Help & Support
             </MenuLinkItem>
+            <MenuLinkItem to="/profile" icon={User} onNavigate={onNavigate}>
+              Reset Password
+            </MenuLinkItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"

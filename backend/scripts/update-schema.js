@@ -141,10 +141,104 @@ async function run() {
                     is_active BIT DEFAULT 1,
                     display_order INT DEFAULT 0,
                     created_by UNIQUEIDENTIFIER,
+                    updated_by UNIQUEIDENTIFIER,
                     created_at DATETIME2 DEFAULT SYSDATETIME(),
                     updated_at DATETIME2 DEFAULT SYSDATETIME(),
-                    FOREIGN KEY (created_by) REFERENCES Users(id)
+                    FOREIGN KEY (created_by) REFERENCES Users(id),
+                    FOREIGN KEY (updated_by) REFERENCES Users(id)
                 );
+            END
+        `);
+
+        console.log("Adding 'updated_by' column to PropertyTypes if missing...");
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('PropertyTypes') AND name = 'updated_by'
+            )
+            BEGIN
+                ALTER TABLE PropertyTypes ADD updated_by UNIQUEIDENTIFIER NULL;
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.foreign_keys WHERE name = 'FK_PropertyTypes_updated_by'
+            )
+            BEGIN
+                ALTER TABLE PropertyTypes
+                    ADD CONSTRAINT FK_PropertyTypes_updated_by
+                    FOREIGN KEY (updated_by) REFERENCES Users(id);
+            END
+        `);
+
+        // ── New fields ────────────────────────────────────────────────────────
+
+        console.log("Adding 'updated_at' to Users if missing...");
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Users') AND name = 'updated_at'
+            )
+            BEGIN
+                ALTER TABLE Users ADD updated_at DATETIME NOT NULL DEFAULT GETDATE();
+            END
+        `);
+
+        console.log("Adding 'updated_at' to Properties if missing...");
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Properties') AND name = 'updated_at'
+            )
+            BEGIN
+                ALTER TABLE Properties ADD updated_at DATETIME NOT NULL DEFAULT GETDATE();
+            END
+        `);
+
+        console.log("Adding 'updated_at' to PropertyMedia if missing...");
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('PropertyMedia') AND name = 'updated_at'
+            )
+            BEGIN
+                ALTER TABLE PropertyMedia ADD updated_at DATETIME NOT NULL DEFAULT GETDATE();
+            END
+        `);
+
+        console.log("Adding 'created_by' and 'updated_by' to Careers if missing...");
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Careers') AND name = 'created_by'
+            )
+            BEGIN
+                ALTER TABLE Careers ADD created_by UNIQUEIDENTIFIER NULL;
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Careers') AND name = 'updated_by'
+            )
+            BEGIN
+                ALTER TABLE Careers ADD updated_by UNIQUEIDENTIFIER NULL;
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.foreign_keys WHERE name = 'FK_Careers_created_by'
+            )
+            BEGIN
+                ALTER TABLE Careers
+                    ADD CONSTRAINT FK_Careers_created_by
+                    FOREIGN KEY (created_by) REFERENCES Users(id);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.foreign_keys WHERE name = 'FK_Careers_updated_by'
+            )
+            BEGIN
+                ALTER TABLE Careers
+                    ADD CONSTRAINT FK_Careers_updated_by
+                    FOREIGN KEY (updated_by) REFERENCES Users(id);
             END
         `);
 

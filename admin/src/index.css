@@ -140,34 +140,114 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   html {
     @apply font-sans;
-    }
+    scroll-behavior: smooth;
+  }
+  /* Smooth transitions for interactive elements */
+  button, a, input, select, textarea {
+    @apply transition-colors duration-150;
+  }
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-brand-sand;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-brand-muted/50;
+  }
 }
 
-.rich-content h1,
-.rich-content h2,
+/* ── Rich text editor content ────────────────────────────────────────────── */
+
+.rich-content {
+  @apply leading-7 text-foreground text-sm;
+}
+
+/* Headings */
+.rich-content h1 {
+  @apply font-heading text-2xl font-bold tracking-tight text-brand-forest mt-7 mb-3 first:mt-0;
+}
+.rich-content h2 {
+  @apply font-heading text-xl font-semibold tracking-tight text-brand-forest mt-6 mb-2.5 first:mt-0;
+}
 .rich-content h3 {
-  @apply text-foreground font-semibold mt-4 mb-2;
+  @apply font-heading text-lg font-semibold text-brand-forest mt-5 mb-2 first:mt-0;
 }
 
+/* Paragraphs */
 .rich-content p {
-  @apply mb-3;
+  @apply mb-4 last:mb-0;
 }
 
+/* Lists */
 .rich-content ul,
 .rich-content ol {
-  @apply mb-3 pl-6;
+  @apply mb-4 pl-6 space-y-1.5;
 }
-
 .rich-content ul {
   @apply list-disc;
 }
-
 .rich-content ol {
   @apply list-decimal;
+}
+.rich-content li {
+  @apply leading-7;
+}
+.rich-content li p {
+  @apply mb-0;
+}
+
+/* Blockquote */
+.rich-content blockquote {
+  @apply my-5 border-l-4 border-brand-forest/30 bg-brand-cream/60 py-3 pl-5 pr-4 italic text-brand-mid rounded-r-lg;
+}
+.rich-content blockquote p {
+  @apply mb-0;
+}
+
+/* Inline code */
+.rich-content code {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[0.82em] text-brand-forest before:content-none after:content-none;
+}
+
+/* Code block */
+.rich-content pre {
+  @apply my-5 overflow-x-auto rounded-xl bg-brand-charcoal px-5 py-4 text-sm text-brand-cream shadow-sm;
+}
+.rich-content pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+
+/* Horizontal rule */
+.rich-content hr {
+  @apply my-6 border-brand-sand;
+}
+
+/* Strong / Em */
+.rich-content strong {
+  @apply font-semibold text-foreground;
+}
+.rich-content em {
+  @apply italic;
+}
+.rich-content s {
+  @apply text-muted-foreground line-through;
+}
+
+/* Links */
+.rich-content a {
+  @apply text-brand-forest underline underline-offset-2 hover:text-brand-forest-mid;
 }

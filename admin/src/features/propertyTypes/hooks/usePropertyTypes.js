@@ -20,3 +20,14 @@ export function useCreatePropertyType() {
     },
   })
 }
+
+export function useUpdatePropertyType() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, ...data }) => propertyTypeService.updatePropertyType(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: propertyTypesQueryKey })
+    },
+  })
+}
