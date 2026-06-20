@@ -18,3 +18,15 @@ export function useLogout() {
     mutationFn: authService.logout,
   })
 }
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: authService.forgotPassword,
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: authService.resetPassword,
+  })
+}

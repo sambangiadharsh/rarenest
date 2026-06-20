@@ -15,3 +15,7 @@ export function verifyProperty(id, { status, reason }) {
 export function updateProperty(id, data) {
   return apiClient.put(`/properties/${id}`, data)
 }
+
+export function toggleFeatured(id) {
+  return apiClient.patch(`/properties/${id}/featured`)
+}

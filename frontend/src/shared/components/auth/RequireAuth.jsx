@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
+import PageLoader from '@/shared/components/ui/PageLoader'
 
 export default function RequireAuth({ children }) {
   const { isAuthenticated } = useSelector((state) => state.auth)
@@ -14,11 +14,7 @@ export default function RequireAuth({ children }) {
   }, [isAuthenticated, navigate])
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand-terracotta" />
-      </div>
-    )
+    return <PageLoader minHeight="min-h-[40vh]" />
   }
 
   return children

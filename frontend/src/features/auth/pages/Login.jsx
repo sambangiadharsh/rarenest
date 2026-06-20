@@ -110,12 +110,12 @@ export default function Login() {
               <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Lock className="h-3.5 w-3.5 text-brand-bronze" /> Password
               </label>
-              <span 
-                onClick={() => toast.info('Password recovery is managed by the backend identity server.')}
-                className="text-[10px] font-semibold text-neutral-400 hover:text-brand-bronze cursor-pointer transition-colors"
+              <Link
+                to="/forgot-password"
+                className="text-[10px] font-semibold text-neutral-400 hover:text-brand-bronze transition-colors"
               >
                 Forgot password?
-              </span>
+              </Link>
             </div>
             <input
               type="password"

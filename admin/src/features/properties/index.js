@@ -1,5 +1,5 @@
 export { default as PropertiesPage } from './pages/Properties'
-export { useProperties, useVerifyProperty, useUpdateProperty } from './hooks/useProperties'
+export { useProperties, useVerifyProperty, useUpdateProperty, useToggleFeatured } from './hooks/useProperties'
 export { useProperty } from './hooks/useProperty'
 export {
   getPropertyThumbnail,

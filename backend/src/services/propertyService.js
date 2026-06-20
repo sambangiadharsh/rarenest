@@ -87,17 +87,12 @@ class PropertyService {
             await sendEmail({
                 email: newUser.email,
                 subject: 'Your RareNest seller account',
-                message: [
-                    `Welcome to RareNest!`,
-                    '',
-                    'Your seller account has been created:',
-                    `Email: ${newUser.email}`,
-                    `Temporary password: ${plainPassword}`,
-                    '',
-                    `Log in anytime at: ${loginUrl}`,
-                    '',
-                    'You can now list your properties on RareNest.',
-                ].join('\n'),
+                text: `Welcome to RareNest!\n\nEmail: ${newUser.email}\nTemporary password: ${plainPassword}\n\nLog in at: ${loginUrl}`,
+                html: sendEmail.guestSellerHtml({
+                    email: newUser.email,
+                    password: plainPassword,
+                    loginUrl,
+                }),
             });
             emailSent = true;
         } catch (mailErr) {
@@ -142,17 +137,13 @@ class PropertyService {
             await sendEmail({
                 email: newUser.email,
                 subject: 'Your RareNest listing & account details',
-                message: [
-                    `Thank you for listing "${property.title}" on RareNest.`,
-                    '',
-                    'We created a RareNest account for you:',
-                    `Email: ${newUser.email}`,
-                    `Temporary password: ${plainPassword}`,
-                    '',
-                    `Log in anytime at: ${loginUrl}`,
-                    '',
-                    'Your listing is pending admin verification.',
-                ].join('\n'),
+                text: `Thank you for listing "${property.title}" on RareNest.\n\nEmail: ${newUser.email}\nTemporary password: ${plainPassword}\n\nLog in at: ${loginUrl}\n\nYour listing is pending admin verification.`,
+                html: sendEmail.guestListingHtml({
+                    propertyTitle: property.title,
+                    email: newUser.email,
+                    password: plainPassword,
+                    loginUrl,
+                }),
             });
             emailSent = true;
         } catch (mailErr) {
@@ -174,7 +165,7 @@ class PropertyService {
     async checkOwnership(propertyId, userId) {
         const sellerId = await propertyRepository.findSellerIdByPropertyId(propertyId);
         if (sellerId === null) return null;
-        return sellerId === userId;
+        return String(sellerId).toLowerCase() === String(userId).toLowerCase();
     }
 
     async verifyProperty(id, { status, reason, adminId }) {

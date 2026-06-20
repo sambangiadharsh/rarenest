@@ -58,7 +58,7 @@ class EnquiryService {
             first_name,
             last_name,
             phone: phone.trim(),
-            role: 'Buyer',
+            role: 'User',
         });
 
         const enquiryResult = await this.createEnquiry(newUser.id, property_id);
@@ -72,17 +72,13 @@ class EnquiryService {
             await sendEmail({
                 email: newUser.email,
                 subject: 'Your RareNest enquiry & account details',
-                message: [
-                    `Thank you for your enquiry about "${property.title}".`,
-                    '',
-                    'We created a RareNest account for you:',
-                    `Email: ${newUser.email}`,
-                    `Temporary password: ${plainPassword}`,
-                    '',
-                    `You can log in anytime at: ${loginUrl}`,
-                    '',
-                    'Your enquiry has been sent to the property seller.',
-                ].join('\n'),
+                text: `Thank you for your enquiry about "${property.title}".\n\nEmail: ${newUser.email}\nTemporary password: ${plainPassword}\n\nLog in at: ${loginUrl}`,
+                html: sendEmail.guestEnquiryHtml({
+                    propertyTitle: property.title,
+                    email: newUser.email,
+                    password: plainPassword,
+                    loginUrl,
+                }),
             });
             emailSent = true;
         } catch (mailErr) {

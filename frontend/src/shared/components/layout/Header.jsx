@@ -88,6 +88,15 @@ export default function Header() {
 
   const isAdmin = user?.role?.toLowerCase() === 'admin'
 
+  const handleListProperty = (closeMenu) => {
+    if (closeMenu) closeMenu()
+    if (!isAuthenticated) {
+      setGuestListingOpen(true)
+      return
+    }
+    navigate('/properties/create')
+  }
+
   const navIcons = (
     <>
       <NavIconButton
@@ -152,7 +161,7 @@ export default function Header() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => isAuthenticated ? navigate('/properties/create') : setGuestListingOpen(true)}
+              onClick={() => handleListProperty()}
               className="gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold transition-all duration-300"
             >
               <PlusCircle className="h-4 w-4" />
@@ -255,8 +264,7 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  closeMobile()
-                  isAuthenticated ? navigate('/properties/create') : setGuestListingOpen(true)
+                  handleListProperty(closeMobile)
                 }}
                 className="justify-start gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold rounded-xl"
               >
@@ -281,6 +289,6 @@ export default function Header() {
       open={guestListingOpen}
       onClose={() => setGuestListingOpen(false)}
     />
-    </>
+</>
   )
 }

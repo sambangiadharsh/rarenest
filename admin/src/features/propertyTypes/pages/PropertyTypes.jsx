@@ -179,6 +179,7 @@ export default function PropertyTypes() {
   const { mutateAsync: updatePropertyType, isPending: isUpdating } = useUpdatePropertyType()
 
   const [editingId, setEditingId] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'inactive'
 
   const {
     register: registerCreate,
@@ -191,6 +192,12 @@ export default function PropertyTypes() {
   })
 
   const propertyTypes = data?.data ?? []
+
+  const filteredTypes = propertyTypes.filter((t) => {
+    if (statusFilter === 'active') return !!t.is_active
+    if (statusFilter === 'inactive') return !t.is_active
+    return true
+  })
 
   const onCreateSubmit = async (formData) => {
     try {
@@ -290,6 +297,15 @@ export default function PropertyTypes() {
               All property types
             </h2>
           </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setEditingId(null) }}
+            className="h-7 rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground shadow-xs focus:outline-none focus:ring-1 focus:ring-brand-forest/40"
+          >
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         {/* Loading */}
@@ -314,7 +330,7 @@ export default function PropertyTypes() {
         )}
 
         {/* Empty */}
-        {!isLoading && !isError && propertyTypes.length === 0 && (
+        {!isLoading && !isError && filteredTypes.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl bg-muted">
               <Tags className="size-6 text-muted-foreground" />
@@ -322,14 +338,16 @@ export default function PropertyTypes() {
             <div>
               <p className="text-sm font-medium text-foreground">No property types yet</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Add your first type using the form above to get started.
+                {statusFilter === 'all'
+                  ? 'Add your first type using the form above to get started.'
+                  : `No ${statusFilter} types found.`}
               </p>
             </div>
           </div>
         )}
 
         {/* Table */}
-        {!isLoading && !isError && propertyTypes.length > 0 && (
+        {!isLoading && !isError && filteredTypes.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -365,7 +383,7 @@ export default function PropertyTypes() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {propertyTypes.map((type) => (
+                {filteredTypes.map((type) => (
                   <Fragment key={type.id}>
                     <tr
                       className={`group transition-colors ${

@@ -35,3 +35,14 @@ export function useUpdateProperty() {
     },
   })
 }
+
+export function useToggleFeatured() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => propertyService.toggleFeatured(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] })
+      queryClient.invalidateQueries({ queryKey: ['property', id] })
+    },
+  })
+}

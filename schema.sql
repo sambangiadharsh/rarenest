@@ -9,23 +9,48 @@ CREATE TABLE Users (
     last_name NVARCHAR(100),
     phone NVARCHAR(20),
     address NVARCHAR(MAX),
-    role NVARCHAR(20) CHECK (role IN ('Buyer', 'Seller', 'Admin')) DEFAULT 'Buyer',
+     
+    role NVARCHAR(20)
+    CHECK (role IN ('User', 'Admin'))
+    DEFAULT 'User', 
     reset_password_token NVARCHAR(MAX),
     reset_password_expire DATETIME,
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE()
 );
 
--- 2. SellerProfiles Table
-CREATE TABLE SellerProfiles (
+-- 2. BuilderProfiles Table
+
+
+CREATE TABLE BuilderProfiles(
     id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
     user_id UNIQUEIDENTIFIER NOT NULL,
     bio NVARCHAR(MAX),
     average_rating DECIMAL(3, 2) DEFAULT 0,
     total_reviews INT DEFAULT 0,
+    builder_status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (builder_status IN ('Pending', 'Approved', 'Rejected')),
+    approved_by UNIQUEIDENTIFIER NULL,
+    approved_at DATETIME NULL,
+    is_featured BIT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT GETDATE(),
-    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (approved_by) REFERENCES Users(id)
 );
+
+-- 2.1 BuilderApplications Table
+CREATE TABLE BuilderApplications (
+    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    user_id UNIQUEIDENTIFIER NOT NULL,
+    company_name NVARCHAR(255) NOT NULL,
+    company_description NVARCHAR(MAX) NOT NULL,
+    status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+    reviewed_by UNIQUEIDENTIFIER NULL,
+    reviewed_at DATETIME NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES Users(id)
+);
+
 
 -- 3. Properties Table
 CREATE TABLE Properties (
@@ -36,10 +61,11 @@ CREATE TABLE Properties (
     asking_price DECIMAL(18, 2),
     size_sqft DECIMAL(10, 2),
     location_city NVARCHAR(100),
-
+    
     location_state NVARCHAR(100),
     location_district NVARCHAR(100),
-   
+    Area NVARCHAR(100) NOT NULL DEFAULT '',
+    Pincode NVARCHAR(10) NOT NULL DEFAULT ''
 
     contact_email NVARCHAR(255),
     contact_phone NVARCHAR(20),
@@ -47,16 +73,34 @@ CREATE TABLE Properties (
     property_age INT NULL,
     special_features NVARCHAR(MAX), -- Store as JSON string or text
     status NVARCHAR(20) CHECK (status IN ('Available', 'Sold', 'Pending')) DEFAULT 'Avail,able',
+    is_featured BIT NOT NULL DEFAULT 0,
     verification_status NVARCHAR(30)
 DEFAULT 'PendingReview',
     is_verified BIT DEFAULT 0,
     is_visible BIT DEFAULT 1,
+    listing_type NVARCHAR(50) NOT NULL DEFAULT 'Individual' CHECK (listing_type IN ('Individual', 'BuilderProject')),
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (seller_id) REFERENCES Users(id) ON DELETE CASCADE,
     FOREIGN KEY (property_type_id)
 REFERENCES PropertyTypes(id)
 );
+
+--Locations table
+
+CREATE TABLE Locations (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+
+    StateName NVARCHAR(100) NOT NULL,
+    DistrictName NVARCHAR(100) NULL,
+    CityName NVARCHAR(100) NULL,
+
+    CreatedAt DATETIME DEFAULT GETDATE(),
+
+    CONSTRAINT UQ_Location
+        UNIQUE(StateName, DistrictName, CityName)
+);
+
 
 -- 4. PropertyMedia Table
 CREATE TABLE PropertyMedia (
@@ -81,37 +125,38 @@ CREATE TABLE Wishlist (
     UNIQUE (user_id, property_id)
 );
 
--- 6. Reviews Table
-CREATE TABLE Reviews (
+-- 6. BuilderReviews Table
+CREATE TABLE BuilderReviews (
     id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
 
-    property_id UNIQUEIDENTIFIER NOT NULL,
-    seller_id UNIQUEIDENTIFIER NOT NULL,
-    buyer_id UNIQUEIDENTIFIER NOT NULL,
+    builder_id UNIQUEIDENTIFIER NOT NULL,
+    reviewer_id UNIQUEIDENTIFIER NOT NULL,
 
-    rating INT
-    CHECK (rating BETWEEN 1 AND 5)
-    NOT NULL,
+    rating INT NOT NULL
+        CHECK (rating BETWEEN 1 AND 5),
 
     comment NVARCHAR(1000),
 
-    is_verified_purchase BIT DEFAULT 0,
+    status NVARCHAR(20) NOT NULL DEFAULT 'Pending' ---currenlty default value to be approved later version we can make it as pending state
+        CHECK (status IN ('Pending', 'Approved', 'Rejected')),
 
     created_at DATETIME DEFAULT GETDATE(),
     updated_at DATETIME DEFAULT GETDATE(),
+    reviewed_by UNIQUEIDENTIFIER NULL,
+reviewed_at DATETIME NULL,
 
-    FOREIGN KEY (property_id)
-    REFERENCES Properties(id)
-    ON DELETE CASCADE,
+    FOREIGN KEY (builder_id)
+        REFERENCES BuilderProfiles(id),
 
-    FOREIGN KEY (seller_id)
-    REFERENCES Users(id),
+    FOREIGN KEY (reviewer_id)
+        REFERENCES Users(id),
+    FOREIGN KEY (reviewed_by)
+        REFERENCES Users(id),
 
-    FOREIGN KEY (buyer_id)
-    REFERENCES Users(id),
-
-    UNIQUE (property_id, buyer_id)
+    UNIQUE (builder_id, reviewer_id)
 );
+
+
 
 -- 7. Enquiries Table
 CREATE TABLE Enquiries (

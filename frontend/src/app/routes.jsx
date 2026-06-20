@@ -15,7 +15,10 @@ import {
   RegisterPage,
   DashboardPage,
   ProfilePage,
+  ChangePasswordPage,
   GuestRoute,
+  ForgotPasswordPage,
+  ResetPasswordPage,
 } from '@/features/auth'
 import { MyPropertyDetailPage } from '@/features/seller'
 import { MyEnquiriesPage } from '@/features/enquiries'
@@ -25,6 +28,7 @@ import { ContactPage } from '@/features/contact'
 import { FaqsPage } from '@/features/faqs'
 import { CareersPage, CareerDetailPage } from '@/features/careers'
 import { NotFoundPage } from '@/features/notFound'
+import { BuilderProfilePage } from '@/features/builders'
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +43,8 @@ export const router = createBrowserRouter([
           { path: 'login', element: <LoginPage /> },
           { path: 'register', element: <RegisterPage /> },
           { path: 'signup', element: <RegisterPage /> },
+          { path: 'forgot-password', element: <ForgotPasswordPage /> },
+          { path: 'reset-password', element: <ResetPasswordPage /> },
         ],
       },
       { path: 'dashboard', element: <DashboardPage /> },
@@ -51,6 +57,7 @@ export const router = createBrowserRouter([
         ),
       },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'change-password', element: <ChangePasswordPage /> },
       { path: 'enquiries', element: <MyEnquiriesPage /> },
       { path: 'wishlist', element: <MyWishlistPage /> },
       { path: 'properties/:id', element: <PropertyDetailPage /> },
@@ -70,6 +77,7 @@ export const router = createBrowserRouter([
       { path: 'faqs', element: <FaqsPage /> },
       { path: 'careers', element: <CareersPage /> },
       { path: 'careers/:id', element: <CareerDetailPage /> },
+      { path: 'builders/:id', element: <BuilderProfilePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

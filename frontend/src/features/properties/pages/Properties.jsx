@@ -1,12 +1,12 @@
 import React from 'react'
-import { 
-  Search, 
-  SlidersHorizontal, 
-  Grid, 
-  List, 
-  Sparkles, 
-  Loader2, 
+import {
+  Search,
+  SlidersHorizontal,
+  Grid,
+  List,
+  Sparkles,
 } from 'lucide-react'
+import WifiLoader from '@/shared/components/ui/WifiLoader'
 import { Button } from '@/shared/components/ui/button'
 import PropertyCard from '@/features/properties/components/PropertyCard'
 import { useProperties } from '@/features/properties'
@@ -308,7 +308,7 @@ export default function Properties() {
         <div className="lg:col-span-3">
           {isLoading ? (
             <div className="flex justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-brand-bronze" />
+              <WifiLoader />
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 border border-dashed border-neutral-200 dark:border-neutral-850 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">

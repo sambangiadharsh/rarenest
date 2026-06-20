@@ -60,10 +60,7 @@ function StatCard({ title, value, description, icon: Icon, bg, iconColor }) {
         <p className="mt-2 text-xs text-muted-foreground">{description}</p>
       </div>
 
-      <div className="mt-4 flex items-center gap-1 text-xs font-medium text-brand-forest/60 transition-colors group-hover:text-brand-forest">
-        <ArrowUpRight className="size-3.5" />
-        View details
-      </div>
+      
     </div>
   )
 }
@@ -152,7 +149,7 @@ export default function Dashboard() {
                 description="Add or update property categories"
               />
               <QuickAction
-                href="/cms/about"
+                href="/content/about-us"
                 label="Update CMS Pages"
                 description="Edit About, Privacy, Terms & more"
               />

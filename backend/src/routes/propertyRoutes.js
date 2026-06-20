@@ -9,6 +9,7 @@ const {
     updateProperty,
     deleteProperty,
     verifyProperty,
+    toggleFeatured,
     getPropertyVerificationHistory,
     resubmitProperty,
     getPropertyEnquiries,
@@ -29,6 +30,7 @@ router.post('/', protect, createProperty);
 router.put('/:id', protect, updateProperty);
 router.delete('/:id', protect, deleteProperty);
 router.put('/:id/verify', protect, authorize('Admin'), verifyProperty);
+router.patch('/:id/featured', protect, authorize('Admin'), toggleFeatured);
 router.get('/:id/verification-history', protect, getPropertyVerificationHistory);
 router.post('/:id/resubmit', protect, resubmitProperty);
 router.get('/:id/enquiries', protect, getPropertyEnquiries);

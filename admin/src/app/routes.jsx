@@ -4,6 +4,7 @@ import { ProtectedRoute, GuestRoute, LoginPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
 import { PropertiesPage } from '@/features/properties'
 import { PropertyTypesPage } from '@/features/propertyTypes'
+import { BuilderApplicationsPage } from '@/features/builders'
 
 import { ReviewsPage } from '@/features/reviews'
 import { CareersPage } from '@/features/careers'
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: 'properties', element: <PropertiesPage /> },
           { path: 'properties/types', element: <PropertyTypesPage /> },
+          { path: 'builders/applications', element: <BuilderApplicationsPage /> },
    
           { path: 'reviews', element: <ReviewsPage /> },
           { path: 'content/careers', element: <CareersPage /> },

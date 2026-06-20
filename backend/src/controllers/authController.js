@@ -1,8 +1,9 @@
 const crypto = require('crypto');
 const authService = require('../services/authService');
+const sendEmail = require('../utils/sendEmail');
 const userSchema = require('../models/userModel');
 const { hashPassword, comparePassword, generateToken } = require('../utils/authUtils');
-const sendEmail = require('../utils/sendEmail');
+const builderRepository = require('../repositories/builderRepository');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -33,7 +34,7 @@ exports.register = async (req, res) => {
             last_name,
             phone,
             address,
-            role
+            role: 'User'
         });
 
         const token = generateToken(newUser.id);
@@ -105,93 +106,104 @@ exports.login = async (req, res) => {
     }
 };
 
-// @desc    Forgot password
-// @route   POST /api/auth/forgotpassword
-exports.forgotPassword = async (req, res) => {
+// @desc    Change password (authenticated user)
+// @route   PUT /api/auth/changepassword
+exports.changePassword = async (req, res) => {
     try {
-        // 1. Validate Input
-        const { error } = userSchema.forgotPassword.validate(req.body);
+        const { error } = userSchema.changePassword.validate(req.body);
         if (error) {
             return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
-        // 2. Find User
-        const user = await authService.findUserByEmail(req.body.email);
+        const { current_password, new_password } = req.body;
 
+        const user = await authService.findUserById(req.user.id);
         if (!user) {
-            return res.status(404).json({ success: false, message: 'There is no user with that email' });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        // 3. Generate Token
-        const resetToken = crypto.randomBytes(20).toString('hex');
-        const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const expireDate = new Date(Date.now() + 10 * 60 * 1000);
-
-        // 4. Update User via Service
-        await authService.updateResetToken(user.id, hashedToken, expireDate);
-
-        // 5. Send Email
-        const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/resetpassword/${resetToken}`;
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
-
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password reset token',
-                message
-            });
-
-            res.status(200).json({ success: true, data: 'Email sent' });
-        } catch (err) {
-            console.error(err);
-            await authService.updateResetToken(user.id, null, null);
-            return res.status(500).json({ success: false, message: 'Email could not be sent' });
+        const isMatch = await comparePassword(current_password, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Current password is incorrect' });
         }
+
+        const hashedPassword = await hashPassword(new_password);
+        await authService.updatePassword(user.id, hashedPassword);
+
+        res.status(200).json({ success: true, message: 'Password changed successfully' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
 
-// @desc    Reset password
-// @route   PUT /api/auth/resetpassword/:resettoken
+// @desc    Forgot password — send reset link
+// @route   POST /api/auth/forgot-password
+exports.forgotPassword = async (req, res) => {
+    try {
+        const { error } = userSchema.forgotPassword.validate(req.body);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        const user = await authService.findUserByEmail(req.body.email.trim().toLowerCase());
+
+        // Always return generic response to prevent email enumeration
+        if (!user) {
+            return res.status(200).json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+        }
+
+        // Generate raw token, store its SHA-256 hash
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+        const expireDate = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        await authService.updateResetToken(user.id, hashedToken, expireDate);
+
+        const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: 'Reset your RareNest password',
+                text: `You requested a password reset. This link expires in 15 minutes:\n\n${resetUrl}\n\nIf you did not request this, ignore this email.`,
+                html: sendEmail.passwordResetHtml({ resetUrl }),
+            });
+        } catch (mailErr) {
+            console.error('Reset email failed:', mailErr);
+            await authService.updateResetToken(user.id, null, null);
+            return res.status(500).json({ success: false, message: 'Email could not be sent. Please try again later.' });
+        }
+
+        return res.status(200).json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Reset password using token
+// @route   POST /api/auth/reset-password
 exports.resetPassword = async (req, res) => {
     try {
-        // 1. Validate Input
         const { error } = userSchema.resetPassword.validate(req.body);
         if (error) {
             return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
-        // 2. Hash token from params
-        const hashedToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
+        const { token, password } = req.body;
 
-        // 3. Find User via Service
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
         const user = await authService.findUserByResetToken(hashedToken);
 
         if (!user) {
-            return res.status(400).json({ success: false, message: 'Invalid token or token expired' });
+            return res.status(400).json({ success: false, message: 'Reset link is invalid or has expired.' });
         }
 
-        // 4. Update Password via Service
-        const hashedPassword = await hashPassword(req.body.password);
+        const hashedPassword = await hashPassword(password);
         await authService.updatePassword(user.id, hashedPassword);
 
-        const token = generateToken(user.id);
-
-        const options = {
-            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            httpOnly: true
-        };
-        
-        if (process.env.NODE_ENV === 'production') {
-            options.secure = true;
-        }
-
-        res.status(200).cookie('token', token, options).json({
-            success: true,
-            token
-        });
+        res.status(200).json({ success: true, message: 'Password reset successful. You can now log in.' });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server Error' });

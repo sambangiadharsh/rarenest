@@ -2,7 +2,17 @@ const propertyService = require('../services/propertyService');
 const propertySchema = require('../models/propertyModel');
 const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/userRepository');
+const builderRepository = require('../repositories/builderRepository');
 const { attachAuthCookie } = require('../utils/authUtils');
+
+function mapIncomingLocationFields(body) {
+    if (!body) return;
+    if (body.city !== undefined) body.location_city = body.city;
+    if (body.state !== undefined) body.location_state = body.state;
+    if (body.district !== undefined) body.location_district = body.district;
+    if (body.area !== undefined) body.Area = body.area;
+    if (body.pincode !== undefined) body.Pincode = body.pincode;
+}
 
 async function getOptionalAuth(req) {
     let token;
@@ -131,12 +141,24 @@ exports.getProperty = async (req, res) => {
 // @route   POST /api/properties
 exports.createProperty = async (req, res) => {
     try {
+        mapIncomingLocationFields(req.body);
         const { error } = propertySchema.create.validate(req.body);
         if (error) {
             return res.status(400).json({ success: false, message: error.details[0].message });
         }
 
         const propertyData = { ...req.body, seller_id: req.user.id };
+
+        if (propertyData.listing_type === 'BuilderProject') {
+            const builder = await builderRepository.findProfileByUserId(propertyData.seller_id);
+            if (!builder || builder.builder_status !== 'Approved') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Builder approval required to create a Builder Project listing.'
+                });
+            }
+        }
+
         const property = await propertyService.createProperty(propertyData);
         if (property?.special_features && typeof property.special_features === 'string') {
             try {
@@ -196,6 +218,7 @@ exports.createGuestSellerAccount = async (req, res) => {
 // @route   POST /api/properties/guest
 exports.createGuestListing = async (req, res) => {
     try {
+        mapIncomingLocationFields(req.body);
         const { error } = propertySchema.guestCreate.validate(req.body);
         if (error) {
             return res.status(400).json({ success: false, message: error.details[0].message });
@@ -245,6 +268,7 @@ exports.createGuestListing = async (req, res) => {
 // @route   PUT /api/properties/:id
 exports.updateProperty = async (req, res) => {
     try {
+        mapIncomingLocationFields(req.body);
         const { error } = propertySchema.update.validate(req.body);
         if (error) {
             return res.status(400).json({ success: false, message: error.details[0].message });
@@ -363,6 +387,23 @@ exports.getPropertyEnquiries = async (req, res) => {
 
         const enquiries = await propertyService.getPropertyEnquiries(req.params.id);
         res.status(200).json({ success: true, data: enquiries });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+// @desc    Toggle is_featured for a property (admin only)
+// @route   PATCH /api/properties/:id/featured
+exports.toggleFeatured = async (req, res) => {
+    try {
+        const property = await propertyService.getPropertyById(req.params.id);
+        if (!property) {
+            return res.status(404).json({ success: false, message: 'Property not found' });
+        }
+        const newValue = !isBitTruthy(property.is_featured);
+        const updated = await propertyService.updateProperty(req.params.id, { is_featured: newValue });
+        res.status(200).json({ success: true, data: updated });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server Error' });

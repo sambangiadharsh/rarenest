@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
-import { Home, PlusCircle, Loader2, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react'
+import { Home, PlusCircle, MoreVertical, Eye, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
+import PageLoader from '@/shared/components/ui/PageLoader'
 import { useProperties, useDeleteProperty, useUpdateProperty } from '@/features/properties'
 import { getPropertyThumbnail } from '@/features/properties/lib/propertyUtils'
 
@@ -172,9 +173,7 @@ export default function SellerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-violet-600" />
-      </div>
+      <PageLoader />
     )
   }
 

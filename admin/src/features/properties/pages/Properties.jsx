@@ -4,9 +4,11 @@ import {
   Building2,
   ChevronRight,
   Clock,
+  Loader2,
   Search,
   ShieldCheck,
   ShieldX,
+  Star,
   XCircle,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
@@ -14,6 +16,7 @@ import { Skeleton } from '@/shared/components/ui/skeleton'
 import { usePropertyTypes } from '@/features/propertyTypes'
 import {
   useProperties,
+  useToggleFeatured,
   getPropertyThumbnail,
   PLACEHOLDER_IMAGE,
   formatINR,
@@ -75,6 +78,7 @@ export default function Properties() {
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState(null)
   const [isDetailOpen, setIsDetailOpen] = useState(true)
+  const { mutate: toggleFeatured, isPending: isTogglingFeatured, variables: togglingId } = useToggleFeatured()
 
   const { data, isLoading, isError, error } = useProperties({
     is_verified: 'all',
@@ -313,6 +317,7 @@ export default function Properties() {
                       <th className="px-4 py-3 font-medium">Price</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 font-medium">Verification</th>
+                      <th className="px-4 py-3 font-medium">Featured</th>
                       <th className="px-4 py-3 font-medium">Created</th>
                       <th className="w-10 px-2 py-3" />
                     </tr>
@@ -365,6 +370,24 @@ export default function Properties() {
                           </td>
                           <td className="px-4 py-3">
                             <VerificationBadge status={getVerificationStatus(prop)} />
+                          </td>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              title={prop.is_featured ? 'Remove from featured' : 'Mark as featured'}
+                              disabled={isTogglingFeatured && togglingId === prop.id}
+                              onClick={() => toggleFeatured(prop.id)}
+                              className={`flex items-center justify-center rounded-full w-8 h-8 transition-colors ${
+                                prop.is_featured
+                                  ? 'bg-amber-100 text-amber-500 hover:bg-amber-200'
+                                  : 'bg-muted text-muted-foreground hover:bg-amber-50 hover:text-amber-400'
+                              }`}
+                            >
+                              {isTogglingFeatured && togglingId === prop.id
+                                ? <Loader2 className="size-4 animate-spin" />
+                                : <Star className={`size-4 ${prop.is_featured ? 'fill-amber-400' : ''}`} />
+                              }
+                            </button>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
                             {formatDate(prop.created_at)}

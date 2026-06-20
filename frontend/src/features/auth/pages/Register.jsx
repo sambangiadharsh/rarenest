@@ -18,9 +18,6 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters long'),
   phone: z.string().min(8, 'Phone number must be at least 8 characters long').max(20, 'Phone must be at most 20 characters'),
   address: z.string().optional().or(z.literal('')),
-  role: z.enum(['buyer', 'seller'], {
-    required_error: 'Please select an account type',
-  }),
 })
 
 export default function Register() {
@@ -37,16 +34,17 @@ export default function Register() {
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      role: 'buyer'
+      first_name: '',
+      last_name: '',
+      email: '',
+      password: '',
+      phone: '',
+      address: '',
     }
   })
 
-  const selectedRole = watch('role')
-
   const onSubmit = async (data) => {
     try {
-      const formattedRole = data.role.charAt(0).toUpperCase() + data.role.slice(1) // 'Buyer' or 'Seller'
-
       const payload = {
         email: data.email,
         password: data.password,
@@ -54,7 +52,7 @@ export default function Register() {
         last_name: data.last_name.trim(),
         phone: data.phone || '',
         address: data.address || '',
-        role: formattedRole
+        role: 'User'
       }
 
       const res = await registerUser(payload)
@@ -88,39 +86,6 @@ export default function Register() {
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          
-          {/* Role selector */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Award className="h-3.5 w-3.5 text-brand-bronze" /> Account Objective
-            </label>
-            <div className="grid grid-cols-2 gap-3 mt-0.5">
-              <button
-                type="button"
-                onClick={() => setValue('role', 'buyer')}
-                className={`py-3 px-3 rounded-xl border text-sm font-bold transition-all duration-300 flex flex-col items-center gap-0.5 ${
-                  selectedRole === 'buyer'
-                    ? 'border-brand-bronze bg-brand-bronze/10 text-brand-bronze scale-[1.02]'
-                    : 'border-neutral-200 dark:border-neutral-850 bg-transparent text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-950/40 hover:text-neutral-600'
-                }`}
-              >
-                <span>Buyer</span>  
-                <span className="text-[9px] font-semibold opacity-75">Find Rare Homes</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setValue('role', 'seller')}
-                className={`py-3 px-3 rounded-xl border text-sm font-bold transition-all duration-300 flex flex-col items-center gap-0.5 ${
-                  selectedRole === 'seller'
-                    ? 'border-brand-bronze bg-brand-bronze/10 text-brand-bronze scale-[1.02]'
-                    : 'border-neutral-200 dark:border-neutral-850 bg-transparent text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-950/40 hover:text-neutral-600'
-                }`}
-              >
-                <span>Seller / Builder</span>
-                <span className="text-[9px] font-semibold opacity-75">Publish & Build</span>
-              </button>
-            </div>
-          </div>
 
           {/* First & Last Name */}
           <div className="grid grid-cols-2 gap-3">

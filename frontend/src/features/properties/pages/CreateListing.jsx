@@ -5,6 +5,9 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import AsyncSelect from 'react-select/async'
+import apiClient from '@/shared/lib/apiClient'
+import LocationSelect from '@/components/common/LocationSelect'
 import {
   Loader2,
   ImagePlus,
@@ -23,10 +26,13 @@ import {
   Mail,
   Tag,
   Camera,
+  Building2,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { usePropertyTypes } from '@/features/properties'
 import { useCreateProperty, useUploadPropertyMedia } from '@/features/properties'
+import { useBuilderByUser, useMyBuilderApplication, useSubmitBuilderApplication } from '@/features/builders'
+import { useProfile } from '@/features/auth/hooks/useProfile'
 import {
   SPECIAL_FEATURES,
   MAX_IMAGES,
@@ -40,37 +46,47 @@ const listingSchema = z.object({
   property_type_id: z.string().uuid('Select a property type'),
   asking_price: z.preprocess((v) => Number(v), z.number().positive()),
   size_sqft: z.preprocess((v) => Number(v), z.number().positive()),
-  location_city: z.string().min(2).max(100),
-  location_state: z.string().min(2).max(100),
-  location_district: z.string().min(2).max(100),
+  city: z.string().max(100).optional().or(z.literal('')),
+  state: z.string().min(1, 'State is required').max(100),
+  district: z.string().min(1, 'District is required').max(100),
+  area: z.string().min(2).max(100),
+  pincode: z.string().min(6).max(10),
   contact_email: z.string().email(),
   contact_phone: z.string().min(8).max(20),
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
+  listing_type: z.enum(['Individual', 'BuilderProject']).default('Individual'),
 })
 
 const STEP_CONFIG = [
   {
     number: 1,
+    label: 'Type',
+    title: 'Listing Type',
+    description: 'Choose between an individual sale or builder project.',
+    fields: ['listing_type'],
+  },
+  {
+    number: 2,
     label: 'Basics',
     title: 'Property Basics',
     description: 'Title, type, price, size, age and location.',
     fields: [
       'title', 'property_type_id', 'asking_price',
-      'size_sqft', 'property_age', 'location_city',
-      'location_state', 'location_district',
+      'size_sqft', 'property_age', 'city',
+      'state', 'district', 'area', 'pincode',
     ],
   },
   {
-    number: 2,
+    number: 3,
     label: 'Details',
     title: 'Story & Contact',
     description: 'How buyers reach you and what makes this place rare.',
     fields: ['contact_email', 'contact_phone', 'property_story', 'special_features'],
   },
   {
-    number: 3,
+    number: 4,
     label: 'Media',
     title: 'Photos & Videos',
     description: 'Show the world what makes your property unique.',
@@ -105,11 +121,118 @@ function FieldError({ message }) {
   return <span className="text-[10px] text-destructive font-semibold">{message}</span>
 }
 
+function BuilderApplicationForm({ onSubmit, isPending }) {
+  const [name, setName] = React.useState('')
+  const [desc, setDesc] = React.useState('')
+
+  const handleFormSubmit = (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!name.trim() || !desc.trim()) {
+      toast.error('Please fill in all fields.')
+      return
+    }
+    onSubmit({ company_name: name, company_description: desc })
+  }
+
+  return (
+    <div className="flex flex-col gap-4 mt-2">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-neutral-750 dark:text-neutral-300 uppercase tracking-wider">
+          Company Name
+        </label>
+        <input
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Earth Residence Co."
+          className="h-10 w-full rounded-xl bg-white dark:bg-neutral-950 px-4 text-sm border border-neutral-205 focus:border-brand-bronze/50 outline-none transition-all"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-bold text-neutral-750 dark:text-neutral-350 uppercase tracking-wider">
+          Company Description
+        </label>
+        <textarea
+          required
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          placeholder="Describe your development history, focus, and credentials..."
+          rows={3}
+          className="w-full rounded-xl bg-white dark:bg-neutral-950 px-4 py-2 text-sm border border-neutral-205 focus:border-brand-bronze/50 outline-none transition-all resize-none"
+        />
+      </div>
+      <Button
+        type="button"
+        disabled={isPending}
+        onClick={handleFormSubmit}
+        className="w-full bg-brand-bronze hover:bg-brand-bronze/90 text-white font-bold h-10 gap-2 rounded-xl"
+      >
+        {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+        Apply as Builder
+      </Button>
+    </div>
+  )
+}
+
+const loadStateOptions = async (inputValue) => {
+  try {
+    const data = await apiClient.get('/locations/states')
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load states:', err)
+    return []
+  }
+}
+
+const loadDistrictOptions = (state) => async (inputValue) => {
+  if (!state) return []
+  try {
+    const data = await apiClient.get(`/locations/districts?state=${encodeURIComponent(state)}`)
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load districts:', err)
+    return []
+  }
+}
+
+const loadCityOptions = (state, district) => async (inputValue) => {
+  if (!state || !district) return []
+  try {
+    const data = await apiClient.get(`/locations/cities?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`)
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load cities:', err)
+    return []
+  }
+}
+
 export default function CreateListing() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useSelector((state) => state.auth)
+  const { isAuthenticated, user } = useSelector((state) => state.auth)
   const { data: typesRes, isLoading: typesLoading } = usePropertyTypes()
   const propertyTypes = typesRes?.data || []
+
+  // Builder status queries
+  const { data: builderRes, isLoading: builderLoading } = useBuilderByUser(user?.id, { enabled: !!user?.id })
+  const { data: appRes, isLoading: appLoading, refetch: refetchApp } = useMyBuilderApplication({ enabled: !!user?.id })
+  const { mutateAsync: submitApplication, isPending: submittingApp } = useSubmitBuilderApplication()
+
+  const builderProfile = builderRes?.data
+  const builderApp = appRes?.data
+
+  // Fetch logged in user's profile details
+  const { data: profileRes } = useProfile({ enabled: isAuthenticated })
+  const profile = profileRes?.data
 
   const [images, setImages] = React.useState([])
   const [videos, setVideos] = React.useState([])
@@ -126,15 +249,43 @@ export default function CreateListing() {
     handleSubmit,
     control,
     trigger,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(listingSchema),
-    defaultValues: { special_features: [] },
+    defaultValues: { special_features: [], listing_type: 'Individual', state: '', district: '', city: '' },
   })
+
+  const stateVal = watch('state')
+  const districtVal = watch('district')
+
+  const listingType = watch('listing_type')
 
   React.useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true })
   }, [isAuthenticated, navigate])
+
+  // Automatically pre-fill contact_email and contact_phone with logged-in user details
+  const hasSetDefaults = React.useRef(false)
+  React.useEffect(() => {
+    if (hasSetDefaults.current) return
+
+    if (user?.email) {
+      setValue('contact_email', user.email)
+    }
+
+    if (isAuthenticated) {
+      if (profileRes) {
+        if (profile?.phone) {
+          setValue('contact_phone', profile.phone)
+        }
+        hasSetDefaults.current = true
+      }
+    } else {
+      hasSetDefaults.current = true
+    }
+  }, [user, profileRes, profile, setValue, isAuthenticated])
 
   const validateAndSetImages = (fileList) => {
     const files = Array.from(fileList)
@@ -215,6 +366,14 @@ export default function CreateListing() {
   const goToNextStep = async () => {
     const fields = activeStep?.fields || []
     if (fields.length && !(await trigger(fields))) return
+
+    if (currentStep === 1 && listingType === 'BuilderProject') {
+      if (!builderProfile || builderProfile.builder_status !== 'Approved') {
+        toast.error('You need an approved builder profile to continue with a Builder Project listing.')
+        return
+      }
+    }
+
     setCurrentStep((p) => Math.min(p + 1, totalSteps))
   }
 
@@ -331,8 +490,149 @@ export default function CreateListing() {
                   <p className="text-sm text-neutral-500">{activeStep.description}</p>
                 </div>
 
-                {/* ─── STEP 1: Basics ─── */}
+                {/* ─── STEP 1: Listing Type ─── */}
                 {currentStep === 1 && (
+                  <div className="flex flex-col gap-6">
+                    <Controller
+                      name="listing_type"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              field.onChange('Individual')
+                            }}
+                            className={`flex flex-col items-start gap-4 rounded-2xl border p-6 text-left transition-all duration-200 ${
+                              field.value === 'Individual'
+                                ? 'border-brand-bronze bg-brand-bronze/5 dark:bg-brand-bronze/10 ring-2 ring-brand-bronze/20'
+                                : 'border-neutral-200 dark:border-neutral-800 hover:border-brand-bronze/30 hover:bg-brand-bronze/5'
+                            }`}
+                          >
+                            <div className="h-10 w-10 rounded-xl bg-brand-forest/10 flex items-center justify-center">
+                              <Tag className="h-5 w-5 text-brand-forest" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-neutral-900 dark:text-neutral-100">Individual Listing</h3>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                Perfect for listing a single property, plot, or home. Open to all registered users.
+                              </p>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              field.onChange('BuilderProject')
+                            }}
+                            className={`flex flex-col items-start gap-4 rounded-2xl border p-6 text-left transition-all duration-200 ${
+                              field.value === 'BuilderProject'
+                                ? 'border-brand-bronze bg-brand-bronze/5 dark:bg-brand-bronze/10 ring-2 ring-brand-bronze/20'
+                                : 'border-neutral-200 dark:border-neutral-800 hover:border-brand-bronze/30 hover:bg-brand-bronze/5'
+                            }`}
+                          >
+                            <div className="h-10 w-10 rounded-xl bg-brand-forest/10 flex items-center justify-center">
+                              <Building2 className="h-5 w-5 text-brand-forest" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-neutral-900 dark:text-neutral-100">Builder Project</h3>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                For developers and builders listing large projects, residential complexes, or societies. Requires builder approval.
+                              </p>
+                            </div>
+                          </button>
+                        </div>
+                      )}
+                    />
+
+                    {/* Builder Approval Status / Form for BuilderProject selection */}
+                    {listingType === 'BuilderProject' && (
+                      <div className="mt-4 p-6 rounded-2xl border border-neutral-100 dark:border-neutral-805 bg-neutral-50/50 dark:bg-neutral-900/30">
+                        {builderLoading || appLoading ? (
+                          <div className="flex justify-center py-6">
+                            <Loader2 className="h-6 w-6 animate-spin text-brand-bronze" />
+                          </div>
+                        ) : builderProfile?.builder_status === 'Approved' ? (
+                          <div className="flex items-center gap-3 text-emerald-650 bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+                            <Check className="h-5 w-5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold">Builder Profile Approved</p>
+                              <p className="text-xs text-neutral-500 mt-0.5">
+                                You can list this property under your builder profile: <strong>{builderProfile.company_name}</strong>.
+                              </p>
+                            </div>
+                          </div>
+                        ) : builderApp?.status === 'Pending' ? (
+                          <div className="flex items-start gap-3 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                            <Clock className="h-5 w-5 shrink-0 mt-0.5 animate-pulse" />
+                            <div>
+                              <p className="text-sm font-semibold">Application Pending Review</p>
+                              <p className="text-xs text-neutral-550 mt-0.5 leading-relaxed">
+                                Your application to register as a builder is currently being reviewed by our administrators.
+                                You will be able to post Builder Projects as soon as it is approved.
+                              </p>
+                            </div>
+                          </div>
+                        ) : builderApp?.status === 'Rejected' ? (
+                          <div className="flex flex-col gap-4 text-red-650 bg-red-50 dark:bg-red-950/20 p-4 rounded-xl border border-red-100 dark:border-red-900/30">
+                            <div className="flex items-start gap-3">
+                              <X className="h-5 w-5 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-semibold">Application Rejected</p>
+                                <p className="text-xs text-neutral-550 mt-0.5 leading-relaxed">
+                                  Your previous builder application was rejected. You can submit a new application below with updated information.
+                                </p>
+                              </div>
+                            </div>
+                            <hr className="border-red-100 dark:border-red-900/30" />
+                            <div>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-750 dark:text-neutral-300 mb-2">Reapply as Builder</h4>
+                              <BuilderApplicationForm
+                                isPending={submittingApp}
+                                onSubmit={async (formData) => {
+                                  try {
+                                    await submitApplication(formData)
+                                    toast.success('Builder application resubmitted successfully.')
+                                    refetchApp()
+                                  } catch (err) {
+                                    toast.error(err.message || 'Failed to submit builder application')
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-4">
+                            <div className="flex items-start gap-3 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                              <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-semibold">Builder Approval Required</p>
+                                <p className="text-xs text-neutral-550 mt-0.5 leading-relaxed">
+                                  Builder Projects require an approved builder profile. Fill out the application form below, and our team will review it.
+                                </p>
+                              </div>
+                            </div>
+                            <BuilderApplicationForm
+                              isPending={submittingApp}
+                              onSubmit={async (formData) => {
+                                  try {
+                                    await submitApplication(formData)
+                                    toast.success('Builder application submitted successfully.')
+                                    refetchApp()
+                                  } catch (err) {
+                                    toast.error(err.message || 'Failed to submit builder application')
+                                  }
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ─── STEP 2: Basics ─── */}
+                {currentStep === 2 && (
                   <div className="flex flex-col gap-6">
                     {/* Title */}
                     <div className="flex flex-col gap-2">
@@ -421,45 +721,97 @@ export default function CreateListing() {
                       </div>
                       <div className="grid sm:grid-cols-3 gap-3">
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>City</FieldLabel>
-                          <FieldInput
-                            type="text"
-                            {...register('location_city')}
-                            disabled={!!pendingPropertyId}
-                            placeholder="Rishikesh"
-                            error={errors.location_city}
-                          />
-                          <FieldError message={errors.location_city?.message} />
-                        </div>
-                        <div className="flex flex-col gap-2">
                           <FieldLabel>State</FieldLabel>
-                          <FieldInput
-                            type="text"
-                            {...register('location_state')}
-                            disabled={!!pendingPropertyId}
-                            placeholder="Uttarakhand"
-                            error={errors.location_state}
+                          <Controller
+                            name="state"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={(val) => {
+                                  onChange(val)
+                                  setValue('district', '')
+                                  setValue('city', '')
+                                }}
+                                loadOptions={loadStateOptions}
+                                placeholder="Select/type state"
+                                isDisabled={!!pendingPropertyId}
+                                error={errors.state}
+                              />
+                            )}
                           />
-                          <FieldError message={errors.location_state?.message} />
+                          <FieldError message={errors.state?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
                           <FieldLabel>District</FieldLabel>
+                          <Controller
+                            name="district"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={(val) => {
+                                  onChange(val)
+                                  setValue('city', '')
+                                }}
+                                loadOptions={loadDistrictOptions(stateVal)}
+                                placeholder="Select/type district"
+                                isDisabled={!stateVal || !!pendingPropertyId}
+                                error={errors.district}
+                              />
+                            )}
+                          />
+                          <FieldError message={errors.district?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>City</FieldLabel>
+                          <Controller
+                            name="city"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={onChange}
+                                loadOptions={loadCityOptions(stateVal, districtVal)}
+                                placeholder="Select/type city"
+                                isDisabled={!districtVal || !!pendingPropertyId}
+                                error={errors.city}
+                              />
+                            )}
+                          />
+                          <FieldError message={errors.city?.message} />
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>Area</FieldLabel>
                           <FieldInput
                             type="text"
-                            {...register('location_district')}
+                            {...register('area')}
                             disabled={!!pendingPropertyId}
-                            placeholder="Tehri Garhwal"
-                            error={errors.location_district}
+                            placeholder="e.g. Tapovan"
+                            error={errors.area}
                           />
-                          <FieldError message={errors.location_district?.message} />
+                          <FieldError message={errors.area?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>Pincode</FieldLabel>
+                          <FieldInput
+                            type="text"
+                            {...register('pincode')}
+                            disabled={!!pendingPropertyId}
+                            placeholder="e.g. 249192"
+                            error={errors.pincode}
+                          />
+                          <FieldError message={errors.pincode?.message} />
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* ─── STEP 2: Details ─── */}
-                {currentStep === 2 && (
+                {/* ─── STEP 3: Details ─── */}
+                {currentStep === 3 && (
                   <div className="flex flex-col gap-6">
                     {/* Contact */}
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -547,8 +899,8 @@ export default function CreateListing() {
                   </div>
                 )}
 
-                {/* ─── STEP 3: Media ─── */}
-                {currentStep === 3 && (
+                {/* ─── STEP 4: Media ─── */}
+                {currentStep === 4 && (
                   <div className="flex flex-col gap-6">
                     <p className="text-sm text-neutral-500 leading-relaxed">
                       Upload up to <strong>{MAX_IMAGES} images</strong> (5 MB each) and <strong>{MAX_VIDEOS} videos</strong> (50 MB each).

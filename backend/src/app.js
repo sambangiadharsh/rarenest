@@ -11,11 +11,13 @@ const app = express();
 // Middlewares
 app.use(express.json());
 const allowedOrigins = [
-    process.env.CLIENT_URL || 'http://localhost:5173',
-    process.env.ADMIN_URL || 'http://localhost:5174',
+  process.env.CLIENT_URL,
+  'http://localhost:8001',
+  process.env.MANAGE_URL,
+  'http://localhost:8002',
 ].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
@@ -23,8 +25,15 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true
-}));
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Handle preflight before any other middleware
+app.options(/.*/, cors(corsOptions));
+app.use(cors(corsOptions));
+
 app.use(helmet({
     // Allow frontend apps on different origins to embed uploaded images/videos.
     crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -37,6 +46,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/properties', require('./routes/propertyRoutes'));
+app.use('/api/cities', require('./routes/cityRoutes'));
+app.use('/api/locations', require('./routes/locationRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/enquiries', require('./routes/enquiryRoutes'));
 app.use('/api/sellers', require('./routes/sellerRoutes'));
@@ -49,6 +60,9 @@ app.use('/api/faqs', require('./routes/faqRoutes'));
 app.use('/api/contact-info', require('./routes/contactInfoRoutes'));
 app.use('/api/careers', require('./routes/careerRoutes'));
 app.use('/api/hero-banners', require('./routes/heroBannerRoutes'));
+app.use('/api/builders/applications', require('./routes/builderApplicationRoutes'));
+app.use('/api/builders', require('./routes/builderRoutes'));
+app.use('/api/admin/reviews', require('./routes/adminReviewRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {

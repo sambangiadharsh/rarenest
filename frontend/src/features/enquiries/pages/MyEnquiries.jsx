@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Loader2, MessageSquare } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import ContentPageLayout from '@/shared/components/content/ContentPageLayout'
+import WifiLoader from '@/shared/components/ui/WifiLoader'
 import RequireAuth from '@/shared/components/auth/RequireAuth'
 import { useMyEnquiries } from '@/features/enquiries/hooks/useEnquiries'
 import usePageMeta from '@/shared/hooks/usePageMeta'
@@ -27,7 +28,7 @@ function EnquiriesList() {
     return (
       <ContentPageLayout title="Enquiries" subtitle="Properties you have enquired about.">
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-terracotta" />
+          <WifiLoader />
         </div>
       </ContentPageLayout>
     )

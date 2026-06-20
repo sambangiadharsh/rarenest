@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
@@ -6,17 +6,20 @@ import {
   Loader2,
   MapPin,
   Pencil,
- 
   CheckCircle2,
   XCircle,
   Clock,
   AlertCircle,
   RefreshCw,
- 
   Send,
+  Triangle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
+import PageLoader from '@/shared/components/ui/PageLoader'
+import WifiLoader from '@/shared/components/ui/WifiLoader'
 import {
   useProperty,
   usePropertyVerificationHistory,
@@ -25,6 +28,7 @@ import {
 } from '@/features/properties'
 import {
   getPropertyThumbnail,
+  getPropertyImages,
   parseSpecialFeatures,
   resolveMediaUrl,
 } from '@/features/properties/lib/propertyUtils'
@@ -259,6 +263,52 @@ export default function MyPropertyDetail() {
 
   const isOwner = user && property && String(user.id) === String(property.seller_id)
 
+  const [activeImage, setActiveImage] = useState(0)
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+
+  useEffect(() => {
+    setActiveImage(0)
+  }, [id])
+
+  const images = property ? getPropertyImages(property) : []
+  const heroImage =
+    images[0] || (property ? getPropertyThumbnail(property) : '')
+
+  const mediaItems = property?.media?.length
+    ? property.media
+        .filter((m) => m.media_type === 'Image' || m.media_type === 'Video')
+        .map((m) => ({
+          type: m.media_type,
+          src: resolveMediaUrl(m.media_url),
+          isThumbnail: Boolean(m.is_thumbnail),
+        }))
+    : []
+
+  const displayMedia = mediaItems[activeImage] || { type: 'Image', src: heroImage }
+
+  const handleTouchStart = (e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+    
+    if (isLeftSwipe) {
+      setActiveImage((prev) => (prev + 1) % mediaItems.length)
+    } else if (isRightSwipe) {
+      setActiveImage((prev) => (prev - 1 + mediaItems.length) % mediaItems.length)
+    }
+  }
+
   const handleResubmit = async () => {
     try {
       const res = await resubmit(id)
@@ -274,9 +324,7 @@ export default function MyPropertyDetail() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-      </div>
+      <PageLoader minHeight="min-h-[50vh]" />
     )
   }
 
@@ -315,7 +363,12 @@ export default function MyPropertyDetail() {
     property.property_age != null && property.property_age !== ''
       ? formatPropertyAge(property.property_age)
       : null
-  const locationLabel = [property.location_city, property.location_state].filter(Boolean).join(', ') || property.location_district || '—'
+  const area = property.Area || ''
+  const city = property.location_city || ''
+  const district = property.location_district || ''
+  const state = property.location_state || ''
+  const pincode = property.Pincode || ''
+  const locationLabel = [area, city, district, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '') || '—'
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-6">
@@ -330,14 +383,96 @@ export default function MyPropertyDetail() {
       {/* Property Header */}
       <div className="mb-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
         <div className="flex flex-col sm:flex-row gap-0">
-          {/* Image */}
-          <div className="h-48 sm:h-auto sm:w-64 sm:min-w-[16rem] shrink-0 overflow-hidden bg-neutral-100">
-            <img
-              src={thumbnail}
-              alt={property.title}
-              className="h-full w-full object-cover"
-              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=400&q=60' }}
-            />
+          {/* Media Gallery (Hero + thumbnails) */}
+          <div className="flex flex-col sm:w-96 shrink-0 border-r border-neutral-100 dark:border-neutral-800">
+            {/* Active Media Display */}
+            <div
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className="relative aspect-[16/10] overflow-hidden bg-neutral-100 dark:bg-neutral-800 cursor-grab active:cursor-grabbing select-none"
+            >
+              {displayMedia.type === 'Video' ? (
+                <video
+                  src={displayMedia.src}
+                  controls
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <img
+                  src={displayMedia.src}
+                  alt={property.title}
+                  className="h-full w-full object-cover"
+                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=400&q=60' }}
+                />
+              )}
+
+              {/* Navigation Overlay Arrows */}
+              {mediaItems.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setActiveImage((prev) => (prev - 1 + mediaItems.length) % mediaItems.length)
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors z-10"
+                    aria-label="Previous media"
+                  >
+                    <ChevronLeft className="h-4.5 w-4.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setActiveImage((prev) => (prev + 1) % mediaItems.length)
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors z-10"
+                    aria-label="Next media"
+                  >
+                    <ChevronRight className="h-4.5 w-4.5" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Thumbnails strip */}
+            {mediaItems.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto p-3 bg-neutral-50 dark:bg-neutral-950/20 border-t border-neutral-100 dark:border-neutral-800 scrollbar-thin">
+                {mediaItems.map((item, idx) => (
+                  <button
+                    key={`${item.type}-${item.src}-${idx}`}
+                    type="button"
+                    onClick={() => setActiveImage(idx)}
+                    className={`h-10 w-14 shrink-0 overflow-hidden rounded-lg border transition-all ${
+                      activeImage === idx
+                        ? 'border-violet-600 ring-2 ring-violet-500/20'
+                        : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    {item.type === 'Video' ? (
+                      <div className="relative h-full w-full">
+                        <video
+                          src={item.src}
+                          muted
+                          preload="metadata"
+                          className="h-full w-full object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                          <Triangle className="h-3.5 w-3.5 fill-white text-white" />
+                        </span>
+                      </div>
+                    ) : (
+                      <img
+                        src={item.src}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -411,9 +546,11 @@ export default function MyPropertyDetail() {
                   { label: 'Listed On', value: formatDate(property.created_at) },
                   { label: 'Built-up Area', value: property.size_sqft ? `${Number(property.size_sqft).toLocaleString('en-IN')} Sq.ft` : null },
                   { label: 'Property Age', value: ageLabel },
+                  { label: 'Area', value: property.Area },
                   { label: 'City', value: property.location_city },
                   { label: 'District', value: property.location_district },
                   { label: 'State', value: property.location_state },
+                  { label: 'Pincode', value: property.Pincode },
                   { label: 'Status', value: property.status },
                 ].map(({ label, value }) => (
                   <div key={label}>

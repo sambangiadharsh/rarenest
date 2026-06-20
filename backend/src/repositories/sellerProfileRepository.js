@@ -10,7 +10,7 @@ class SellerProfileRepository {
                        sp.bio, sp.average_rating, sp.total_reviews
                 FROM Users u
                 LEFT JOIN SellerProfiles sp ON u.id = sp.user_id
-                WHERE u.id = @id AND u.role = 'Seller'
+                WHERE u.id = @id AND u.role = 'User'
             `);
         return result.recordset[0];
     }

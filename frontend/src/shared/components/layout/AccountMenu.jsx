@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react'
+
 import { Button } from '@/shared/components/ui/button'
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu'
+
 import { cn } from '@/shared/lib/utils'
 
 function MenuLinkItem({ to, icon: Icon, children, onNavigate }) {
@@ -53,6 +55,18 @@ export default function AccountMenu({
     onLogout()
   }
 
+  // Show Login Button if user is not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Button
+        onClick={() => navigate('/login')}
+        className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-6 font-medium text-white shadow-md transition-all duration-300 hover:scale-105 hover:from-orange-600 hover:to-amber-600"
+      >
+        Sign In / Sign Up
+      </Button>
+    )
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -61,85 +75,87 @@ export default function AccountMenu({
           size="sm"
           className={cn(
             'gap-1.5 rounded-full border border-brand-forest-mid/80 bg-brand-forest-mid/60 px-3 py-2 font-semibold text-brand-warm-white hover:bg-brand-forest-mid/80 hover:text-white',
-            className,
+            className
           )}
           aria-label="Account menu"
         >
           <User className="h-4 w-4 shrink-0 text-brand-terracotta" />
-          {isAuthenticated && (
-            <span className="max-w-[120px] truncate text-sm hidden sm:inline">
-              {displayName}
-            </span>
-          )}
+
+          <span className="hidden max-w-[120px] truncate text-sm sm:inline">
+            {displayName}
+          </span>
+
           <ChevronDown className="h-3.5 w-3.5 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
+
       <DropdownMenuContent
         align={align}
-        className="min-w-48 border-brand-forest-mid/20 bg-white text-foreground shadow-lg"
+        className="min-w-52 border-brand-forest-mid/20 bg-white text-foreground shadow-lg"
       >
-        {isAuthenticated ? (
-          <>
-            <MenuLinkItem to="/profile" icon={User} onNavigate={onNavigate}>
-              My Profile
-            </MenuLinkItem>
-            {!isAdmin && (
-              <MenuLinkItem to="/dashboard" icon={Home} onNavigate={onNavigate}>
-                My Properties
-              </MenuLinkItem>
-            )}
-            {!isAdmin && (
-              <MenuLinkItem
-                to="/enquiries"
-                icon={MessageSquare}
-                onNavigate={onNavigate}
-              >
-                Enquiries
-              </MenuLinkItem>
-            )}
-            {!isAdmin && (
-              <MenuLinkItem to="/wishlist" icon={Heart} onNavigate={onNavigate}>
-                Wishlist
-              </MenuLinkItem>
-            )}
-            <MenuLinkItem to="/contact" icon={LifeBuoy} onNavigate={onNavigate}>
-              Help & Support
-            </MenuLinkItem>
-            <MenuLinkItem to="/profile" icon={User} onNavigate={onNavigate}>
-              Reset Password
-            </MenuLinkItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              className="cursor-pointer gap-2"
-              onSelect={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </DropdownMenuItem>
-          </>
-        ) : (
-          <>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onSelect={() => {
-                onNavigate?.()
-                navigate('/login')
-              }}
-            >
-              Sign In
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <Link
-                to="/register"
-                onClick={onNavigate}
-                className="flex w-full items-center"
-              >
-                List a Property
-              </Link>
-            </DropdownMenuItem>
-          </>
+        <MenuLinkItem
+          to="/profile"
+          icon={User}
+          onNavigate={onNavigate}
+        >
+          My Profile
+        </MenuLinkItem>
+
+        {!isAdmin && (
+          <MenuLinkItem
+            to="/dashboard"
+            icon={Home}
+            onNavigate={onNavigate}
+          >
+            My Properties
+          </MenuLinkItem>
         )}
+
+        {!isAdmin && (
+          <MenuLinkItem
+            to="/enquiries"
+            icon={MessageSquare}
+            onNavigate={onNavigate}
+          >
+            Enquiries
+          </MenuLinkItem>
+        )}
+
+        {!isAdmin && (
+          <MenuLinkItem
+            to="/wishlist"
+            icon={Heart}
+            onNavigate={onNavigate}
+          >
+            Wishlist
+          </MenuLinkItem>
+        )}
+
+        <MenuLinkItem
+          to="/contact"
+          icon={LifeBuoy}
+          onNavigate={onNavigate}
+        >
+          Help & Support
+        </MenuLinkItem>
+
+        <MenuLinkItem
+          to="/change-password"
+          icon={User}
+          onNavigate={onNavigate}
+        >
+          Reset Password
+        </MenuLinkItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
+          onSelect={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

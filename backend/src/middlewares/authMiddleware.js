@@ -2,6 +2,9 @@ const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/userRepository');
 require('dotenv').config();
 
+
+
+
 exports.protect = async (req, res, next) => {
     let token;
 

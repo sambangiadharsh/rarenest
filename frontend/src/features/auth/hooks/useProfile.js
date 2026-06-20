@@ -18,3 +18,15 @@ export function useUpdateProfile() {
     },
   })
 }
+
+export function useUpdateRole() {
+  return useMutation({
+    mutationFn: profileApi.updateRole,
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: profileApi.changePassword,
+  })
+}

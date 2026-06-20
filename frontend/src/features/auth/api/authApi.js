@@ -11,3 +11,11 @@ export function register(userData) {
 export function logout() {
   return apiClient.get('/auth/logout')
 }
+
+export function forgotPassword(payload) {
+  return apiClient.post('/auth/forgot-password', payload)
+}
+
+export function resetPassword(payload) {
+  return apiClient.post('/auth/reset-password', payload)
+}

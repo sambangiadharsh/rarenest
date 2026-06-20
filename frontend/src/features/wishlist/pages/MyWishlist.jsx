@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Heart, Loader2 } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import ContentPageLayout from '@/shared/components/content/ContentPageLayout'
+import WifiLoader from '@/shared/components/ui/WifiLoader'
 import RequireAuth from '@/shared/components/auth/RequireAuth'
 import PropertyCard from '@/features/properties/components/PropertyCard'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
@@ -20,7 +21,7 @@ function WishlistContent() {
     return (
       <ContentPageLayout title="Wishlist" subtitle="Properties you have saved.">
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-terracotta" />
+          <WifiLoader />
         </div>
       </ContentPageLayout>
     )

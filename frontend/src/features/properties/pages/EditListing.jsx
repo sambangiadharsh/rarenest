@@ -5,6 +5,9 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
+import AsyncSelect from 'react-select/async'
+import apiClient from '@/shared/lib/apiClient'
+import LocationSelect from '@/components/common/LocationSelect'
 import {
   Loader2,
   ImagePlus,
@@ -27,6 +30,7 @@ import {
   PencilLine,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
+import PageLoader from '@/shared/components/ui/PageLoader'
 import {
   useProperty,
   usePropertyTypes,
@@ -51,9 +55,11 @@ const editSchema = z.object({
   property_type_id: z.string().uuid('Select a property type'),
   asking_price: z.preprocess((v) => Number(v), z.number().positive()),
   size_sqft: z.preprocess((v) => Number(v), z.number().positive()),
-  location_city: z.string().min(2).max(100),
-  location_state: z.string().min(2).max(100),
-  location_district: z.string().min(2).max(100),
+  city: z.string().max(100).optional().or(z.literal('')),
+  state: z.string().min(1, 'State is required').max(100),
+  district: z.string().min(1, 'District is required').max(100),
+  area: z.string().min(2).max(100),
+  pincode: z.string().min(6).max(10),
   contact_email: z.string().email(),
   contact_phone: z.string().min(8).max(20),
   property_story: z.string().min(10),
@@ -72,7 +78,8 @@ const STEP_CONFIG = [
     fields: [
       'title', 'property_type_id', 'asking_price',
       'size_sqft', 'property_age', 'status',
-      'location_city', 'location_state', 'location_district',
+      'city', 'state', 'district',
+      'area', 'pincode',
     ],
   },
   {
@@ -118,6 +125,47 @@ function FieldError({ message }) {
   return <span className="text-[10px] text-destructive font-semibold">{message}</span>
 }
 
+const loadStateOptions = async (inputValue) => {
+  try {
+    const data = await apiClient.get('/locations/states')
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load states:', err)
+    return []
+  }
+}
+
+const loadDistrictOptions = (state) => async (inputValue) => {
+  if (!state) return []
+  try {
+    const data = await apiClient.get(`/locations/districts?state=${encodeURIComponent(state)}`)
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load districts:', err)
+    return []
+  }
+}
+
+const loadCityOptions = (state, district) => async (inputValue) => {
+  if (!state || !district) return []
+  try {
+    const data = await apiClient.get(`/locations/cities?state=${encodeURIComponent(state)}&district=${encodeURIComponent(district)}`)
+    if (!inputValue) return data
+    return data.filter((item) =>
+      item.label.toLowerCase().includes(inputValue.toLowerCase())
+    )
+  } catch (err) {
+    console.error('Failed to load cities:', err)
+    return []
+  }
+}
+
 export default function EditListing() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -151,6 +199,8 @@ export default function EditListing() {
     control,
     trigger,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(editSchema),
@@ -159,9 +209,11 @@ export default function EditListing() {
       property_type_id: '',
       asking_price: 0,
       size_sqft: 0,
-      location_city: '',
-      location_state: '',
-      location_district: '',
+      city: '',
+      state: '',
+      district: '',
+      area: '',
+      pincode: '',
       contact_email: '',
       contact_phone: '',
       property_story: '',
@@ -171,6 +223,9 @@ export default function EditListing() {
       is_visible: true,
     },
   })
+
+  const stateVal = watch('state')
+  const districtVal = watch('district')
 
   React.useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true })
@@ -188,9 +243,11 @@ export default function EditListing() {
       property_type_id: property.property_type_id || '',
       asking_price: property.asking_price || 0,
       size_sqft: property.size_sqft || 0,
-      location_city: property.location_city || '',
-      location_state: property.location_state || '',
-      location_district: property.location_district || '',
+      city: property.location_city || '',
+      state: property.location_state || '',
+      district: property.location_district || '',
+      area: property.Area || '',
+      pincode: property.Pincode || '',
       contact_email: property.contact_email || '',
       contact_phone: property.contact_phone || '',
       property_story: property.property_story || '',
@@ -307,10 +364,7 @@ export default function EditListing() {
 
   if (propertyLoading || typesLoading) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-bronze" />
-        <p className="text-sm text-neutral-500 font-semibold">Loading listing details…</p>
-      </div>
+      <PageLoader />
     )
   }
 
@@ -510,19 +564,76 @@ export default function EditListing() {
                       </div>
                       <div className="grid sm:grid-cols-3 gap-3">
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>City</FieldLabel>
-                          <FieldInput type="text" {...register('location_city')} placeholder="Rishikesh" error={errors.location_city} />
-                          <FieldError message={errors.location_city?.message} />
-                        </div>
-                        <div className="flex flex-col gap-2">
                           <FieldLabel>State</FieldLabel>
-                          <FieldInput type="text" {...register('location_state')} placeholder="Uttarakhand" error={errors.location_state} />
-                          <FieldError message={errors.location_state?.message} />
+                          <Controller
+                            name="state"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={(val) => {
+                                  onChange(val)
+                                  setValue('district', '')
+                                  setValue('city', '')
+                                }}
+                                loadOptions={loadStateOptions}
+                                placeholder="Select/type state"
+                                error={errors.state}
+                              />
+                            )}
+                          />
+                          <FieldError message={errors.state?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
                           <FieldLabel>District</FieldLabel>
-                          <FieldInput type="text" {...register('location_district')} placeholder="Tehri Garhwal" error={errors.location_district} />
-                          <FieldError message={errors.location_district?.message} />
+                          <Controller
+                            name="district"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={(val) => {
+                                  onChange(val)
+                                  setValue('city', '')
+                                }}
+                                loadOptions={loadDistrictOptions(stateVal)}
+                                placeholder="Select/type district"
+                                isDisabled={!stateVal}
+                                error={errors.district}
+                              />
+                            )}
+                          />
+                          <FieldError message={errors.district?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>City</FieldLabel>
+                          <Controller
+                            name="city"
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <LocationSelect
+                                value={value}
+                                onChange={onChange}
+                                loadOptions={loadCityOptions(stateVal, districtVal)}
+                                placeholder="Select/type city"
+                                isDisabled={!districtVal}
+                                error={errors.city}
+                              />
+                            )}
+                          />
+                          <FieldError message={errors.city?.message} />
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>Area</FieldLabel>
+                          <FieldInput type="text" {...register('area')} placeholder="e.g. Tapovan" error={errors.area} />
+                          <FieldError message={errors.area?.message} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <FieldLabel>Pincode</FieldLabel>
+                          <FieldInput type="text" {...register('pincode')} placeholder="e.g. 249192" error={errors.pincode} />
+                          <FieldError message={errors.pincode?.message} />
                         </div>
                       </div>
                     </div>

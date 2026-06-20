@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import {
@@ -8,12 +8,16 @@ import {
   MapPin,
   User,
   Save,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import RequireAuth from '@/shared/components/auth/RequireAuth'
 import { Button } from '@/shared/components/ui/button'
+import PageLoader from '@/shared/components/ui/PageLoader'
 import { setCredentials } from '@/app/store/authSlice'
-import { useProfile, useUpdateProfile } from '@/features/auth/hooks/useProfile'
+import { useProfile, useUpdateProfile, useChangePassword } from '@/features/auth/hooks/useProfile'
 import usePageMeta from '@/shared/hooks/usePageMeta'
 
 function profileToFormValues(profile) {
@@ -25,7 +29,7 @@ function profileToFormValues(profile) {
   }
 }
 
-function ProfileForm() {
+function ProfileForm({ standalone = true }) {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const { data, isLoading, isError } = useProfile()
@@ -65,9 +69,7 @@ function ProfileForm() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-7 w-7 animate-spin text-brand-terracotta" />
-      </div>
+      <PageLoader />
     )
   }
 
@@ -80,9 +82,7 @@ function ProfileForm() {
   }
 
   return (
-    <div className="bg-brand-cream/30 dark:bg-neutral-950 min-h-screen py-12">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <div className="rounded-3xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl overflow-hidden">
+    <div className="rounded-3xl border border-neutral-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl overflow-hidden">
 
           {/* Card header */}
           <div className="px-7 sm:px-9 pt-8 pb-5 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
@@ -192,17 +192,20 @@ function ProfileForm() {
               </Button>
             </div>
           </form>
-        </div>
-      </div>
-
     </div>
   )
 }
 
+
 export default function Profile() {
   return (
     <RequireAuth>
-      <ProfileForm />
+      <div className="bg-brand-cream/30 dark:bg-neutral-950 min-h-screen py-12">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 flex flex-col gap-8">
+          <ProfileForm standalone={false} />
+    
+        </div>
+      </div>
     </RequireAuth>
   )
 }

@@ -70,7 +70,7 @@ export default function HeroSwiper({ banners = [], onWaitlist }) {
 
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
                   <a
-                    href="#dwellings"
+                    href="properties"
                     className="bg-brand-terracotta hover:bg-brand-terracotta-light text-white px-7 py-4 rounded-xl font-bold shadow-lg shadow-brand-terracotta/20 transition-all duration-300 text-center flex items-center justify-center gap-2 group border-none"
                   >
                     Explore Dwellings

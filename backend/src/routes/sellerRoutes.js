@@ -8,6 +8,6 @@ const {
 const { protect, authorize } = require('../middlewares/authMiddleware');
 
 router.get('/:id', getSellerProfile);
-router.post('/profile', protect, authorize('Seller', 'Admin'), updateProfile);
+router.post('/profile', protect, authorize('User', 'Admin'), updateProfile);
 
 module.exports = router;

@@ -9,6 +9,7 @@ import {
   MapPin,
   Shield,
   Play,
+  Star,
   Sun,
   Trees,
   Wifi,
@@ -19,7 +20,7 @@ import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { useProperty } from '@/features/properties/hooks/useProperty'
-import { useVerifyProperty } from '@/features/properties/hooks/useProperties'
+import { useVerifyProperty, useToggleFeatured } from '@/features/properties/hooks/useProperties'
 import StatusBadge from './StatusBadge'
 import VerificationBadge from './VerificationBadge'
 import {
@@ -91,6 +92,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
     enabled: Boolean(propertyId),
   })
   const { mutateAsync: verifyProperty } = useVerifyProperty()
+  const { mutate: toggleFeatured, isPending: isTogglingFeatured } = useToggleFeatured()
 
   const property = data?.data
   const mediaItems = property ? getPropertyMediaItems(property) : []
@@ -139,9 +141,9 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
   }
 
   const locationLine = property
-    ? [property.location_district, property.location_city, property.location_state]
+    ? [property.Area, property.location_city, property.location_district, property.location_state]
         .filter(Boolean)
-        .join(', ')
+        .join(', ') + (property.Pincode ? ` - ${property.Pincode}` : '')
     : ''
 
   const visibleThumbs = mediaItems.slice(0, 4)
@@ -159,6 +161,25 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-heading text-base font-semibold text-brand-forest">Property Details</h2>
           {property && <VerificationBadge status={verificationStatus} />}
+          {property && (
+            <button
+              type="button"
+              title={property.is_featured ? 'Remove from featured' : 'Mark as featured'}
+              disabled={isTogglingFeatured}
+              onClick={() => toggleFeatured(propertyId)}
+              className={`ml-auto flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                property.is_featured
+                  ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                  : 'bg-muted text-muted-foreground hover:bg-amber-50 hover:text-amber-500'
+              }`}
+            >
+              {isTogglingFeatured
+                ? <Loader2 className="size-3 animate-spin" />
+                : <Star className={`size-3 ${property.is_featured ? 'fill-amber-400' : ''}`} />
+              }
+              {property.is_featured ? 'Featured' : 'Set Featured'}
+            </button>
+          )}
         </div>
         {onClose && (
           <Button type="button" variant="ghost" size="icon-sm" onClick={onClose}>
@@ -314,9 +335,11 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                             : null,
                         },
                         { label: 'Property Age', value: ageLabel },
+                        { label: 'Area', value: property.Area },
                         { label: 'City', value: property.location_city },
                         { label: 'State', value: property.location_state },
                         { label: 'District', value: property.location_district },
+                        { label: 'Pincode', value: property.Pincode },
                         { label: 'Contact email', value: property.contact_email },
                         { label: 'Contact phone', value: property.contact_phone },
                       ].map((f) => (
