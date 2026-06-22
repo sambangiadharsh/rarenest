@@ -2,7 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import AdminLayout from '@/shared/components/layout/AdminLayout'
 import { ProtectedRoute, GuestRoute, LoginPage } from '@/features/auth'
 import { DashboardPage } from '@/features/dashboard'
-import { PropertiesPage } from '@/features/properties'
+import { PropertiesPage, PropertyFeaturesPage } from '@/features/properties'
 import { PropertyTypesPage } from '@/features/propertyTypes'
 import { BuilderApplicationsPage } from '@/features/builders'
 
@@ -29,6 +29,7 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: 'properties', element: <PropertiesPage /> },
           { path: 'properties/types', element: <PropertyTypesPage /> },
+          { path: 'properties/features', element: <PropertyFeaturesPage /> },
           { path: 'builders/applications', element: <BuilderApplicationsPage /> },
    
           { path: 'reviews', element: <ReviewsPage /> },

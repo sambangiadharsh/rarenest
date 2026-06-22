@@ -40,6 +40,7 @@ import {
   MAX_IMAGE_BYTES,
   MAX_VIDEO_BYTES,
 } from '@/features/properties/constants/specialFeatures'
+import PropertyFeaturesFormSection from '../components/PropertyFeaturesFormSection'
 
 const listingSchema = z.object({
   title: z.string().min(2).max(255),
@@ -56,6 +57,7 @@ const listingSchema = z.object({
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
+  selectedFeatureIds: z.array(z.string()).optional(),
   listing_type: z.enum(['Individual', 'BuilderProject']).default('Individual'),
 })
 
@@ -83,7 +85,7 @@ const STEP_CONFIG = [
     label: 'Details',
     title: 'Story & Contact',
     description: 'How buyers reach you and what makes this place rare.',
-    fields: ['contact_email', 'contact_phone', 'property_story', 'special_features'],
+    fields: ['contact_email', 'contact_phone', 'property_story', 'selectedFeatureIds'],
   },
   {
     number: 4,
@@ -254,7 +256,7 @@ export default function CreateListing() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(listingSchema),
-    defaultValues: { special_features: [], listing_type: 'Individual', state: '', district: '', city: '' },
+    defaultValues: { selectedFeatureIds: [], listing_type: 'Individual', state: '', district: '', city: '' },
   })
 
   const stateVal = watch('state')
@@ -341,7 +343,7 @@ export default function CreateListing() {
       if (!propertyId) {
         const res = await createProperty({
           ...data,
-          special_features: data.special_features?.length ? data.special_features : undefined,
+          selectedFeatureIds: data.selectedFeatureIds?.length ? data.selectedFeatureIds : undefined,
         })
         if (!res.success) { toast.error(res.message || 'Failed to create listing'); return }
         propertyId = res.data.id
@@ -856,43 +858,18 @@ export default function CreateListing() {
                       <FieldError message={errors.property_story?.message} />
                     </div>
 
-                    {/* Special features */}
+                    {/* Property Features */}
                     <div className="flex flex-col gap-3">
-                      <FieldLabel icon={Sparkles}>Special Features</FieldLabel>
+                      <FieldLabel icon={Sparkles}>Property Features</FieldLabel>
                       <Controller
-                        name="special_features"
+                        name="selectedFeatureIds"
                         control={control}
                         render={({ field }) => (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {SPECIAL_FEATURES.map((feature) => {
-                              const checked = (field.value || []).includes(feature)
-                              return (
-                                <button
-                                  key={feature}
-                                  type="button"
-                                  disabled={!!pendingPropertyId}
-                                  onClick={() => {
-                                    const next = checked
-                                      ? (field.value || []).filter((f) => f !== feature)
-                                      : [...(field.value || []), feature]
-                                    field.onChange(next)
-                                  }}
-                                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all duration-200 text-left ${
-                                    checked
-                                      ? 'border-brand-bronze bg-brand-bronze/10 text-brand-bronze shadow-sm scale-[1.01]'
-                                      : 'border-neutral-200 dark:border-neutral-800 text-neutral-500 hover:border-brand-bronze/30 hover:bg-brand-bronze/5'
-                                  }`}
-                                >
-                                  <div className={`h-3.5 w-3.5 shrink-0 rounded-full border transition-all ${
-                                    checked ? 'bg-brand-bronze border-brand-bronze' : 'border-neutral-300'
-                                  }`}>
-                                    {checked && <Check className="h-3.5 w-3.5 text-white p-[1px]" />}
-                                  </div>
-                                  {feature}
-                                </button>
-                              )
-                            })}
-                          </div>
+                          <PropertyFeaturesFormSection
+                            selectedFeatureIds={field.value || []}
+                            onChange={field.onChange}
+                            disabled={!!pendingPropertyId}
+                          />
                         )}
                       />
                     </div>

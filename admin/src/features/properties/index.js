@@ -14,3 +14,13 @@ export {
   formatPropertyAge,
   PLACEHOLDER_IMAGE,
 } from './lib/propertyUtils'
+
+export { default as PropertyFeaturesPage } from './pages/PropertyFeatures'
+export {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useFeatures,
+  useCreateFeature,
+  useUpdateFeature,
+} from './hooks/usePropertyFeatures'

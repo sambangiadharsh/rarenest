@@ -71,7 +71,7 @@ CREATE TABLE Properties (
     contact_phone NVARCHAR(20),
     property_story NVARCHAR(MAX),
     property_age INT NULL,
-    special_features NVARCHAR(MAX), -- Store as JSON string or text
+    
     status NVARCHAR(20) CHECK (status IN ('Available', 'Sold', 'Pending')) DEFAULT 'Avail,able',
     is_featured BIT NOT NULL DEFAULT 0,
     verification_status NVARCHAR(30)
@@ -100,7 +100,62 @@ CREATE TABLE Locations (
     CONSTRAINT UQ_Location
         UNIQUE(StateName, DistrictName, CityName)
 );
+ 
 
+--Property feature category table
+ CREATE TABLE PropertyFeatureCategories (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+
+    Name NVARCHAR(100) NOT NULL,
+    DisplayOrder INT DEFAULT 0,
+    IsActive BIT DEFAULT 1,
+
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    UpdatedBy UNIQUEIDENTIFIER NULL,
+
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+
+    FOREIGN KEY (CreatedBy) REFERENCES Users(Id),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(Id)
+);
+
+
+--Property features table
+CREATE TABLE PropertyFeatures (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+
+    CategoryId UNIQUEIDENTIFIER NOT NULL,
+    Name NVARCHAR(150) NOT NULL,
+
+    IsPopular BIT DEFAULT 0,
+    DisplayOrder INT DEFAULT 0,
+    IsActive BIT DEFAULT 1,
+
+    CreatedBy UNIQUEIDENTIFIER NULL,
+    UpdatedBy UNIQUEIDENTIFIER NULL,
+
+    CreatedAt DATETIME NOT NULL DEFAULT GETDATE(),
+    UpdatedAt DATETIME NULL,
+
+    FOREIGN KEY (CategoryId) REFERENCES PropertyFeatureCategories(Id),
+    FOREIGN KEY (CreatedBy) REFERENCES Users(Id),
+    FOREIGN KEY (UpdatedBy) REFERENCES Users(Id)
+);
+
+
+--FeatureMapping table 
+
+CREATE TABLE PropertyFeatureMappings (
+    Id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    PropertyId UNIQUEIDENTIFIER NOT NULL,
+    FeatureId UNIQUEIDENTIFIER NOT NULL,
+
+    UNIQUE(PropertyId, FeatureId),
+
+    FOREIGN KEY (PropertyId) REFERENCES Properties(Id),
+    FOREIGN KEY (FeatureId) REFERENCES PropertyFeatures(Id)
+);
 
 -- 4. PropertyMedia Table
 CREATE TABLE PropertyMedia (

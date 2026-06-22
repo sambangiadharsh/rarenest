@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const propertyRepository = require('../repositories/propertyRepository');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
+const propertyFeatureRepository = require('../repositories/propertyFeatureRepository');
 const enquiryRepository = require('../repositories/enquiryRepository');
 const mediaService = require('./mediaService');
 const authService = require('./authService');
@@ -14,6 +15,18 @@ class PropertyService {
 
         property.media = await propertyRepository.findMediaByPropertyId(id);
         this._parseSpecialFeatures(property);
+
+        // Fetch and map features
+        property.features = await propertyFeatureRepository.findFeaturesByPropertyId(id);
+        property.selectedFeatureIds = property.features.map(f => f.Id);
+        
+        // Group features for display
+        const grouped = {};
+        for (const f of property.features) {
+            if (!grouped[f.CategoryName]) grouped[f.CategoryName] = [];
+            grouped[f.CategoryName].push(f.Name);
+        }
+        property.groupedFeatures = grouped;
 
         const first = property.seller_first_name || '';
         const last = property.seller_last_name || '';
@@ -44,17 +57,33 @@ class PropertyService {
         const mediaByPropertyId = await propertyMediaRepository.findByPropertyIds(
             properties.map((p) => p.id),
         );
+        const featuresByPropertyId = await propertyFeatureRepository.findFeaturesByPropertyIds(
+            properties.map((p) => p.id),
+        );
 
         for (const p of properties) {
             this._parseSpecialFeatures(p);
             const key = String(p.id).toLowerCase();
             p.media = mediaByPropertyId[key] || [];
+
+            p.features = featuresByPropertyId[key] || [];
+            p.selectedFeatureIds = p.features.map(f => f.Id);
+            const grouped = {};
+            for (const f of p.features) {
+                if (!grouped[f.CategoryName]) grouped[f.CategoryName] = [];
+                grouped[f.CategoryName].push(f.Name);
+            }
+            p.groupedFeatures = grouped;
         }
         return properties;
     }
 
     async createProperty(propertyData) {
-        return propertyRepository.create(propertyData);
+        const property = await propertyRepository.create(propertyData);
+        if (propertyData.selectedFeatureIds && propertyData.selectedFeatureIds.length > 0) {
+            await propertyFeatureRepository.savePropertyMappings(property.id, propertyData.selectedFeatureIds);
+        }
+        return this.getPropertyById(property.id);
     }
 
     async createGuestSellerAccount({ name, email, phone }) {
@@ -131,6 +160,10 @@ class PropertyService {
             seller_id: newUser.id,
         });
 
+        if (propertyData.selectedFeatureIds && propertyData.selectedFeatureIds.length > 0) {
+            await propertyFeatureRepository.savePropertyMappings(property.id, propertyData.selectedFeatureIds);
+        }
+
         const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
         let emailSent = false;
         try {
@@ -154,6 +187,9 @@ class PropertyService {
     }
 
     async updateProperty(id, propertyData) {
+        if (propertyData.selectedFeatureIds !== undefined) {
+            await propertyFeatureRepository.savePropertyMappings(id, propertyData.selectedFeatureIds);
+        }
         return propertyRepository.update(id, propertyData);
     }
 

@@ -180,6 +180,7 @@ export default function PropertyTypes() {
 
   const [editingId, setEditingId] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'active' | 'inactive'
+  const [sortOrder, setSortOrder] = useState('asc') // 'asc' or 'desc'
 
   const {
     register: registerCreate,
@@ -197,6 +198,8 @@ export default function PropertyTypes() {
     if (statusFilter === 'active') return !!t.is_active
     if (statusFilter === 'inactive') return !t.is_active
     return true
+  }).sort((a, b) => {
+    return sortOrder === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
   })
 
   const onCreateSubmit = async (formData) => {
@@ -352,10 +355,13 @@ export default function PropertyTypes() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <th 
+                    className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  >
                     <div className="flex items-center gap-1.5">
                       <span>Name</span>
-                      <ArrowUpDown className="size-3 opacity-40" />
+                      <ArrowUpDown className={`size-3 transition-opacity ${sortOrder ? 'opacity-100 text-brand-forest' : 'opacity-40'}`} />
                     </div>
                   </th>
                   <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>

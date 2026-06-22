@@ -63,6 +63,7 @@ app.use('/api/hero-banners', require('./routes/heroBannerRoutes'));
 app.use('/api/builders/applications', require('./routes/builderApplicationRoutes'));
 app.use('/api/builders', require('./routes/builderRoutes'));
 app.use('/api/admin/reviews', require('./routes/adminReviewRoutes'));
+app.use('/api', require('./routes/propertyFeatureRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {

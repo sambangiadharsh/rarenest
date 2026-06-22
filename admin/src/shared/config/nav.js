@@ -13,6 +13,7 @@ import {
   HelpCircle,
   ChevronRight,
   Images,
+  Sparkles,
 } from 'lucide-react'
 
 export const mainNavItems = [
@@ -39,6 +40,7 @@ export const propertyNavGroup = {
   items: [
     { title: 'All Properties', href: '/properties', icon: List },
     { title: 'Property Type', href: '/properties/types', icon: Tags },
+    { title: 'Property Features', href: '/properties/features', icon: Sparkles },
   ],
 }
 
@@ -61,6 +63,7 @@ export const routeTitles = {
   '/builders/applications': 'Builder Applications',
   '/properties': 'All Properties',
   '/properties/types': 'Property Type',
+  '/properties/features': 'Property Features',
   // '/enquiries': 'Enquiries',
   '/reviews': 'Reviews',
   '/content/careers': 'Careers',

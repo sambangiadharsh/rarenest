@@ -27,6 +27,7 @@ const propertySchema = {
         property_story: Joi.string().required(),
         property_age: Joi.number().integer().min(0).max(200).required(),
         special_features: specialFeaturesSchema,
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
         listing_type: Joi.string().valid('Individual').default('Individual'),
     }),
     create: Joi.object({
@@ -44,6 +45,7 @@ const propertySchema = {
         property_story: Joi.string().required(),
         property_age: Joi.number().integer().min(0).max(200).required(),
         special_features: specialFeaturesSchema,
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
         listing_type: Joi.string().valid('Individual', 'BuilderProject').default('Individual'),
     }),
     update: Joi.object({
@@ -61,6 +63,7 @@ const propertySchema = {
         property_story: Joi.string().allow('', null),
         property_age: Joi.number().integer().min(0).max(200),
         special_features: specialFeaturesSchema,
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
         status: Joi.string().valid('Available', 'Sold', 'Pending'),
         is_visible: Joi.boolean(),
         listing_type: Joi.string().valid('Individual', 'BuilderProject'),
