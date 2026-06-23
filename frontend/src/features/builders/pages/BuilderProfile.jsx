@@ -20,6 +20,7 @@ import ReviewModal from '../components/ReviewModal'
 import { useProperties } from '@/features/properties'
 import PropertyCard from '@/features/properties/components/PropertyCard'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
+import WifiLoader from '@/shared/components/ui/WifiLoader'
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const PALETTE = [
@@ -89,7 +90,7 @@ export default function BuilderProfile() {
   /* loading */
   if (bLoading) return (
     <div className="flex min-h-screen items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-brand-terracotta" />
+      <WifiLoader />
     </div>
   )
 
@@ -107,8 +108,11 @@ export default function BuilderProfile() {
   const fn        = builder.first_name ?? ''
   const ln        = builder.last_name  ?? ''
   const name      = `${fn} ${ln}`.trim() || 'Builder'
-  const initials  = `${fn[0] ?? ''}${ln[0] ?? ''}`.toUpperCase() || '?'
-  const pal       = palette(name)
+  const company   = builder.company_name
+  const initials  = company
+    ? company.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    : `${fn[0] ?? ''}${ln[0] ?? ''}`.toUpperCase() || '?'
+  const pal       = palette(company || name)
   const rating    = Number(builder.average_rating ?? 0)
   const total     = Number(builder.total_reviews  ?? 0)
 
@@ -165,8 +169,13 @@ export default function BuilderProfile() {
                     Verified Builder
                   </span>
                   <h1 className="mt-0.5 text-2xl font-bold text-neutral-900 dark:text-white leading-tight">
-                    {name}
+                    {company || name}
                   </h1>
+                  {company && (
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                      Owner: {name}
+                    </p>
+                  )}
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Stars value={rating} size={15} />
                     <span className="text-sm font-bold text-neutral-800 dark:text-white">

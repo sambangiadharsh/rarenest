@@ -1,12 +1,6 @@
 const Joi = require('joi');
-const { ALLOWED_SPECIAL_FEATURES } = require('../config/specialFeatures');
 
 const uuid = Joi.string().guid({ version: 'uuidv4' });
-
-const specialFeaturesSchema = Joi.array()
-    .items(Joi.string().valid(...ALLOWED_SPECIAL_FEATURES))
-    .max(20)
-    .optional();
 
 const propertySchema = {
     guestCreate: Joi.object({
@@ -26,8 +20,7 @@ const propertySchema = {
         contact_phone: Joi.string().max(20).required(),
         property_story: Joi.string().required(),
         property_age: Joi.number().integer().min(0).max(200).required(),
-        special_features: specialFeaturesSchema,
-        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).min(1).required(),
         listing_type: Joi.string().valid('Individual').default('Individual'),
     }),
     create: Joi.object({
@@ -44,8 +37,7 @@ const propertySchema = {
         contact_phone: Joi.string().max(20).required(),
         property_story: Joi.string().required(),
         property_age: Joi.number().integer().min(0).max(200).required(),
-        special_features: specialFeaturesSchema,
-        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).min(1).required(),
         listing_type: Joi.string().valid('Individual', 'BuilderProject').default('Individual'),
     }),
     update: Joi.object({
@@ -62,8 +54,7 @@ const propertySchema = {
         contact_phone: Joi.string().max(20).allow('', null),
         property_story: Joi.string().allow('', null),
         property_age: Joi.number().integer().min(0).max(200),
-        special_features: specialFeaturesSchema,
-        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).optional(),
+        selectedFeatureIds: Joi.array().items(Joi.string().guid({ version: 'uuidv4' })).min(1),
         status: Joi.string().valid('Available', 'Sold', 'Pending'),
         is_visible: Joi.boolean(),
         listing_type: Joi.string().valid('Individual', 'BuilderProject'),

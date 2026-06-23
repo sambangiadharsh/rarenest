@@ -119,9 +119,11 @@ export default function PropertyDetail() {
   const [activeImage, setActiveImage] = useState(0)
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
+  const [showAllFeaturesGrouped, setShowAllFeaturesGrouped] = useState(false)
 
   useEffect(() => {
     setActiveImage(0)
+    setShowAllFeaturesGrouped(false)
   }, [id])
 
   const displayMedia = mediaItems[activeImage] || { type: 'Image', src: heroImage }
@@ -158,7 +160,25 @@ export default function PropertyDetail() {
 
   const locationLabel = [area, city, district, state].filter(Boolean).join(', ') + (pincode ? ` - ${pincode}` : '')
 
-  const features = parseSpecialFeatures(property?.special_features)
+  const allFeatures = property?.features?.length
+    ? property.features
+    : parseSpecialFeatures(property?.special_features).map((name, index) => ({ Id: index, Name: name, CategoryName: 'Amenities' }))
+
+  const flatFeatures = allFeatures.map(f => f.Name)
+  const first6Features = flatFeatures.slice(0, 6)
+  const totalFeaturesCount = flatFeatures.length
+
+  const groupedFeatures = {}
+  allFeatures.forEach((feat) => {
+    const catName = feat.CategoryName || 'Other'
+    if (!groupedFeatures[catName]) {
+      groupedFeatures[catName] = []
+    }
+    if (!groupedFeatures[catName].includes(feat.Name)) {
+      groupedFeatures[catName].push(feat.Name)
+    }
+  })
+
   const propertyAgeLabel =
     property?.property_age != null && property.property_age !== ''
       ? formatPropertyAge(property.property_age)
@@ -351,22 +371,56 @@ export default function PropertyDetail() {
           )}
 
           {/* FEATURES */}
-          {features.length > 0 && (
-            <section>
+          {totalFeaturesCount > 0 && (
+            <section className="space-y-3">
               <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
                 Special features
               </h2>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {features.map((feature) => (
-                  <span
-                    key={feature}
-                    className="rounded-full border border-brand-sand bg-brand-cream px-3 py-1 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300"
-                  >
-                    {feature}
-                  </span>
-                ))}
-              </div>
+              {showAllFeaturesGrouped && totalFeaturesCount > 6 ? (
+                <div className="mt-3 space-y-4 animate-in fade-in duration-200">
+                  {Object.entries(groupedFeatures).map(([category, featNames]) => (
+                    <div key={category} className="space-y-1.5">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        {category}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {featNames.map((featName) => (
+                          <span
+                            key={featName}
+                            className="rounded-full border border-brand-sand bg-brand-cream px-3 py-1 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300"
+                          >
+                            {featName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {first6Features.map((featName) => (
+                    <span
+                      key={featName}
+                      className="rounded-full border border-brand-sand bg-brand-cream px-3 py-1 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300"
+                    >
+                      {featName}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {totalFeaturesCount > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFeaturesGrouped(!showAllFeaturesGrouped)}
+                  className="mt-3 text-xs font-bold text-brand-terracotta hover:underline focus:outline-none block"
+                >
+                  {showAllFeaturesGrouped
+                    ? 'Show less'
+                    : `View all ${totalFeaturesCount} features`}
+                </button>
+              )}
             </section>
           )}
 

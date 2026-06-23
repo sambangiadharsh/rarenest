@@ -14,7 +14,6 @@ class PropertyService {
         if (!property) return null;
 
         property.media = await propertyRepository.findMediaByPropertyId(id);
-        this._parseSpecialFeatures(property);
 
         // Fetch and map features
         property.features = await propertyFeatureRepository.findFeaturesByPropertyId(id);
@@ -40,16 +39,6 @@ class PropertyService {
         return property;
     }
 
-    _parseSpecialFeatures(property) {
-        if (property?.special_features && typeof property.special_features === 'string') {
-            try {
-                property.special_features = JSON.parse(property.special_features);
-            } catch {
-                // keep as string
-            }
-        }
-    }
-
     async getAllProperties(filters = {}) {
         const properties = await propertyRepository.findAll(filters);
         if (properties.length === 0) return properties;
@@ -62,7 +51,6 @@ class PropertyService {
         );
 
         for (const p of properties) {
-            this._parseSpecialFeatures(p);
             const key = String(p.id).toLowerCase();
             p.media = mediaByPropertyId[key] || [];
 

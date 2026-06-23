@@ -512,8 +512,11 @@ export default function Home() {
                 const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length]
                 const firstName = builder.first_name ?? ''
                 const lastName = builder.last_name ?? ''
-                const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '??'
                 const fullName = `${firstName} ${lastName}`.trim() || 'Builder'
+                const displayName = builder.company_name || fullName
+                const initials = builder.company_name
+                  ? builder.company_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+                  : `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '??'
                 const rating = Number(builder.average_rating ?? 0)
                 const totalReviews = Number(builder.total_reviews ?? 0)
                 const propertiesCount = Number(builder.properties_count ?? 0)
@@ -530,9 +533,12 @@ export default function Home() {
 
                     {/* Name + rating */}
                     <div className="flex flex-col gap-1.5 w-full">
-                      <h3 className="font-semibold text-base text-neutral-900 dark:text-white leading-tight truncate">
-                        {fullName}
+                      <h3 className="font-semibold text-base text-neutral-900 dark:text-white leading-tight truncate" title={displayName}>
+                        {displayName}
                       </h3>
+                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                        Owner: {fullName}
+                      </p>
 
                       <div className="flex items-center justify-center gap-1">
                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
@@ -559,12 +565,6 @@ export default function Home() {
                         <Building2 className="h-3.5 w-3.5 text-brand-terracotta shrink-0" />
                         {propertiesCount} {propertiesCount === 1 ? 'Property' : 'Properties'} Listed
                       </span>
-                      {builder.city && (
-                        <span className="flex items-center justify-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-brand-terracotta shrink-0" />
-                          {builder.city}
-                        </span>
-                      )}
                     </div>
 
                     {/* CTA */}

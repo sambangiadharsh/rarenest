@@ -29,8 +29,7 @@ CREATE TABLE BuilderProfiles(
     average_rating DECIMAL(3, 2) DEFAULT 0,
     total_reviews INT DEFAULT 0,
     builder_status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (builder_status IN ('Pending', 'Approved', 'Rejected')),
-    approved_by UNIQUEIDENTIFIER NULL,
-    approved_at DATETIME NULL,
+
     is_featured BIT NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,

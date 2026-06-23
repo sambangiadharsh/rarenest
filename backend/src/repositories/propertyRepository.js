@@ -107,12 +107,6 @@ class PropertyRepository {
         const pool = await poolPromise;
         const request = pool.request();
 
-        const specialFeatures = propertyData.special_features != null
-            ? (Array.isArray(propertyData.special_features)
-                ? JSON.stringify(propertyData.special_features)
-                : propertyData.special_features)
-            : null;
-
         request.input('seller_id', sql.UniqueIdentifier, propertyData.seller_id);
         request.input('title', sql.NVarChar, propertyData.title);
         request.input('property_type_id', sql.UniqueIdentifier, propertyData.property_type_id);
@@ -127,20 +121,19 @@ class PropertyRepository {
         request.input('contact_phone', sql.NVarChar, propertyData.contact_phone || null);
         request.input('property_story', sql.NVarChar, propertyData.property_story || null);
         request.input('property_age', sql.Int, propertyData.property_age ?? null);
-        request.input('special_features', sql.NVarChar, specialFeatures);
         request.input('listing_type', sql.NVarChar, propertyData.listing_type || 'Individual');
-
+ 
         const result = await request.query(`
             INSERT INTO Properties (
                 seller_id, title, property_type_id, asking_price, size_sqft,
                 location_city, location_state, location_district, Area, Pincode, contact_email,
-                contact_phone, property_story, property_age, special_features, listing_type
+                contact_phone, property_story, property_age, listing_type
             )
             OUTPUT inserted.*
             VALUES (
                 @seller_id, @title, @property_type_id, @asking_price, @size_sqft,
                 @location_city, @location_state, @location_district, @Area, @Pincode, @contact_email,
-                @contact_phone, @property_story, @property_age, @special_features, @listing_type
+                @contact_phone, @property_story, @property_age, @listing_type
             )
         `);
         return this.findById(result.recordset[0].id);
@@ -154,7 +147,7 @@ class PropertyRepository {
         const allowedKeys = [
             'title', 'property_type_id', 'asking_price', 'size_sqft',
             'location_city', 'location_state', 'location_district', 'Area', 'Pincode',
-            'contact_email', 'contact_phone', 'property_story', 'property_age', 'special_features', 'status',
+            'contact_email', 'contact_phone', 'property_story', 'property_age', 'status',
             'is_visible', 'is_featured', 'listing_type',
         ];
 
@@ -163,9 +156,6 @@ class PropertyRepository {
             if (propertyData[key] === undefined) continue;
 
             let value = propertyData[key];
-            if (key === 'special_features' && value != null) {
-                value = Array.isArray(value) ? JSON.stringify(value) : value;
-            }
 
             if (key === 'asking_price' || key === 'size_sqft') {
                 request.input(key, sql.Decimal(18, 2), value);

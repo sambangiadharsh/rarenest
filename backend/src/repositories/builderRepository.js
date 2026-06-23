@@ -15,6 +15,7 @@ class BuilderRepository {
                 bp.created_at,
                 u.first_name,
                 u.last_name,
+                ba.company_name,
                 (
                     SELECT COUNT(*)
                     FROM Properties
@@ -28,6 +29,7 @@ class BuilderRepository {
                 ) AS city
             FROM BuilderProfiles bp
             JOIN Users u ON bp.user_id = u.id
+            LEFT JOIN BuilderApplications ba ON bp.user_id = ba.user_id AND ba.status = 'Approved'
             WHERE bp.builder_status = 'Approved'
         `;
         if (filters.featured === 'true' || filters.featured === true) {
@@ -45,9 +47,10 @@ class BuilderRepository {
             .input('id', sql.UniqueIdentifier, builderId)
             .query(`
                 SELECT bp.id, bp.user_id, bp.bio, bp.average_rating, bp.total_reviews, bp.created_at, bp.builder_status, bp.is_featured,
-                       u.first_name, u.last_name, u.email, u.phone
+                       u.first_name, u.last_name, u.email, u.phone, ba.company_name
                 FROM BuilderProfiles bp
                 JOIN Users u ON bp.user_id = u.id
+                LEFT JOIN BuilderApplications ba ON bp.user_id = ba.user_id AND ba.status = 'Approved'
                 WHERE bp.id = @id
             `);
         return result.recordset[0] ?? null;
@@ -59,9 +62,10 @@ class BuilderRepository {
             .input('user_id', sql.UniqueIdentifier, userId)
             .query(`
                 SELECT bp.id, bp.user_id, bp.bio, bp.average_rating, bp.total_reviews, bp.created_at, bp.builder_status, bp.is_featured,
-                       u.first_name, u.last_name, u.email, u.phone
+                       u.first_name, u.last_name, u.email, u.phone, ba.company_name
                 FROM BuilderProfiles bp
                 JOIN Users u ON bp.user_id = u.id
+                LEFT JOIN BuilderApplications ba ON bp.user_id = ba.user_id AND ba.status = 'Approved'
                 WHERE bp.user_id = @user_id
             `);
         return result.recordset[0] ?? null;

@@ -66,7 +66,7 @@ const editSchema = z.object({
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
-  selectedFeatureIds: z.array(z.string()).optional(),
+  selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
   status: z.enum(['Available', 'Pending', 'Sold']),
   is_visible: z.boolean(),
 })
@@ -593,6 +593,7 @@ export default function EditListing() {
                             control={control}
                             render={({ field: { onChange, value } }) => (
                               <LocationSelect
+                                key={`district-${stateVal}`}
                                 value={value}
                                 onChange={(val) => {
                                   onChange(val)
@@ -614,6 +615,7 @@ export default function EditListing() {
                             control={control}
                             render={({ field: { onChange, value } }) => (
                               <LocationSelect
+                                key={`city-${stateVal}-${districtVal}`}
                                 value={value}
                                 onChange={onChange}
                                 loadOptions={loadCityOptions(stateVal, districtVal)}
@@ -687,6 +689,7 @@ export default function EditListing() {
                           />
                         )}
                       />
+                      <FieldError message={errors.selectedFeatureIds?.message} />
                     </div>
 
                     {/* Visibility toggle */}

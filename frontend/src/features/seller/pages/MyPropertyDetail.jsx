@@ -266,9 +266,11 @@ export default function MyPropertyDetail() {
   const [activeImage, setActiveImage] = useState(0)
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
+  const [showAllFeaturesGrouped, setShowAllFeaturesGrouped] = useState(false)
 
   useEffect(() => {
     setActiveImage(0)
+    setShowAllFeaturesGrouped(false)
   }, [id])
 
   const images = property ? getPropertyImages(property) : []
@@ -358,7 +360,25 @@ export default function MyPropertyDetail() {
   }
 
   const thumbnail = getPropertyThumbnail(property)
-  const features = parseSpecialFeatures(property.special_features)
+  const allFeatures = property?.features?.length
+    ? property.features
+    : parseSpecialFeatures(property.special_features).map((name, index) => ({ Id: index, Name: name, CategoryName: 'Amenities' }))
+
+  const flatFeatures = allFeatures.map(f => f.Name)
+  const first6Features = flatFeatures.slice(0, 6)
+  const totalFeaturesCount = flatFeatures.length
+
+  const groupedFeatures = {}
+  allFeatures.forEach((feat) => {
+    const catName = feat.CategoryName || 'Other'
+    if (!groupedFeatures[catName]) {
+      groupedFeatures[catName] = []
+    }
+    if (!groupedFeatures[catName].includes(feat.Name)) {
+      groupedFeatures[catName].push(feat.Name)
+    }
+  })
+
   const ageLabel =
     property.property_age != null && property.property_age !== ''
       ? formatPropertyAge(property.property_age)
@@ -584,21 +604,57 @@ export default function MyPropertyDetail() {
 
       {/* Tab: Amenities */}
       {activeTab === 'Amenities' && (
-        <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900">
-          <h3 className="mb-4 text-sm font-semibold text-neutral-700 dark:text-neutral-200">Special Features & Amenities</h3>
-          {features.length === 0 ? (
+        <div className="rounded-xl border border-neutral-200 bg-white p-5 dark:border-neutral-700 dark:bg-neutral-900 space-y-4">
+          <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-200">Special Features & Amenities</h3>
+          {totalFeaturesCount === 0 ? (
             <p className="text-sm text-neutral-400">No amenities listed for this property.</p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {features.map((feature) => (
-                <span
-                  key={feature}
-                  className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+            <>
+              {showAllFeaturesGrouped && totalFeaturesCount > 6 ? (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  {Object.entries(groupedFeatures).map(([category, featNames]) => (
+                    <div key={category} className="space-y-1.5">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        {category}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {featNames.map((featName) => (
+                          <span
+                            key={featName}
+                            className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                          >
+                            {featName}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {first6Features.map((featName) => (
+                    <span
+                      key={featName}
+                      className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                    >
+                      {featName}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {totalFeaturesCount > 6 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllFeaturesGrouped(!showAllFeaturesGrouped)}
+                  className="text-xs font-bold text-violet-600 hover:underline focus:outline-none block"
                 >
-                  {feature}
-                </span>
-              ))}
-            </div>
+                  {showAllFeaturesGrouped
+                    ? 'Show less'
+                    : `View all ${totalFeaturesCount} features`}
+                </button>
+              )}
+            </>
           )}
 
           {property.property_story && (

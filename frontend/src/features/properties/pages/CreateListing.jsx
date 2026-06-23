@@ -34,7 +34,7 @@ import { useCreateProperty, useUploadPropertyMedia } from '@/features/properties
 import { useBuilderByUser, useMyBuilderApplication, useSubmitBuilderApplication } from '@/features/builders'
 import { useProfile } from '@/features/auth/hooks/useProfile'
 import {
-  SPECIAL_FEATURES,
+  
   MAX_IMAGES,
   MAX_VIDEOS,
   MAX_IMAGE_BYTES,
@@ -57,7 +57,7 @@ const listingSchema = z.object({
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
-  selectedFeatureIds: z.array(z.string()).optional(),
+  selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
   listing_type: z.enum(['Individual', 'BuilderProject']).default('Individual'),
 })
 
@@ -751,6 +751,7 @@ export default function CreateListing() {
                             control={control}
                             render={({ field: { onChange, value } }) => (
                               <LocationSelect
+                                key={`district-${stateVal}`}
                                 value={value}
                                 onChange={(val) => {
                                   onChange(val)
@@ -772,6 +773,7 @@ export default function CreateListing() {
                             control={control}
                             render={({ field: { onChange, value } }) => (
                               <LocationSelect
+                                key={`city-${stateVal}-${districtVal}`}
                                 value={value}
                                 onChange={onChange}
                                 loadOptions={loadCityOptions(stateVal, districtVal)}
@@ -872,6 +874,7 @@ export default function CreateListing() {
                           />
                         )}
                       />
+                      <FieldError message={errors.selectedFeatureIds?.message} />
                     </div>
                   </div>
                 )}

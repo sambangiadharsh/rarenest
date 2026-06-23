@@ -28,13 +28,6 @@ class WishlistService {
         );
 
         for (const p of properties) {
-            if (p.special_features && typeof p.special_features === 'string') {
-                try {
-                    p.special_features = JSON.parse(p.special_features);
-                } catch {
-                    // keep as string
-                }
-            }
             const key = String(p.id).toLowerCase();
             p.media = mediaByPropertyId[key] || [];
         }

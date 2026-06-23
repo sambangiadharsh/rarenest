@@ -7,11 +7,11 @@ const { attachAuthCookie } = require('../utils/authUtils');
 
 function mapIncomingLocationFields(body) {
     if (!body) return;
-    if (body.city !== undefined) body.location_city = body.city;
-    if (body.state !== undefined) body.location_state = body.state;
-    if (body.district !== undefined) body.location_district = body.district;
-    if (body.area !== undefined) body.Area = body.area;
-    if (body.pincode !== undefined) body.Pincode = body.pincode;
+    if (body.city !== undefined) { body.location_city = body.city; delete body.city; }
+    if (body.state !== undefined) { body.location_state = body.state; delete body.state; }
+    if (body.district !== undefined) { body.location_district = body.district; delete body.district; }
+    if (body.area !== undefined) { body.Area = body.area; delete body.area; }
+    if (body.pincode !== undefined) { body.Pincode = body.pincode; delete body.pincode; }
 }
 
 async function getOptionalAuth(req) {
@@ -160,13 +160,6 @@ exports.createProperty = async (req, res) => {
         }
 
         const property = await propertyService.createProperty(propertyData);
-        if (property?.special_features && typeof property.special_features === 'string') {
-            try {
-                property.special_features = JSON.parse(property.special_features);
-            } catch {
-                // keep as string
-            }
-        }
 
         res.status(201).json({ success: true, data: property });
     } catch (err) {
@@ -232,14 +225,6 @@ exports.createGuestListing = async (req, res) => {
                 requiresLogin: true,
                 message: 'An account with this email already exists. Please log in to create a listing.',
             });
-        }
-
-        if (result.property?.special_features && typeof result.property.special_features === 'string') {
-            try {
-                result.property.special_features = JSON.parse(result.property.special_features);
-            } catch {
-                // keep as string
-            }
         }
 
         const token = attachAuthCookie(res, result.user.id);
