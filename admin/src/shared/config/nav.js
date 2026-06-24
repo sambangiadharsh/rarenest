@@ -14,6 +14,10 @@ import {
   ChevronRight,
   Images,
   Sparkles,
+  UserCheck,
+  FileClock,
+  MessageSquare,
+  Award,
 } from 'lucide-react'
 
 export const mainNavItems = [
@@ -22,17 +26,18 @@ export const mainNavItems = [
     href: '/',
     icon: LayoutDashboard,
   },
-  {
-    title: 'Builder Applications',
-    href: '/builders/applications',
-    icon: Building2,
-  },
-  {
-    title: 'Reviews',
-    href: '/reviews',
-    icon: Star,
-  },
 ]
+
+export const builderNavGroup = {
+  title: 'Builders',
+  icon: Building2,
+  items: [
+    { title: 'Applications', href: '/builders/applications', icon: FileClock },
+    { title: 'Builders', href: '/builders', icon: UserCheck },
+    { title: 'Reviews', href: '/builders/reviews', icon: MessageSquare },
+    { title: 'Featured', href: '/builders/featured', icon: Award },
+  ],
+}
 
 export const propertyNavGroup = {
   title: 'Property',
@@ -61,11 +66,13 @@ export const contentNavGroup = {
 export const routeTitles = {
   '/': 'Dashboard',
   '/builders/applications': 'Builder Applications',
+  '/builders': 'Approved Builders',
+  '/builders/reviews': 'Builder Reviews',
+  '/builders/featured': 'Featured Builders',
   '/properties': 'All Properties',
   '/properties/types': 'Property Type',
   '/properties/features': 'Property Features',
   // '/enquiries': 'Enquiries',
-  '/reviews': 'Reviews',
   '/content/careers': 'Careers',
   '/content/about-us': 'About Us',
   '/content/contact-info': 'Contact Info',

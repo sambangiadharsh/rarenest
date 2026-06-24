@@ -21,11 +21,15 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/shared/components/ui/sidebar'
-import { mainNavItems, propertyNavGroup, contentNavGroup } from '@/shared/config/nav'
+import { mainNavItems, builderNavGroup, propertyNavGroup, contentNavGroup } from '@/shared/config/nav'
 
 function isPathActive(pathname, href) {
   if (href === '/') return pathname === '/'
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function isBuilderGroupActive(pathname) {
+  return builderNavGroup.items.some((item) => isPathActive(pathname, item.href))
 }
 
 function isPropertyGroupActive(pathname) {
@@ -38,6 +42,7 @@ function isContentGroupActive(pathname) {
 
 export default function AppSidebar() {
   const { pathname } = useLocation()
+  const builderOpen = isBuilderGroupActive(pathname)
   const propertyOpen = isPropertyGroupActive(pathname)
   const contentOpen = isContentGroupActive(pathname)
 
@@ -91,6 +96,53 @@ export default function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            Builders
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <Collapsible defaultOpen={builderOpen} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      tooltip={builderNavGroup.title}
+                      isActive={builderOpen}
+                      className={builderOpen ? 'text-brand-forest font-medium' : ''}
+                    >
+                      <builderNavGroup.icon />
+                      <span>{builderNavGroup.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {builderNavGroup.items.map((item) => {
+                        const Icon = item.icon
+                        const active = isPathActive(pathname, item.href)
+                        return (
+                          <SidebarMenuSubItem key={item.href}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={active}
+                              className={active ? 'text-brand-forest font-medium' : ''}
+                            >
+                              <Link to={item.href}>
+                                <Icon />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

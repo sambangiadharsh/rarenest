@@ -52,6 +52,7 @@ class BuilderReviewRepository {
                        bp.id   AS builder_profile_id,
                        ub.first_name AS builder_first_name,
                        ub.last_name  AS builder_last_name,
+                       ba.company_name AS builder_company_name,
                        ur.first_name AS reviewer_first_name,
                        ur.last_name  AS reviewer_last_name,
                        ua.first_name AS admin_first_name,
@@ -59,6 +60,7 @@ class BuilderReviewRepository {
                 FROM BuilderReviews br
                 JOIN BuilderProfiles bp ON br.builder_id = bp.id
                 JOIN Users ub ON bp.user_id = ub.id
+                LEFT JOIN BuilderApplications ba ON bp.user_id = ba.user_id AND ba.status = 'Approved'
                 JOIN Users ur ON br.reviewer_id = ur.id
                 LEFT JOIN Users ua ON br.reviewed_by = ua.id
                 WHERE br.status = @status

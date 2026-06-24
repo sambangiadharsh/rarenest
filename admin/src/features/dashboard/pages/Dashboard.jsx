@@ -1,5 +1,6 @@
-import { Building2, Loader2, MessageSquareText, Users, TrendingUp, ArrowUpRight } from 'lucide-react'
+import { Building2, MessageSquareText, Users, TrendingUp, ArrowUpRight } from 'lucide-react'
 import { useDashboardStats } from '@/features/dashboard'
+import PageLoader from '@/shared/components/ui/PageLoader'
 
 function formatCount(value) {
   const n = Number(value ?? 0)
@@ -100,10 +101,7 @@ export default function Dashboard() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Loading dashboard stats…
-        </div>
+        <PageLoader minHeight="min-h-[30vh]" />
       )}
 
       {isError && (
