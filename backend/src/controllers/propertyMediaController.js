@@ -64,7 +64,7 @@ exports.setThumbnail = async (req, res) => {
         if (authError) {
             return res.status(authError.status).json({ success: false, message: authError.message });
         }
-
+        
         const updated = await mediaService.setThumbnail(req.params.id, req.params.mediaId);
         if (!updated) {
             return res.status(404).json({ success: false, message: 'Media not found' });

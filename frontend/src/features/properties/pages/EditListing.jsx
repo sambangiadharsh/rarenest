@@ -5,7 +5,6 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import AsyncSelect from 'react-select/async'
 import apiClient from '@/shared/lib/apiClient'
 import LocationSelect from '@/components/common/LocationSelect'
 import {
@@ -34,11 +33,9 @@ import PageLoader from '@/shared/components/ui/PageLoader'
 import {
   useProperty,
   usePropertyTypes,
-  useUpdateProperty,
-  useUploadPropertyMedia,
 } from '@/features/properties'
 import {
-  SPECIAL_FEATURES,
+  
   MAX_IMAGES,
   MAX_VIDEOS,
   MAX_IMAGE_BYTES,
@@ -50,6 +47,8 @@ import {
   setPropertyThumbnail,
 } from '@/features/properties/api/propertyApi'
 import { resolveMediaUrl } from '@/features/properties/lib/propertyUtils'
+import { useDraftPersistence } from '../hooks/useDraftPersistence'
+import * as draftService from '../services/propertyDraftService'
 
 const editSchema = z.object({
   title: z.string().min(2).max(255),
@@ -67,6 +66,7 @@ const editSchema = z.object({
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
   selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
+  images: z.number().min(1, 'Please upload at least one property image.'),
   status: z.enum(['Available', 'Pending', 'Sold']),
   is_visible: z.boolean(),
 })
@@ -100,11 +100,15 @@ const STEP_CONFIG = [
   },
 ]
 
-function FieldLabel({ icon: Icon, children }) {
+
+function FieldLabel({ icon: Icon, children, required = false }) {
   return (
     <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
       {Icon && <Icon className="h-3.5 w-3.5 text-brand-bronze" />}
-      {children}
+      <span>{children}</span>
+      {required && (
+        <span className="text-red-500 text-sm leading-none">*</span>
+      )}
     </label>
   )
 }
@@ -189,11 +193,11 @@ export default function EditListing() {
   // New media (uploaded on save)
   const [newImages, setNewImages] = React.useState([])
   const [newVideos, setNewVideos] = React.useState([])
+  const [uploadedDraftMedia, setUploadedDraftMedia] = React.useState([])
   const [newThumbnailIndex, setNewThumbnailIndex] = React.useState(0)
   const newImagesRef = React.useRef([])
-
-  const { mutateAsync: updateProperty, isPending: isSaving } = useUpdateProperty()
-  const { mutateAsync: uploadMedia, isPending: isUploading } = useUploadPropertyMedia()
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [isUploadingDraftMedia, setIsUploadingDraftMedia] = React.useState(false)
 
   const {
     register,
@@ -202,6 +206,7 @@ export default function EditListing() {
     trigger,
     reset,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm({
@@ -221,6 +226,7 @@ export default function EditListing() {
       property_story: '',
       property_age: 0,
       selectedFeatureIds: [],
+      images: 0,
       status: 'Available',
       is_visible: true,
     },
@@ -228,13 +234,57 @@ export default function EditListing() {
 
   const stateVal = watch('state')
   const districtVal = watch('district')
+  const restoredDraftRef = React.useRef(false)
+
+  const restoreDraft = React.useCallback((draftData, step) => {
+    restoredDraftRef.current = true
+    reset({
+      title: '',
+      property_type_id: '',
+      asking_price: 0,
+      size_sqft: 0,
+      city: '',
+      state: '',
+      district: '',
+      area: '',
+      pincode: '',
+      contact_email: '',
+      contact_phone: '',
+      property_story: '',
+      property_age: 0,
+      selectedFeatureIds: [],
+      images: 0,
+      status: 'Available',
+      is_visible: true,
+      ...draftData,
+    })
+    if (step) setCurrentStep(Math.max(1, Math.min(step, STEP_CONFIG.length)))
+  }, [reset])
+
+  const draft = useDraftPersistence({
+    draftType: 'Edit',
+    propertyId: id,
+    currentStep,
+    getDraftData: getValues,
+    restoreDraft,
+    enabled: isAuthenticated && !!id,
+  })
+
+  React.useEffect(() => {
+    setUploadedDraftMedia(draft.draftMedia || [])
+  }, [draft.draftMedia])
+
+  React.useEffect(() => {
+    const subscription = watch(() => draft.scheduleLocalSave())
+    return () => subscription.unsubscribe()
+  }, [draft, watch])
 
   React.useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true })
   }, [isAuthenticated, navigate])
 
   React.useEffect(() => {
-    if (!property) return
+    if (!property || restoredDraftRef.current) return
     if (user && String(property.seller_id) !== String(user.id) && user.role !== 'Admin') {
       toast.error('You are not authorized to edit this listing.')
       navigate(`/properties/${id}`, { replace: true })
@@ -255,6 +305,7 @@ export default function EditListing() {
       property_story: property.property_story || '',
       property_age: property.property_age ?? 0,
       selectedFeatureIds: Array.isArray(property.selectedFeatureIds) ? property.selectedFeatureIds : [],
+      images: Array.isArray(property.media) ? property.media.filter((m) => m.media_type === 'Image').length : 0,
       status: property.status || 'Available',
       is_visible: property.is_visible === true || property.is_visible === 1 || property.is_visible === '1',
     })
@@ -276,10 +327,41 @@ export default function EditListing() {
     [property, removedMediaIds],
   )
 
-  const totalImages = existingImages.length + newImages.length
-  const totalVideos = existingVideos.length + newVideos.length
+  const uploadedDraftImages = uploadedDraftMedia.filter((m) => m.media_type === 'Image').length
+  const uploadedDraftVideos = uploadedDraftMedia.filter((m) => m.media_type === 'Video').length
+  const totalImages = existingImages.length + uploadedDraftImages + newImages.length
+  const totalVideos = existingVideos.length + uploadedDraftVideos + newVideos.length
 
-  const validateAndSetImages = (fileList) => {
+  const ensureDraft = async () => {
+    const saved = await draft.syncBackend(currentStep)
+    return saved?.id || draft.draftId
+  }
+
+  const uploadDraftFiles = async ({ imageFiles = [], videoFiles = [], thumbIndex = newThumbnailIndex }) => {
+    if (!imageFiles.length && !videoFiles.length) return []
+    const draftId = await ensureDraft()
+    if (!draftId) throw new Error('Unable to save draft before uploading media')
+    const formData = new FormData()
+    imageFiles.forEach((file) => formData.append('images', file))
+    videoFiles.forEach((file) => formData.append('videos', file))
+    formData.append('thumbnail_index', String(thumbIndex))
+    setIsUploadingDraftMedia(true)
+    try {
+      const res = await draftService.uploadPropertyDraftMedia(draftId, formData)
+      if (!res.success) throw new Error(res.message || 'Media upload failed')
+      setUploadedDraftMedia((prev) => {
+        const next = [...prev, ...(res.data || [])]
+        draft.setDraftMedia(next)
+        setValue('images', existingImages.length + next.filter((m) => m.media_type === 'Image').length, { shouldValidate: true })
+        return next
+      })
+      return res.data || []
+    } finally {
+      setIsUploadingDraftMedia(false)
+    }
+  }
+
+  const validateAndSetImages = async (fileList) => {
     const files = Array.from(fileList)
     if (!files.length) return
     if (totalImages + files.length > MAX_IMAGES) { toast.error(`Maximum ${MAX_IMAGES} images allowed`); return }
@@ -287,10 +369,20 @@ export default function EditListing() {
       if (f.size > MAX_IMAGE_BYTES) { toast.error(`"${f.name}" exceeds 5MB`); return }
       if (!f.type.startsWith('image/')) { toast.error(`"${f.name}" is not an image`); return }
     }
-    setNewImages((prev) => [...prev, ...files.map((file) => ({ file, preview: URL.createObjectURL(file) }))])
+    setNewImages((prev) => {
+      const next = [...prev, ...files.map((file) => ({ file, preview: URL.createObjectURL(file) }))]
+      setValue('images', existingImages.length + uploadedDraftImages + next.length, { shouldValidate: true })
+      return next
+    })
+    try {
+      await uploadDraftFiles({ imageFiles: files, thumbIndex: newImages.length === 0 ? 0 : newThumbnailIndex })
+      toast.success('Media uploaded to your edit draft.')
+    } catch (err) {
+      toast.error(err.message || 'Media upload failed. It is still available until you leave this page.')
+    }
   }
 
-  const validateAndSetVideos = (fileList) => {
+  const validateAndSetVideos = async (fileList) => {
     const files = Array.from(fileList)
     if (!files.length) return
     if (totalVideos + files.length > MAX_VIDEOS) { toast.error(`Maximum ${MAX_VIDEOS} videos allowed`); return }
@@ -299,12 +391,20 @@ export default function EditListing() {
       if (!f.type.startsWith('video/')) { toast.error(`"${f.name}" is not a video`); return }
     }
     setNewVideos((prev) => [...prev, ...files.map((file) => ({ file, name: file.name }))])
+    try {
+      await uploadDraftFiles({ videoFiles: files })
+      toast.success('Media uploaded to your edit draft.')
+    } catch (err) {
+      toast.error(err.message || 'Media upload failed. It is still available until you leave this page.')
+    }
   }
 
   const removeNewImageAt = (i) => {
     setNewImages((prev) => {
+      const next = prev.filter((_, idx) => idx !== i)
       const t = prev[i]; if (t?.preview) URL.revokeObjectURL(t.preview)
-      return prev.filter((_, idx) => idx !== i)
+      setValue('images', existingImages.length + uploadedDraftImages + next.length, { shouldValidate: true })
+      return next
     })
     setNewThumbnailIndex((prev) => (i === prev ? 0 : i < prev ? prev - 1 : prev))
   }
@@ -318,43 +418,53 @@ export default function EditListing() {
 
   React.useEffect(() => { newImagesRef.current = newImages }, [newImages])
   React.useEffect(() => {
+    setValue('images', existingImages.length + uploadedDraftImages + newImages.length, { shouldValidate: true })
+  }, [existingImages.length, newImages.length, setValue, uploadedDraftImages])
+  React.useEffect(() => {
     return () => { newImagesRef.current.forEach((img) => { if (img.preview) URL.revokeObjectURL(img.preview) }) }
   }, [])
 
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
+    setIsSaving(true)
     try {
-      const res = await updateProperty({ id, ...data })
+      if (isUploadingDraftMedia) {
+        toast.error('Please wait for media upload to finish.')
+        return
+      }
+      const saved = await draft.syncBackend(currentStep)
+      const draftId = saved?.id || draft.draftId
+      if (!draftId) throw new Error('Unable to save draft before updating')
+      const res = await draftService.applyEditDraft(draftId)
       if (!res.success) { toast.error(res.message || 'Failed to update listing'); return }
 
       if (removedMediaIds.size > 0) {
         await Promise.all([...removedMediaIds].map((mediaId) => deletePropertyMedia(id, mediaId)))
       }
 
-      if (newImages.length > 0 || newVideos.length > 0) {
-        const formData = new FormData()
-        newImages.forEach(({ file }) => formData.append('images', file))
-        newVideos.forEach(({ file }) => formData.append('videos', file))
-        formData.append('thumbnail_index', String(newThumbnailIndex))
-        await uploadMedia({ propertyId: id, formData })
-      } else if (effectiveThumbnailId && effectiveThumbnailId !== originalThumbnailId) {
+      if (effectiveThumbnailId && effectiveThumbnailId !== originalThumbnailId && newImages.length === 0) {
         await setPropertyThumbnail(id, effectiveThumbnailId)
       }
 
+      await draft.clearDraft()
       toast.success('Listing updated successfully!')
       navigate(`/properties/${id}`)
     } catch (err) {
       toast.error(err.message || 'Failed to update listing')
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const isSubmitting = isSaving || isUploading
+  const isSubmitting = isSaving || isUploadingDraftMedia
   const totalSteps = STEP_CONFIG.length
   const activeStep = STEP_CONFIG[currentStep - 1]
 
   const goToNextStep = async () => {
     const fields = activeStep?.fields || []
     if (fields.length && !(await trigger(fields))) return
-    setCurrentStep((p) => Math.min(p + 1, totalSteps))
+    const nextStep = Math.min(currentStep + 1, totalSteps)
+    setCurrentStep(nextStep)
+    try { await draft.syncBackend(nextStep) } catch { /* local draft is already saved */ }
   }
 
   const goToPreviousStep = () => setCurrentStep((p) => Math.max(p - 1, 1))
@@ -475,7 +585,7 @@ export default function EditListing() {
                 {currentStep === 1 && (
                   <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-2">
-                      <FieldLabel icon={Tag}>Property Title</FieldLabel>
+                      <FieldLabel icon={Tag} required>Property Title</FieldLabel>
                       <FieldInput
                         type="text"
                         {...register('title')}
@@ -487,7 +597,7 @@ export default function EditListing() {
 
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Tag}>Property Type</FieldLabel>
+                        <FieldLabel icon={Tag} required>Property Type</FieldLabel>
                         <select
                           {...register('property_type_id')}
                           disabled={typesLoading}
@@ -505,7 +615,7 @@ export default function EditListing() {
                         <FieldError message={errors.property_type_id?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={IndianRupee}>Asking Price (INR)</FieldLabel>
+                        <FieldLabel icon={IndianRupee} required>Asking Price (INR)</FieldLabel>
                         <FieldInput
                           type="number"
                           {...register('asking_price')}
@@ -518,7 +628,7 @@ export default function EditListing() {
 
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Maximize2}>Size (sq ft)</FieldLabel>
+                        <FieldLabel icon={Maximize2} required>Size (sq ft)</FieldLabel>
                         <FieldInput
                           type="number"
                           {...register('size_sqft')}
@@ -528,7 +638,7 @@ export default function EditListing() {
                         <FieldError message={errors.size_sqft?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Clock}>Age (years)</FieldLabel>
+                        <FieldLabel icon={Clock} required>Age (years)</FieldLabel>
                         <FieldInput
                           type="number"
                           min={0}
@@ -540,7 +650,7 @@ export default function EditListing() {
                         <FieldError message={errors.property_age?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Tag}>Status</FieldLabel>
+                        <FieldLabel icon={Tag} required>Status</FieldLabel>
                         <select
                           {...register('status')}
                           className={`h-11 w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 text-sm border outline-none transition-all font-sans ${
@@ -566,7 +676,7 @@ export default function EditListing() {
                       </div>
                       <div className="grid sm:grid-cols-3 gap-3">
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>State</FieldLabel>
+                          <FieldLabel required>State</FieldLabel>
                           <Controller
                             name="state"
                             control={control}
@@ -587,7 +697,7 @@ export default function EditListing() {
                           <FieldError message={errors.state?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>District</FieldLabel>
+                          <FieldLabel required>District</FieldLabel>
                           <Controller
                             name="district"
                             control={control}
@@ -609,7 +719,7 @@ export default function EditListing() {
                           <FieldError message={errors.district?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>City</FieldLabel>
+                          <FieldLabel required>City</FieldLabel>
                           <Controller
                             name="city"
                             control={control}
@@ -630,12 +740,12 @@ export default function EditListing() {
                       </div>
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>Area</FieldLabel>
+                          <FieldLabel required>Area</FieldLabel>
                           <FieldInput type="text" {...register('area')} placeholder="e.g. Tapovan" error={errors.area} />
                           <FieldError message={errors.area?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>Pincode</FieldLabel>
+                          <FieldLabel required>Pincode</FieldLabel>
                           <FieldInput type="text" {...register('pincode')} placeholder="e.g. 249192" error={errors.pincode} />
                           <FieldError message={errors.pincode?.message} />
                         </div>
@@ -649,19 +759,19 @@ export default function EditListing() {
                   <div className="flex flex-col gap-6">
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Mail}>Contact Email</FieldLabel>
+                        <FieldLabel icon={Mail} required>Contact Email</FieldLabel>
                         <FieldInput type="email" {...register('contact_email')} placeholder="seller@example.com" error={errors.contact_email} />
                         <FieldError message={errors.contact_email?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Phone}>Contact Phone</FieldLabel>
+                        <FieldLabel icon={Phone} required>Contact Phone</FieldLabel>
                         <FieldInput type="tel" {...register('contact_phone')} placeholder="+91 98765 43210" error={errors.contact_phone} />
                         <FieldError message={errors.contact_phone?.message} />
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <FieldLabel icon={FileText}>Property Story</FieldLabel>
+                      <FieldLabel icon={FileText} required>Property Story</FieldLabel>
                       <textarea
                         {...register('property_story')}
                         rows={6}
@@ -677,7 +787,7 @@ export default function EditListing() {
 
                     {/* Property Features */}
                     <div className="flex flex-col gap-3">
-                      <FieldLabel icon={Sparkles}>Property Features</FieldLabel>
+                      <FieldLabel icon={Sparkles} required>Property Features</FieldLabel>
                       <Controller
                         name="selectedFeatureIds"
                         control={control}
@@ -782,6 +892,9 @@ export default function EditListing() {
                         />
                       </label>
                     </div>
+                    {errors.images?.message && (
+                      <div className="mt-2 text-sm text-destructive font-semibold">{errors.images.message}</div>
+                    )}
 
                     {/* Existing images */}
                     {existingImages.length > 0 && (

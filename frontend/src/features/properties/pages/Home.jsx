@@ -25,13 +25,7 @@ import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
 import { HeroSwiper, useActiveBanners } from '@/features/heroBanners'
 import { toast } from 'sonner'
 
-const typeIcons = {
-  'wood house': '🌲',
-  'mud house': '🧱',
-  'container home': '📦',
-  treehouse: '🍁',
-  'boat house': '⛵',
-}
+
 
 export default function Home() {
   const { data: propertiesRes, isLoading } = useProperties()
@@ -76,7 +70,7 @@ export default function Home() {
     { name: 'All Homes', icon: '🏡' },
     ...apiTypes.map((t) => ({
       name: t.name,
-      icon: typeIcons[t.name?.toLowerCase()] || '🏠',
+      icon:'🏠',
     })),
   ]
 

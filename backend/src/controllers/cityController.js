@@ -37,3 +37,4 @@ exports.searchCities = async (req, res) => {
         });
     }
 };
+

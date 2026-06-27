@@ -5,7 +5,6 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import AsyncSelect from 'react-select/async'
 import apiClient from '@/shared/lib/apiClient'
 import LocationSelect from '@/components/common/LocationSelect'
 import {
@@ -30,7 +29,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { usePropertyTypes } from '@/features/properties'
-import { useCreateProperty, useUploadPropertyMedia } from '@/features/properties'
 import { useBuilderByUser, useMyBuilderApplication, useSubmitBuilderApplication } from '@/features/builders'
 import { useProfile } from '@/features/auth/hooks/useProfile'
 import {
@@ -41,6 +39,8 @@ import {
   MAX_VIDEO_BYTES,
 } from '@/features/properties/constants/specialFeatures'
 import PropertyFeaturesFormSection from '../components/PropertyFeaturesFormSection'
+import { useDraftPersistence } from '../hooks/useDraftPersistence'
+import * as draftService from '../services/propertyDraftService'
 
 const listingSchema = z.object({
   title: z.string().min(2).max(255),
@@ -58,6 +58,7 @@ const listingSchema = z.object({
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
   special_features: z.array(z.string()).optional(),
   selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
+  images: z.number().min(1, 'Please upload at least one property image.'),
   listing_type: z.enum(['Individual', 'BuilderProject']).default('Individual'),
 })
 
@@ -96,11 +97,14 @@ const STEP_CONFIG = [
   },
 ]
 
-function FieldLabel({ icon: Icon, children }) {
+function FieldLabel({ icon: Icon, children, required = false }) {
   return (
     <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
       {Icon && <Icon className="h-3.5 w-3.5 text-brand-bronze" />}
-      {children}
+      <span>{children}</span>
+      {required && (
+        <span className="text-red-500 text-sm leading-none">*</span>
+      )}
     </label>
   )
 }
@@ -113,7 +117,7 @@ function FieldInput({ error, ...props }) {
         error
           ? 'border-destructive ring-1 ring-destructive'
           : 'border-neutral-200 dark:border-neutral-800 focus:border-brand-bronze/50 focus:ring-1 focus:ring-brand-bronze/20'
-      }`}
+      }`} 
     />
   )
 }
@@ -238,13 +242,12 @@ export default function CreateListing() {
 
   const [images, setImages] = React.useState([])
   const [videos, setVideos] = React.useState([])
+  const [uploadedDraftMedia, setUploadedDraftMedia] = React.useState([])
   const [thumbnailIndex, setThumbnailIndex] = React.useState(0)
-  const [pendingPropertyId, setPendingPropertyId] = React.useState(null)
   const [currentStep, setCurrentStep] = React.useState(1)
   const imagesRef = React.useRef([])
-
-  const { mutateAsync: createProperty, isPending: isCreating } = useCreateProperty()
-  const { mutateAsync: uploadMedia, isPending: isUploading } = useUploadPropertyMedia()
+  const [isPublishing, setIsPublishing] = React.useState(false)
+  const [isUploadingDraftMedia, setIsUploadingDraftMedia] = React.useState(false)
 
   const {
     register,
@@ -252,17 +255,51 @@ export default function CreateListing() {
     control,
     trigger,
     setValue,
+    getValues,
+    reset,
     watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(listingSchema),
-    defaultValues: { selectedFeatureIds: [], listing_type: 'Individual', state: '', district: '', city: '' },
+    defaultValues: { selectedFeatureIds: [], listing_type: 'Individual', state: '', district: '', city: '', images: 0 },
   })
 
   const stateVal = watch('state')
   const districtVal = watch('district')
 
   const listingType = watch('listing_type')
+
+  const restoreDraft = React.useCallback((draftData, step) => {
+    reset({
+      selectedFeatureIds: [],
+      listing_type: 'Individual',
+      state: '',
+      district: '',
+      city: '',
+      images: 0,
+      ...draftData,
+    })
+    if (step) setCurrentStep(Math.max(1, Math.min(step, STEP_CONFIG.length)))
+  }, [reset])
+
+  const draft = useDraftPersistence({
+    draftType: 'Create',
+    currentStep,
+    getDraftData: getValues,
+    restoreDraft,
+    enabled: isAuthenticated,
+  })
+
+  React.useEffect(() => {
+    setUploadedDraftMedia(draft.draftMedia || [])
+    const uploadedImages = (draft.draftMedia || []).filter((m) => m.media_type === 'Image').length
+    setValue('images', uploadedImages + images.length, { shouldValidate: uploadedImages > 0 })
+  }, [draft.draftMedia, images.length, setValue])
+
+  React.useEffect(() => {
+    const subscription = watch(() => draft.scheduleLocalSave())
+    return () => subscription.unsubscribe()
+  }, [draft, watch])
 
   React.useEffect(() => {
     if (!isAuthenticated) navigate('/login', { replace: true })
@@ -289,34 +326,83 @@ export default function CreateListing() {
     }
   }, [user, profileRes, profile, setValue, isAuthenticated])
 
-  const validateAndSetImages = (fileList) => {
+  const ensureDraft = async () => {
+    const saved = await draft.syncBackend(currentStep)
+    return saved?.id || draft.draftId
+  }
+
+  const uploadDraftFiles = async ({ imageFiles = [], videoFiles = [], thumbIndex = thumbnailIndex }) => {
+    if (!imageFiles.length && !videoFiles.length) return []
+    const draftId = await ensureDraft()
+    if (!draftId) throw new Error('Unable to save draft before uploading media')
+    const formData = new FormData()
+    imageFiles.forEach((file) => formData.append('images', file))
+    videoFiles.forEach((file) => formData.append('videos', file))
+    formData.append('thumbnail_index', String(thumbIndex))
+    setIsUploadingDraftMedia(true)
+    try {
+      const res = await draftService.uploadPropertyDraftMedia(draftId, formData)
+      if (!res.success) throw new Error(res.message || 'Media upload failed')
+      setUploadedDraftMedia((prev) => {
+        const next = [...prev, ...(res.data || [])]
+        draft.setDraftMedia(next)
+        setValue('images', next.filter((m) => m.media_type === 'Image').length, { shouldValidate: true })
+        return next
+      })
+      return res.data || []
+    } finally {
+      setIsUploadingDraftMedia(false)
+    }
+  }
+
+  const validateAndSetImages = async (fileList) => {
     const files = Array.from(fileList)
     if (!files.length) return
-    if (images.length + files.length > MAX_IMAGES) { toast.error(`Maximum ${MAX_IMAGES} images allowed`); return }
+    const uploadedImages = uploadedDraftMedia.filter((m) => m.media_type === 'Image').length
+    if (uploadedImages + images.length + files.length > MAX_IMAGES) { toast.error(`Maximum ${MAX_IMAGES} images allowed`); return }
     for (const f of files) {
       if (f.size > MAX_IMAGE_BYTES) { toast.error(`"${f.name}" exceeds 5MB`); return }
       if (!f.type.startsWith('image/')) { toast.error(`"${f.name}" is not an image`); return }
     }
     const previews = files.map((file) => ({ file, preview: URL.createObjectURL(file) }))
-    setImages((prev) => [...prev, ...previews])
+    setImages((prev) => {
+      const next = [...prev, ...previews]
+      setValue('images', next.length, { shouldValidate: true })
+      return next
+    })
     if (images.length === 0) setThumbnailIndex(0)
+    try {
+      await uploadDraftFiles({ imageFiles: files, thumbIndex: images.length === 0 ? 0 : thumbnailIndex })
+      toast.success('Media uploaded to your draft.')
+    } catch (err) {
+      toast.error(err.message || 'Media upload failed. It is still available until you leave this page.')
+    }
   }
 
-  const validateAndSetVideos = (fileList) => {
+  const validateAndSetVideos = async (fileList) => {
     const files = Array.from(fileList)
     if (!files.length) return
-    if (videos.length + files.length > MAX_VIDEOS) { toast.error(`Maximum ${MAX_VIDEOS} videos allowed`); return }
+    const uploadedVideos = uploadedDraftMedia.filter((m) => m.media_type === 'Video').length
+    if (uploadedVideos + videos.length + files.length > MAX_VIDEOS) { toast.error(`Maximum ${MAX_VIDEOS} videos allowed`); return }
     for (const f of files) {
       if (f.size > MAX_VIDEO_BYTES) { toast.error(`"${f.name}" exceeds 50MB`); return }
       if (!f.type.startsWith('video/')) { toast.error(`"${f.name}" is not a video`); return }
     }
     setVideos((prev) => [...prev, ...files.map((file) => ({ file, name: file.name }))])
+    try {
+      await uploadDraftFiles({ videoFiles: files })
+      toast.success('Media uploaded to your draft.')
+    } catch (err) {
+      toast.error(err.message || 'Media upload failed. It is still available until you leave this page.')
+    }
   }
 
   const removeImageAt = (i) => {
     setImages((prev) => {
+      const next = prev.filter((_, idx) => idx !== i)
       const t = prev[i]; if (t?.preview) URL.revokeObjectURL(t.preview)
-      return prev.filter((_, idx) => idx !== i)
+      setValue('images', next.length, { shouldValidate: true })
+      return next
     })
     setThumbnailIndex((prev) => i === prev ? 0 : i < prev ? prev - 1 : prev)
   }
@@ -328,40 +414,34 @@ export default function CreateListing() {
     return () => { imagesRef.current.forEach((img) => { if (img.preview) URL.revokeObjectURL(img.preview) }) }
   }, [])
 
-  const uploadFilesForProperty = async (propertyId) => {
-    if (!images.length && !videos.length) return
-    const formData = new FormData()
-    images.forEach(({ file }) => formData.append('images', file))
-    videos.forEach(({ file }) => formData.append('videos', file))
-    formData.append('thumbnail_index', String(thumbnailIndex))
-    await uploadMedia({ propertyId, formData })
-  }
-
-  const onSubmit = async (data) => {
+  const onSubmit = async () => {
+    setIsPublishing(true)
     try {
-      let propertyId = pendingPropertyId
-      if (!propertyId) {
-        const res = await createProperty({
-          ...data,
-          selectedFeatureIds: data.selectedFeatureIds?.length ? data.selectedFeatureIds : undefined,
-        })
-        if (!res.success) { toast.error(res.message || 'Failed to create listing'); return }
-        propertyId = res.data.id
+      if (isUploadingDraftMedia) {
+        toast.error('Please wait for media upload to finish.')
+        return
       }
-      try {
-        await uploadFilesForProperty(propertyId)
-        toast.success('Listing submitted! Pending admin verification.')
-        navigate('/dashboard')
-      } catch (uploadErr) {
-        setPendingPropertyId(propertyId)
-        toast.error(uploadErr.message || 'Listing saved but media upload failed — click Publish to retry.')
+      const uploadedImages = uploadedDraftMedia.filter((m) => m.media_type === 'Image').length
+      if (uploadedImages < 1) {
+        toast.error('Please upload at least one image before publishing.')
+        return
       }
+      const saved = await draft.syncBackend(currentStep)
+      const draftId = saved?.id || draft.draftId
+      if (!draftId) throw new Error('Unable to save draft before publishing')
+      const res = await draftService.publishCreateDraft(draftId)
+      if (!res.success) { toast.error(res.message || 'Failed to publish listing'); return }
+      await draft.clearDraft()
+      toast.success('Listing submitted! Pending admin verification.')
+      navigate(`/properties/${res.data.id}`)
     } catch (err) {
       toast.error(err.message || 'Failed to create listing')
+    } finally {
+      setIsPublishing(false)
     }
   }
 
-  const isSubmitting = isCreating || isUploading
+  const isSubmitting = isPublishing || isUploadingDraftMedia
   const totalSteps = STEP_CONFIG.length
   const activeStep = STEP_CONFIG[currentStep - 1]
 
@@ -376,7 +456,9 @@ export default function CreateListing() {
       }
     }
 
-    setCurrentStep((p) => Math.min(p + 1, totalSteps))
+    const nextStep = Math.min(currentStep + 1, totalSteps)
+    setCurrentStep(nextStep)
+    try { await draft.syncBackend(nextStep) } catch { /* local draft is already saved */ }
   }
 
   const goToPreviousStep = () => setCurrentStep((p) => Math.max(p - 1, 1))
@@ -465,12 +547,6 @@ export default function CreateListing() {
               </div>
             </div>
 
-            {/* Retry banner */}
-            {pendingPropertyId && (
-              <div className="rounded-2xl border border-amber-400/30 bg-amber-50 px-4 py-3 text-xs text-amber-800 font-medium leading-relaxed">
-                Your listing was saved. Click <strong>Publish Listing</strong> to retry the media upload.
-              </div>
-            )}
           </div>
 
           {/* ── RIGHT FORM CARD ── */}
@@ -638,11 +714,11 @@ export default function CreateListing() {
                   <div className="flex flex-col gap-6">
                     {/* Title */}
                     <div className="flex flex-col gap-2">
-                      <FieldLabel icon={Tag}>Property Title</FieldLabel>
+                      <FieldLabel icon={Tag} required>Property Title</FieldLabel>
                       <FieldInput
                         type="text"
                         {...register('title')}
-                        disabled={!!pendingPropertyId}
+                        disabled={false}
                         placeholder="e.g. Himalayan Earthship Retreat"
                         error={errors.title}
                       />
@@ -652,10 +728,10 @@ export default function CreateListing() {
                     {/* Type + Price */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Tag}>Property Type</FieldLabel>
+                        <FieldLabel icon={Tag} required>Property Type</FieldLabel>
                         <select
                           {...register('property_type_id')}
-                          disabled={typesLoading || !!pendingPropertyId}
+                          disabled={typesLoading}
                           className={`h-11 w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 text-sm border outline-none transition-all font-sans ${
                             errors.property_type_id
                               ? 'border-destructive ring-1 ring-destructive'
@@ -673,11 +749,11 @@ export default function CreateListing() {
                         )}
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={IndianRupee}>Asking Price (INR)</FieldLabel>
+                        <FieldLabel icon={IndianRupee} required>Asking Price (INR)</FieldLabel>
                         <FieldInput
                           type="number"
                           {...register('asking_price')}
-                          disabled={!!pendingPropertyId}
+                          disabled={false}
                           placeholder="e.g. 4500000"
                           error={errors.asking_price}
                         />
@@ -688,24 +764,24 @@ export default function CreateListing() {
                     {/* Size + Age */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Maximize2}>Size (sq ft)</FieldLabel>
+                        <FieldLabel icon={Maximize2} required>Size (sq ft)</FieldLabel>
                         <FieldInput
                           type="number"
                           {...register('size_sqft')}
-                          disabled={!!pendingPropertyId}
+                          disabled={false}
                           placeholder="e.g. 1200"
                           error={errors.size_sqft}
                         />
                         <FieldError message={errors.size_sqft?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Clock}>Property Age (years)</FieldLabel>
+                        <FieldLabel icon={Clock} required>Property Age (years)</FieldLabel>
                         <FieldInput
                           type="number"
                           min={0}
                           max={200}
                           {...register('property_age')}
-                          disabled={!!pendingPropertyId}
+                          disabled={false}
                           placeholder="e.g. 3"
                           error={errors.property_age}
                         />
@@ -737,7 +813,7 @@ export default function CreateListing() {
                                 }}
                                 loadOptions={loadStateOptions}
                                 placeholder="Select/type state"
-                                isDisabled={!!pendingPropertyId}
+                                isDisabled={false}
                                 error={errors.state}
                               />
                             )}
@@ -745,7 +821,7 @@ export default function CreateListing() {
                           <FieldError message={errors.state?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>District</FieldLabel>
+                          <FieldLabel required>District</FieldLabel>
                           <Controller
                             name="district"
                             control={control}
@@ -759,7 +835,7 @@ export default function CreateListing() {
                                 }}
                                 loadOptions={loadDistrictOptions(stateVal)}
                                 placeholder="Select/type district"
-                                isDisabled={!stateVal || !!pendingPropertyId}
+                                isDisabled={!stateVal}
                                 error={errors.district}
                               />
                             )}
@@ -767,7 +843,7 @@ export default function CreateListing() {
                           <FieldError message={errors.district?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>City</FieldLabel>
+                          <FieldLabel required>City</FieldLabel>
                           <Controller
                             name="city"
                             control={control}
@@ -778,7 +854,7 @@ export default function CreateListing() {
                                 onChange={onChange}
                                 loadOptions={loadCityOptions(stateVal, districtVal)}
                                 placeholder="Select/type city"
-                                isDisabled={!districtVal || !!pendingPropertyId}
+                                isDisabled={!districtVal}
                                 error={errors.city}
                               />
                             )}
@@ -788,22 +864,22 @@ export default function CreateListing() {
                       </div>
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>Area</FieldLabel>
+                          <FieldLabel required>Area</FieldLabel>
                           <FieldInput
                             type="text"
                             {...register('area')}
-                            disabled={!!pendingPropertyId}
+                            disabled={false}
                             placeholder="e.g. Tapovan"
                             error={errors.area}
                           />
                           <FieldError message={errors.area?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <FieldLabel>Pincode</FieldLabel>
+                          <FieldLabel required>Pincode</FieldLabel>
                           <FieldInput
                             type="text"
                             {...register('pincode')}
-                            disabled={!!pendingPropertyId}
+                            disabled={false}
                             placeholder="e.g. 249192"
                             error={errors.pincode}
                           />
@@ -820,22 +896,22 @@ export default function CreateListing() {
                     {/* Contact */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Mail}>Contact Email</FieldLabel>
+                        <FieldLabel icon={Mail} required>Contact Email</FieldLabel>
                         <FieldInput
                           type="email"
                           {...register('contact_email')}
-                          disabled={!!pendingPropertyId}
+                          disabled={false}
                           placeholder="seller@example.com"
                           error={errors.contact_email}
                         />
                         <FieldError message={errors.contact_email?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FieldLabel icon={Phone}>Contact Phone</FieldLabel>
+                        <FieldLabel icon={Phone} required>Contact Phone</FieldLabel>
                         <FieldInput
                           type="tel"
                           {...register('contact_phone')}
-                          disabled={!!pendingPropertyId}
+                          disabled={false}
                           placeholder="+91 98765 43210"
                           error={errors.contact_phone}
                         />
@@ -845,10 +921,10 @@ export default function CreateListing() {
 
                     {/* Story */}
                     <div className="flex flex-col gap-2">
-                      <FieldLabel icon={FileText}>Property Story</FieldLabel>
+                      <FieldLabel icon={FileText} required>Property Story</FieldLabel>
                       <textarea
                         {...register('property_story')}
-                        disabled={!!pendingPropertyId}
+                        disabled={false}
                         rows={6}
                         placeholder="Describe what makes this property truly rare — the land, the build, the lifestyle it offers…"
                         className={`w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 py-3 text-sm border outline-none transition-all placeholder:text-neutral-400 font-sans resize-y leading-relaxed ${
@@ -862,7 +938,7 @@ export default function CreateListing() {
 
                     {/* Property Features */}
                     <div className="flex flex-col gap-3">
-                      <FieldLabel icon={Sparkles}>Property Features</FieldLabel>
+                      <FieldLabel icon={Sparkles} required>Property Features</FieldLabel>
                       <Controller
                         name="selectedFeatureIds"
                         control={control}
@@ -870,7 +946,7 @@ export default function CreateListing() {
                           <PropertyFeaturesFormSection
                             selectedFeatureIds={field.value || []}
                             onChange={field.onChange}
-                            disabled={!!pendingPropertyId}
+                            disabled={false}
                           />
                         )}
                       />
@@ -933,6 +1009,9 @@ export default function CreateListing() {
                         />
                       </label>
                     </div>
+                    {errors.images?.message && (
+                      <div className="mt-2 text-sm text-destructive font-semibold">{errors.images.message}</div>
+                    )}
 
                     {/* Image grid */}
                     {images.length > 0 && (
@@ -1043,7 +1122,7 @@ export default function CreateListing() {
                       className="rounded-xl bg-brand-bronze hover:bg-brand-bronze-dark text-white font-bold px-6 shadow-lg shadow-brand-bronze/20 gap-2"
                     >
                       {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {pendingPropertyId ? 'Retry Upload' : 'Publish Listing'}
+                      Publish Listing
                     </Button>
                   )}
                 </div>

@@ -39,19 +39,13 @@ export default function Properties() {
   const realProperties = propertiesRes?.data || []
   const apiTypes = typesRes?.data || []
 
-  const typeIcons = {
-    'wood house': '🌲',
-    'mud house': '🧱',
-    'container home': '📦',
-    treehouse: '🍁',
-    'boat house': '⛵',
-  }
+  
 
   const categories = [
     { name: 'All Homes', icon: '🏡' },
     ...apiTypes.map((t) => ({
       name: t.name,
-      icon: typeIcons[t.name?.toLowerCase()] || '🏠',
+      icon:'🏠',
     })),
   ]
 

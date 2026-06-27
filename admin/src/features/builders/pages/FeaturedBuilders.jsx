@@ -8,6 +8,7 @@ import {
   Award,
   Trash2,
   Loader2,
+  Star,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import WifiLoader from '@/shared/components/ui/WifiLoader'
@@ -92,6 +93,14 @@ export default function FeaturedBuilders() {
                     </div>
 
                     <div className="space-y-1.5 text-xs text-neutral-500 pt-3 border-t border-neutral-100 dark:border-neutral-850">
+                      <div className="flex items-center justify-between">
+                        <span>Rating</span>
+                        <div className="flex items-center gap-1 font-bold text-neutral-900 dark:text-white">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span>{Number(builder.average_rating || 0) > 0 ? Number(builder.average_rating).toFixed(1) : '—'}</span>
+                          <span className="text-neutral-400 font-normal">({builder.total_reviews || 0})</span>
+                        </div>
+                      </div>
                       <div className="flex items-center justify-between">
                         <span>Featured Since</span>
                         <span className="font-semibold text-neutral-900 dark:text-white">

@@ -23,7 +23,7 @@ class BuilderReviewRepository {
             .input('comment', sql.NVarChar, comment || null)
             .query(`
                 INSERT INTO BuilderReviews (builder_id, reviewer_id, rating, comment, status)
-                VALUES (@builder_id, @reviewer_id, @rating, @comment, 'Approved')
+                VALUES (@builder_id, @reviewer_id, @rating, @comment, 'Pending')
             `);
     }
 

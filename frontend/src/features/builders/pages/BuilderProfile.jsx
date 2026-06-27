@@ -53,7 +53,11 @@ function Stars({ value, size = 16 }) {
 }
 
 function timeAgo(d) {
-  const s = Math.floor((Date.now() - new Date(d)) / 1000)
+  const date = new Date(d)
+  if (isNaN(date.getTime())) return ''
+  const s = Math.floor((Date.now() - date.getTime()) / 1000)
+  // If the date is in the future, treat as just now
+  if (s < 0) return 'just now'
   if (s < 60) return 'just now'
   if (s < 3600) return `${Math.floor(s / 60)}m ago`
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`

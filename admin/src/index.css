@@ -252,6 +252,25 @@
   @apply text-brand-forest underline underline-offset-2 hover:text-brand-forest-mid;
 }
 
+/* Task lists */
+.rich-content ul[data-type="taskList"] {
+  list-style: none !important;
+  padding-left: 0.5rem !important;
+}
+.rich-content ul[data-type="taskList"] li {
+  @apply flex items-start gap-2;
+}
+.rich-content ul[data-type="taskList"] li > label {
+  @apply select-none pt-1.5 cursor-pointer;
+}
+.rich-content ul[data-type="taskList"] li > label input[type="checkbox"] {
+  @apply cursor-pointer accent-brand-forest size-4;
+}
+.rich-content ul[data-type="taskList"] li > div {
+  @apply flex-1;
+}
+
+
 /* ── Spinner Loader ──────────────────────────────────────────────────────── */
 
 .spinner {
