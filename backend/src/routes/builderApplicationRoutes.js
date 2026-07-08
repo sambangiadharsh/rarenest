@@ -7,8 +7,9 @@ const {
     reviewApplication
 } = require('../controllers/builderApplicationController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const { uploadBuilderApplicationFiles } = require('../middlewares/uploadMiddleware');
 
-router.post('/', protect, submitApplication);
+router.post('/', protect, uploadBuilderApplicationFiles, submitApplication);
 router.get('/my', protect, getMyApplication);
 router.get('/', protect, authorize('Admin'), getAllApplications);
 router.put('/:id', protect, authorize('Admin'), reviewApplication);

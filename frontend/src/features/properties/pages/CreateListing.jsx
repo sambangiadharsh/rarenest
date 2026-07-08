@@ -26,6 +26,9 @@ import {
   Tag,
   Camera,
   Building2,
+  Bed,
+  Bath,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { usePropertyTypes } from '@/features/properties'
@@ -50,12 +53,14 @@ const listingSchema = z.object({
   city: z.string().max(100).optional().or(z.literal('')),
   state: z.string().min(1, 'State is required').max(100),
   district: z.string().min(1, 'District is required').max(100),
-  area: z.string().min(2).max(100),
+  area: z.string().min(2).max(30),
   pincode: z.string().min(6).max(10),
   contact_email: z.string().email(),
   contact_phone: z.string().min(8).max(20),
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
+  beds: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
+  baths: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
   special_features: z.array(z.string()).optional(),
   selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
   images: z.number().min(1, 'Please upload at least one property image.'),
@@ -77,7 +82,7 @@ const STEP_CONFIG = [
     description: 'Title, type, price, size, age and location.',
     fields: [
       'title', 'property_type_id', 'asking_price',
-      'size_sqft', 'property_age', 'city',
+      'size_sqft', 'property_age', 'beds', 'baths', 'city',
       'state', 'district', 'area', 'pincode',
     ],
   },
@@ -127,59 +132,7 @@ function FieldError({ message }) {
   return <span className="text-[10px] text-destructive font-semibold">{message}</span>
 }
 
-function BuilderApplicationForm({ onSubmit, isPending }) {
-  const [name, setName] = React.useState('')
-  const [desc, setDesc] = React.useState('')
 
-  const handleFormSubmit = (e) => {
-    if (e && e.preventDefault) e.preventDefault()
-    if (!name.trim() || !desc.trim()) {
-      toast.error('Please fill in all fields.')
-      return
-    }
-    onSubmit({ company_name: name, company_description: desc })
-  }
-
-  return (
-    <div className="flex flex-col gap-4 mt-2">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-neutral-750 dark:text-neutral-300 uppercase tracking-wider">
-          Company Name
-        </label>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Earth Residence Co."
-          className="h-10 w-full rounded-xl bg-white dark:bg-neutral-950 px-4 text-sm border border-neutral-205 focus:border-brand-bronze/50 outline-none transition-all"
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-bold text-neutral-750 dark:text-neutral-350 uppercase tracking-wider">
-          Company Description
-        </label>
-        <textarea
-          required
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          placeholder="Describe your development history, focus, and credentials..."
-          rows={3}
-          className="w-full rounded-xl bg-white dark:bg-neutral-950 px-4 py-2 text-sm border border-neutral-205 focus:border-brand-bronze/50 outline-none transition-all resize-none"
-        />
-      </div>
-      <Button
-        type="button"
-        disabled={isPending}
-        onClick={handleFormSubmit}
-        className="w-full bg-brand-bronze hover:bg-brand-bronze/90 text-white font-bold h-10 gap-2 rounded-xl"
-      >
-        {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-        Apply as Builder
-      </Button>
-    </div>
-  )
-}
 
 const loadStateOptions = async (inputValue) => {
   try {
@@ -248,6 +201,9 @@ export default function CreateListing() {
   const imagesRef = React.useRef([])
   const [isPublishing, setIsPublishing] = React.useState(false)
   const [isUploadingDraftMedia, setIsUploadingDraftMedia] = React.useState(false)
+  const [showDraftModal, setShowDraftModal] = React.useState(false)
+  const [showConfirmDelete, setShowConfirmDelete] = React.useState(false)
+  const [pendingDraft, setPendingDraft] = React.useState(null)
 
   const {
     register,
@@ -261,7 +217,7 @@ export default function CreateListing() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(listingSchema),
-    defaultValues: { selectedFeatureIds: [], listing_type: 'Individual', state: '', district: '', city: '', images: 0 },
+    defaultValues: { selectedFeatureIds: [], listing_type: 'Individual', state: '', district: '', city: '', images: 0, beds: '', baths: '' },
   })
 
   const stateVal = watch('state')
@@ -277,18 +233,52 @@ export default function CreateListing() {
       district: '',
       city: '',
       images: 0,
+      beds: '',
+      baths: '',
       ...draftData,
     })
     if (step) setCurrentStep(Math.max(1, Math.min(step, STEP_CONFIG.length)))
   }, [reset])
+
+  const handleDraftFound = React.useCallback((draftInfo, applyFn) => {
+    // If user hasn't clicked Continue yet (no backend draft exists), restore automatically
+    if (!draftInfo.draftId) {
+      applyFn(draftInfo)
+      return
+    }
+    setPendingDraft({ info: draftInfo, apply: applyFn })
+    setShowDraftModal(true)
+  }, [])
 
   const draft = useDraftPersistence({
     draftType: 'Create',
     currentStep,
     getDraftData: getValues,
     restoreDraft,
+    onDraftFound: handleDraftFound,
     enabled: isAuthenticated,
   })
+
+  const handleContinueDraft = () => {
+    if (pendingDraft) {
+      pendingDraft.apply(pendingDraft.info)
+    }
+    setShowDraftModal(false)
+    setShowConfirmDelete(false)
+    setPendingDraft(null)
+  }
+
+  const handleStartNewClick = () => {
+    setShowConfirmDelete(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    const draftIdToDelete = pendingDraft?.info?.draftId
+    await draft.clearDraft(draftIdToDelete)
+    setShowConfirmDelete(false)
+    setShowDraftModal(false)
+    setPendingDraft(null)
+  }
 
   React.useEffect(() => {
     setUploadedDraftMedia(draft.draftMedia || [])
@@ -297,7 +287,9 @@ export default function CreateListing() {
   }, [draft.draftMedia, images.length, setValue])
 
   React.useEffect(() => {
-    const subscription = watch(() => draft.scheduleLocalSave())
+    const subscription = watch((value, { type }) => {
+      if (type) draft.scheduleLocalSave()
+    })
     return () => subscription.unsubscribe()
   }, [draft, watch])
 
@@ -470,6 +462,72 @@ export default function CreateListing() {
 
   return (
     <div className="min-h-screen bg-brand-cream/30">
+      {showDraftModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl rounded-[2rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] max-w-[400px] w-full p-8 border border-white/50 dark:border-neutral-800/50 animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 overflow-hidden relative">
+            {/* Decorative background glow */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-bronze/20 rounded-full blur-[3rem] pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-forest/10 rounded-full blur-[3rem] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col items-center text-center">
+              {!showConfirmDelete ? (
+                <>
+                  <div className="h-16 w-16 rounded-2xl bg-brand-bronze/10 flex items-center justify-center mb-6 shadow-sm border border-brand-bronze/20">
+                    <FileText className="h-8 w-8 text-brand-bronze" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-neutral-950 dark:text-white mb-3">Saved Draft Found</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed max-w-[280px]">
+                    We noticed you were working on a property listing. Would you like to pick up where you left off?
+                  </p>
+                  
+                  <div className="flex flex-col gap-3 w-full">
+                    <Button 
+                      onClick={handleContinueDraft} 
+                      className="w-full bg-brand-bronze hover:bg-brand-bronze/90 text-white font-bold h-12 rounded-2xl shadow-[0_8px_16px_-4px_rgba(212,163,115,0.4)] transition-all hover:-translate-y-0.5"
+                    >
+                      Continue Draft
+                    </Button>
+                    <Button 
+                      onClick={handleStartNewClick} 
+                      variant="outline" 
+                      className="w-full font-bold h-12 rounded-2xl border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      Start New Listing
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="h-16 w-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6 shadow-sm border border-red-500/20">
+                    <Trash2 className="h-8 w-8 text-red-500" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-neutral-950 dark:text-white mb-3">Delete Draft?</h3>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-8 leading-relaxed max-w-[280px]">
+                    Are you sure you want to start a new listing? Your previous draft will be permanently deleted.
+                  </p>
+                  
+                  <div className="flex flex-col gap-3 w-full">
+                    <Button 
+                      onClick={handleConfirmDelete} 
+                      className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-12 rounded-2xl shadow-[0_8px_16px_-4px_rgba(220,38,38,0.4)] transition-all hover:-translate-y-0.5"
+                    >
+                      Yes, Delete & Start New
+                    </Button>
+                    <Button 
+                      onClick={() => setShowConfirmDelete(false)} 
+                      variant="outline" 
+                      className="w-full font-bold h-12 rounded-2xl border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      Go Back
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-20">
 
         {/* Back */}
@@ -492,9 +550,7 @@ export default function CreateListing() {
               <div className="absolute -right-2 -bottom-10 h-48 w-48 rounded-full bg-white/[0.03]" />
 
               <div className="relative">
-                <div className="inline-flex items-center gap-1.5 text-[9px] font-bold text-brand-terracotta-light tracking-widest uppercase bg-white/10 px-3 py-1 rounded-full mb-4">
-                  <Sparkles className="h-3 w-3" /> New Listing
-                </div>
+                
                 <h1 className="font-serif text-2xl font-bold leading-snug mb-1">
                   List Your<br />Property
                 </h1>
@@ -665,43 +721,33 @@ export default function CreateListing() {
                             <hr className="border-red-100 dark:border-red-900/30" />
                             <div>
                               <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-750 dark:text-neutral-300 mb-2">Reapply as Builder</h4>
-                              <BuilderApplicationForm
-                                isPending={submittingApp}
-                                onSubmit={async (formData) => {
-                                  try {
-                                    await submitApplication(formData)
-                                    toast.success('Builder application resubmitted successfully.')
-                                    refetchApp()
-                                  } catch (err) {
-                                    toast.error(err.message || 'Failed to submit builder application')
-                                  }
-                                }}
-                              />
+                              <Button
+                                type="button"
+                                onClick={() => navigate('/builders/apply?returnTo=/properties/create&listingType=BuilderProject')}
+                                className="w-fit bg-brand-bronze hover:bg-brand-bronze/90 text-white font-bold h-10 rounded-xl"
+                              >
+                                Apply for Builder Verification
+                              </Button>
                             </div>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-4">
                             <div className="flex items-start gap-3 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-xl border border-amber-100 dark:border-amber-900/30">
-                              <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
+                              
                               <div>
                                 <p className="text-sm font-semibold">Builder Approval Required</p>
-                                <p className="text-xs text-neutral-550 mt-0.5 leading-relaxed">
-                                  Builder Projects require an approved builder profile. Fill out the application form below, and our team will review it.
+                                <p className="text-xs text-neutral-550 mt-0.5 leading-relaxed mb-4">
+                                  To publish Builder Projects, your builder profile must first be verified.
                                 </p>
+                                <Button
+                                  type="button"
+                                  onClick={() => navigate('/builders/apply?returnTo=/properties/create&listingType=BuilderProject')}
+                                  className="w-fit bg-brand-bronze hover:bg-brand-bronze/90 text-white font-bold h-10 rounded-xl"
+                                >
+                                  Apply for Builder Verification
+                                </Button>
                               </div>
                             </div>
-                            <BuilderApplicationForm
-                              isPending={submittingApp}
-                              onSubmit={async (formData) => {
-                                  try {
-                                    await submitApplication(formData)
-                                    toast.success('Builder application submitted successfully.')
-                                    refetchApp()
-                                  } catch (err) {
-                                    toast.error(err.message || 'Failed to submit builder application')
-                                  }
-                              }}
-                            />
                           </div>
                         )}
                       </div>
@@ -718,7 +764,6 @@ export default function CreateListing() {
                       <FieldInput
                         type="text"
                         {...register('title')}
-                        disabled={false}
                         placeholder="e.g. Himalayan Earthship Retreat"
                         error={errors.title}
                       />
@@ -753,7 +798,6 @@ export default function CreateListing() {
                         <FieldInput
                           type="number"
                           {...register('asking_price')}
-                          disabled={false}
                           placeholder="e.g. 4500000"
                           error={errors.asking_price}
                         />
@@ -768,7 +812,6 @@ export default function CreateListing() {
                         <FieldInput
                           type="number"
                           {...register('size_sqft')}
-                          disabled={false}
                           placeholder="e.g. 1200"
                           error={errors.size_sqft}
                         />
@@ -781,11 +824,38 @@ export default function CreateListing() {
                           min={0}
                           max={200}
                           {...register('property_age')}
-                          disabled={false}
                           placeholder="e.g. 3"
                           error={errors.property_age}
                         />
                         <FieldError message={errors.property_age?.message} />
+                      </div>
+                    </div>
+
+                    {/* Beds + Baths */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Bed}>Beds</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          min={0}
+                          max={100}
+                          {...register('beds')}
+                          placeholder="e.g. 3"
+                          error={errors.beds}
+                        />
+                        <FieldError message={errors.beds?.message} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Bath}>Baths</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          min={0}
+                          max={100}
+                          {...register('baths')}
+                          placeholder="e.g. 2"
+                          error={errors.baths}
+                        />
+                        <FieldError message={errors.baths?.message} />
                       </div>
                     </div>
 
@@ -813,7 +883,6 @@ export default function CreateListing() {
                                 }}
                                 loadOptions={loadStateOptions}
                                 placeholder="Select/type state"
-                                isDisabled={false}
                                 error={errors.state}
                               />
                             )}
@@ -868,7 +937,6 @@ export default function CreateListing() {
                           <FieldInput
                             type="text"
                             {...register('area')}
-                            disabled={false}
                             placeholder="e.g. Tapovan"
                             error={errors.area}
                           />
@@ -879,7 +947,6 @@ export default function CreateListing() {
                           <FieldInput
                             type="text"
                             {...register('pincode')}
-                            disabled={false}
                             placeholder="e.g. 249192"
                             error={errors.pincode}
                           />
@@ -900,7 +967,6 @@ export default function CreateListing() {
                         <FieldInput
                           type="email"
                           {...register('contact_email')}
-                          disabled={false}
                           placeholder="seller@example.com"
                           error={errors.contact_email}
                         />
@@ -911,7 +977,6 @@ export default function CreateListing() {
                         <FieldInput
                           type="tel"
                           {...register('contact_phone')}
-                          disabled={false}
                           placeholder="+91 98765 43210"
                           error={errors.contact_phone}
                         />
@@ -924,7 +989,6 @@ export default function CreateListing() {
                       <FieldLabel icon={FileText} required>Property Story</FieldLabel>
                       <textarea
                         {...register('property_story')}
-                        disabled={false}
                         rows={6}
                         placeholder="Describe what makes this property truly rare — the land, the build, the lifestyle it offers…"
                         className={`w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 py-3 text-sm border outline-none transition-all placeholder:text-neutral-400 font-sans resize-y leading-relaxed ${
@@ -946,7 +1010,6 @@ export default function CreateListing() {
                           <PropertyFeaturesFormSection
                             selectedFeatureIds={field.value || []}
                             onChange={field.onChange}
-                            disabled={false}
                           />
                         )}
                       />

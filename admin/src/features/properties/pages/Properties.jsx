@@ -11,6 +11,7 @@ import {
   Star,
   XCircle,
 } from 'lucide-react'
+import { TableSkeleton } from '@/shared/skeletons'
 import { Button } from '@/shared/components/ui/button'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { usePropertyTypes } from '@/features/propertyTypes'
@@ -186,36 +187,44 @@ export default function Properties() {
         </h1>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Pending Verification"
-          value={stats.pending}
-          icon={Clock}
-          iconClass="bg-amber-50 text-amber-600"
-          valueClass="text-amber-700"
-        />
-        <StatCard
-          label="Verified"
-          value={stats.verified}
-          icon={ShieldCheck}
-          iconClass="bg-emerald-50 text-emerald-600"
-          valueClass="text-emerald-700"
-        />
-        <StatCard
-          label="Rejected"
-          value={stats.rejected}
-          icon={ShieldX}
-          iconClass="bg-red-50 text-red-600"
-          valueClass="text-red-700"
-        />
-        <StatCard
-          label="Total Properties"
-          value={stats.total}
-          icon={Building2}
-          iconClass="bg-brand-forest/8 text-brand-forest"
-          valueClass="text-brand-forest"
-        />
-      </div>
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-[88px] w-full rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Pending Verification"
+            value={stats.pending}
+            icon={Clock}
+            iconClass="bg-amber-50 text-amber-600"
+            valueClass="text-amber-700"
+          />
+          <StatCard
+            label="Verified"
+            value={stats.verified}
+            icon={ShieldCheck}
+            iconClass="bg-emerald-50 text-emerald-600"
+            valueClass="text-emerald-700"
+          />
+          <StatCard
+            label="Rejected"
+            value={stats.rejected}
+            icon={ShieldX}
+            iconClass="bg-red-50 text-red-600"
+            valueClass="text-red-700"
+          />
+          <StatCard
+            label="Total Properties"
+            value={stats.total}
+            icon={Building2}
+            iconClass="bg-[#492615]/8 text-brand-forest"
+            valueClass="text-brand-forest"
+          />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full max-w-[220px] shrink-0 sm:w-[220px]">
@@ -283,10 +292,8 @@ export default function Properties() {
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
           {isLoading && (
-            <div className="space-y-3 p-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
+            <div className="p-4">
+              <TableSkeleton columns={10} rows={5} />
             </div>
           )}
 
@@ -334,7 +341,7 @@ export default function Properties() {
                             setIsDetailOpen(true)
                           }}
                           className={`cursor-pointer border-b border-border transition-colors last:border-0 ${
-                            isSelected ? 'bg-brand-forest/5 border-l-2 border-l-brand-forest' : 'hover:bg-muted/40'
+                            isSelected ? 'bg-[#492615]/5 border-l-2 border-l-brand-forest' : 'hover:bg-muted/40'
                           }`}
                         >
                           <td className="px-4 py-3">

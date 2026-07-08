@@ -42,3 +42,4 @@ END
     console.error('Migration failed:', err.message);
     process.exit(1);
 });
+

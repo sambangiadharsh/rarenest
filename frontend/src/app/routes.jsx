@@ -28,7 +28,7 @@ import { ContactPage } from '@/features/contact'
 import { FaqsPage } from '@/features/faqs'
 import { CareersPage, CareerDetailPage } from '@/features/careers'
 import { NotFoundPage } from '@/features/notFound'
-import { BuilderProfilePage } from '@/features/builders'
+import { BuilderApplyPage, BuilderProfilePage } from '@/features/builders'
 
 export const router = createBrowserRouter([
   {
@@ -77,6 +77,14 @@ export const router = createBrowserRouter([
       { path: 'faqs', element: <FaqsPage /> },
       { path: 'careers', element: <CareersPage /> },
       { path: 'careers/:id', element: <CareerDetailPage /> },
+      {
+        path: 'builders/apply',
+        element: (
+          <RequireAuth>
+            <BuilderApplyPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'builders/:id', element: <BuilderProfilePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

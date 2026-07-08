@@ -4,6 +4,7 @@ module.exports = {
     MAX_IMAGES: 10,
     MAX_VIDEOS: 2,
     MAX_IMAGE_BYTES: 5 * MB,
+    MAX_DOCUMENT_BYTES: 5 * MB,
     MAX_VIDEO_BYTES: 50 * MB,
     MAX_IMAGE_OUTPUT_BYTES: 3 * MB,
     MAX_VIDEO_OUTPUT_BYTES: 50 * MB,

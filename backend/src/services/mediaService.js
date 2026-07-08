@@ -1,16 +1,9 @@
-const fs = require('fs');
-const path = require('path');
 const { randomUUID } = require('crypto');
 const sharp = require('sharp');
 const ffmpeg = require('fluent-ffmpeg');
 const limits = require('../config/mediaLimits');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
-
-const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
-
-function ensureDir(dir) {
-    fs.mkdirSync(dir, { recursive: true });
-}
+const storageService = require('./storageService');
 
 function preValidateImage(file) {
     if (!limits.IMAGE_MIMES.includes(file.mimetype)) {
@@ -30,27 +23,12 @@ function preValidateVideo(file) {
     }
 }
 
-async function compressImage(buffer, outputPath) {
-    await sharp(buffer)
+async function compressImage(buffer) {
+    return await sharp(buffer)
         .rotate()
         .resize({ width: limits.MAX_IMAGE_WIDTH, withoutEnlargement: true })
         .webp({ quality: limits.IMAGE_QUALITY })
-        .toFile(outputPath);
-}
-
-function postValidateFile(filePath, maxBytes, label) {
-    if (!fs.existsSync(filePath)) {
-        throw Object.assign(new Error(`${label} compression failed`), { statusCode: 500 });
-    }
-    const stat = fs.statSync(filePath);
-    if (stat.size === 0) {
-        fs.unlinkSync(filePath);
-        throw Object.assign(new Error(`${label} output is empty`), { statusCode: 400 });
-    }
-    if (stat.size > maxBytes) {
-        fs.unlinkSync(filePath);
-        throw Object.assign(new Error(`${label} still exceeds size limit after compression`), { statusCode: 400 });
-    }
+        .toBuffer();
 }
 
 function compressVideo(inputPath, outputPath) {
@@ -71,19 +49,7 @@ function compressVideo(inputPath, outputPath) {
     });
 }
 
-function copyVideoWithoutCompression(inputPath, outputPath) {
-    fs.copyFileSync(inputPath, outputPath);
-}
-
 class MediaService {
-    getPropertyMediaDir(propertyId, subfolder) {
-        return path.join(UPLOADS_ROOT, 'properties', propertyId, subfolder);
-    }
-
-    toPublicUrl(relativePath) {
-        return relativePath.replace(/\\/g, '/');
-    }
-
     async processAndStoreImages(propertyId, imageFiles, thumbnailIndex = 0) {
         const existingCount = await propertyMediaRepository.countByPropertyAndType(propertyId, 'Image');
         if (existingCount + imageFiles.length > limits.MAX_IMAGES) {
@@ -92,9 +58,6 @@ class MediaService {
                 { statusCode: 400 },
             );
         }
-
-        const imageDir = this.getPropertyMediaDir(propertyId, 'images');
-        ensureDir(imageDir);
 
         const saved = [];
         const thumbIdx = Number.isFinite(thumbnailIndex) && !Number.isNaN(thumbnailIndex)
@@ -106,16 +69,22 @@ class MediaService {
             preValidateImage(file);
 
             const filename = `${randomUUID()}.webp`;
-            const outputPath = path.join(imageDir, filename);
-            const relativeUrl = this.toPublicUrl(`/uploads/properties/${propertyId}/images/${filename}`);
+            const fileKey = storageService.generatePropertyMediaKey(propertyId, 'images', filename);
 
+            let bufferToSave;
             try {
-                await compressImage(file.buffer, outputPath);
-                postValidateFile(outputPath, limits.MAX_IMAGE_OUTPUT_BYTES, 'Image');
+                bufferToSave = await compressImage(file.buffer);
+                if (!bufferToSave || bufferToSave.length === 0) {
+                    throw Object.assign(new Error('Image output is empty'), { statusCode: 400 });
+                }
+                if (bufferToSave.length > limits.MAX_IMAGE_OUTPUT_BYTES) {
+                    throw Object.assign(new Error('Image still exceeds size limit after compression'), { statusCode: 400 });
+                }
             } catch (err) {
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
                 throw err.statusCode ? err : Object.assign(new Error(err.message || 'Image processing failed'), { statusCode: 500 });
             }
+
+            const relativeUrl = await storageService.saveBuffer(fileKey, bufferToSave);
 
             const row = await propertyMediaRepository.insert({
                 property_id: propertyId,
@@ -145,47 +114,51 @@ class MediaService {
             );
         }
 
-        const videoDir = this.getPropertyMediaDir(propertyId, 'videos');
-        ensureDir(videoDir);
-
         const saved = [];
-        const tempDir = path.join(UPLOADS_ROOT, 'temp');
-        ensureDir(tempDir);
 
         for (const file of videoFiles) {
             preValidateVideo(file);
 
-            const sourceExt = path.extname(file.originalname || '').toLowerCase() || '.mp4';
+            const originalName = file.originalname || '';
+            const match = originalName.match(/\.[0-9a-z]+$/i);
+            const sourceExt = match ? match[0].toLowerCase() : '.mp4';
             const inputExt = sourceExt.startsWith('.') ? sourceExt : '.mp4';
-            const tempInput = path.join(tempDir, `${randomUUID()}-in${inputExt}`);
-            const filename = `${randomUUID()}.mp4`;
-            const outputPath = path.join(videoDir, filename);
-            const relativeUrl = this.toPublicUrl(`/uploads/properties/${propertyId}/videos/${filename}`);
+            
+            const tempInput = await storageService.writeTempFile(file.buffer, `-in${inputExt}`);
+            const tempOutput = storageService.generateTempFilePath('.mp4');
 
-            fs.writeFileSync(tempInput, file.buffer);
+            const filename = `${randomUUID()}.mp4`;
+            const fileKey = storageService.generatePropertyMediaKey(propertyId, 'videos', filename);
+            let finalUrl;
 
             try {
-                await compressVideo(tempInput, outputPath);
-                postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
+                await compressVideo(tempInput, tempOutput);
+                
+                const outSize = await storageService.getFileSize(tempOutput);
+                if (outSize === 0) throw Object.assign(new Error(`Video output is empty`), { statusCode: 400 });
+                if (outSize > limits.MAX_VIDEO_OUTPUT_BYTES) throw Object.assign(new Error(`Video still exceeds size limit after compression`), { statusCode: 400 });
+                
+                finalUrl = await storageService.saveLocalFile(fileKey, tempOutput);
             } catch (err) {
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
                 try {
-                    copyVideoWithoutCompression(tempInput, outputPath);
-                    postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
+                    const inSize = await storageService.getFileSize(tempInput);
+                    if (inSize === 0) throw Object.assign(new Error(`Video output is empty`), { statusCode: 400 });
+                    if (inSize > limits.MAX_VIDEO_OUTPUT_BYTES) throw Object.assign(new Error(`Video still exceeds size limit after compression`), { statusCode: 400 });
+
+                    finalUrl = await storageService.saveLocalFile(fileKey, tempInput);
                 } catch (fallbackErr) {
-                    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
                     throw Object.assign(
                         new Error(fallbackErr.message || err.message || 'Video processing failed'),
                         { statusCode: fallbackErr.statusCode || 400 },
                     );
                 }
             } finally {
-                if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+                await storageService.cleanupTempFiles([tempInput, tempOutput]);
             }
 
             const row = await propertyMediaRepository.insert({
                 property_id: propertyId,
-                media_url: relativeUrl,
+                media_url: finalUrl,
                 media_type: 'Video',
                 is_thumbnail: false,
             });
@@ -207,19 +180,12 @@ class MediaService {
     }
 
     async deleteMedia(media) {
-        const relative = media.media_url.replace(/^\/?uploads\//, '');
-        const resolved = path.join(UPLOADS_ROOT, relative);
-        if (fs.existsSync(resolved)) {
-            fs.unlinkSync(resolved);
-        }
+        await storageService.deleteFileByUrl(media.media_url);
         return propertyMediaRepository.deleteById(media.id);
     }
 
-    deletePropertyUploads(propertyId) {
-        const dir = path.join(UPLOADS_ROOT, 'properties', propertyId);
-        if (fs.existsSync(dir)) {
-            fs.rmSync(dir, { recursive: true, force: true });
-        }
+    async deletePropertyUploads(propertyId) {
+        await storageService.deletePropertyDirectory(propertyId);
     }
 }
 

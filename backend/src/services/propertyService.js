@@ -95,10 +95,10 @@ class PropertyService {
             first_name,
             last_name,
             phone: phone.trim(),
-            role: 'Seller',
+            
         });
 
-        const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const loginUrl = process.env.CLIENT_URL || 'http://localhost:8001';
         let emailSent = false;
         try {
             await sendEmail({

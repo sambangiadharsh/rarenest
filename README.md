@@ -4,9 +4,9 @@ Monorepo with three independent apps. Each has its own `package.json`, `package-
 
 | Folder | Purpose | Dev command |
 |--------|---------|-------------|
-| `backend/` | Express API (port 5000) | `cd backend && npm run dev` |
-| `frontend/` | Public site (port 5173) | `cd frontend && npm run dev` |
-| `admin/` | Admin dashboard (port 5174) | `cd admin && npm run dev` |
+| `backend/` | Express API (port 8000) | `cd backend && npm run dev` |
+| `frontend/` | Public site (port 8001) | `cd frontend && npm run dev` |
+| `admin/` | Admin dashboard (port 8002) | `cd admin && npm run dev` |
 
 Shared database schema: [`schema.sql`](schema.sql)
 

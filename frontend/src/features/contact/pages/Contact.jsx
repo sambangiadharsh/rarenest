@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -21,17 +24,31 @@ import {
 } from '@/features/contact/components/SocialIcons'
 import usePageMeta from '@/shared/hooks/usePageMeta'
 
-const initialForm = {
-  name: '',
-  email: '',
-  subject: '',
-  message: '',
-}
+const contactSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Please enter a valid email address'),
+  subject: z.string().min(1, 'Subject is required'),
+  message: z.string().min(10, 'Message must be at least 10 characters long'),
+})
 
 export default function Contact() {
   const { data, isLoading } = useContactInfo()
   const contact = data?.data
-  const [form, setForm] = useState(initialForm)
+  
+  const {
+    register,
+    handleSubmit: hookFormSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      subject: '',
+      message: '',
+    }
+  })
+  
   const [sent, setSent] = useState(false)
 
   const supportEmail = contact?.support_email
@@ -84,28 +101,13 @@ export default function Contact() {
     description: 'Get in touch with the RareNest team.',
   })
 
-  const updateField = (field) => (event) => {
-    setForm((current) => ({ ...current, [field]: event.target.value }))
-    setSent(false)
-  }
-
-  const handleSubmit = (event) => {
-    event.preventDefault()
-
+  const onSubmit = (data) => {
     if (!supportEmail) {
       toast.error('Support email is not configured yet.')
       return
     }
 
-    const name = form.name.trim()
-    const email = form.email.trim()
-    const subject = form.subject.trim()
-    const message = form.message.trim()
-
-    if (!name || !email || !subject || !message) {
-      toast.error('Please complete all fields before sending.')
-      return
-    }
+    const { name, email, subject, message } = data
 
     const body = [
       `Name: ${name}`,
@@ -150,46 +152,46 @@ export default function Contact() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={hookFormSubmit(onSubmit)} className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Full name">
                   <input
                     type="text"
-                    value={form.name}
-                    onChange={updateField('name')}
+                    {...register('name')}
                     placeholder="Your name"
-                    className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none transition focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15"
+                    className={`h-11 w-full rounded-xl border bg-background px-4 text-sm outline-none transition ${errors.name ? 'border-destructive focus:ring-3 focus:ring-destructive/15' : 'border-border focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15'}`}
                   />
+                  {errors.name && <span className="text-[10px] text-destructive font-semibold mt-1 block">{errors.name.message}</span>}
                 </Field>
                 <Field label="Email address">
                   <input
                     type="email"
-                    value={form.email}
-                    onChange={updateField('email')}
+                    {...register('email')}
                     placeholder="you@example.com"
-                    className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none transition focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15"
+                    className={`h-11 w-full rounded-xl border bg-background px-4 text-sm outline-none transition ${errors.email ? 'border-destructive focus:ring-3 focus:ring-destructive/15' : 'border-border focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15'}`}
                   />
+                  {errors.email && <span className="text-[10px] text-destructive font-semibold mt-1 block">{errors.email.message}</span>}
                 </Field>
               </div>
 
               <Field label="Subject">
                 <input
                   type="text"
-                  value={form.subject}
-                  onChange={updateField('subject')}
+                  {...register('subject')}
                   placeholder="What should we know?"
-                  className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm outline-none transition focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15"
+                  className={`h-11 w-full rounded-xl border bg-background px-4 text-sm outline-none transition ${errors.subject ? 'border-destructive focus:ring-3 focus:ring-destructive/15' : 'border-border focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15'}`}
                 />
+                {errors.subject && <span className="text-[10px] text-destructive font-semibold mt-1 block">{errors.subject.message}</span>}
               </Field>
 
               <Field label="Message">
                 <textarea
                   rows={7}
-                  value={form.message}
-                  onChange={updateField('message')}
+                  {...register('message')}
                   placeholder="Tell us what you need help with..."
-                  className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none transition focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15"
+                  className={`w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm leading-6 outline-none transition ${errors.message ? 'border-destructive focus:ring-3 focus:ring-destructive/15' : 'border-border focus:border-brand-terracotta focus:ring-3 focus:ring-brand-terracotta/15'}`}
                 />
+                {errors.message && <span className="text-[10px] text-destructive font-semibold mt-1 block">{errors.message.message}</span>}
               </Field>
 
               <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">

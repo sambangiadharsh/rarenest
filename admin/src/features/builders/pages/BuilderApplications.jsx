@@ -1,178 +1,223 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   useBuilderApplications,
-  useReviewBuilderApplication,
 } from '../hooks/useBuilder'
 import {
-  Building2,
-  Check,
-  X,
-  User,
-  Mail,
-  Phone,
-  Clock,
-  Loader2,
-  Building,
+  Search,
+  ChevronDown,
+  ChevronRight,
   ShieldAlert,
+  FileCheck,
+  FileX,
+  FileArchive,
+  ShieldCheck,
+  XCircle,
+  Clock
 } from 'lucide-react'
+import { Input } from '@/shared/components/ui/input'
+import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Button } from '@/shared/components/ui/button'
-import WifiLoader from '@/shared/components/ui/WifiLoader'
-import { toast } from 'sonner'
 
 export default function BuilderApplications() {
+  const navigate = useNavigate()
   const { data: appsRes, isLoading } = useBuilderApplications()
-  const reviewMutation = useReviewBuilderApplication()
 
   const allApps = appsRes?.data || []
-  const pendingApps = allApps.filter((a) => a.status === 'Pending')
 
-  const handleReview = async (id, status) => {
-    try {
-      await reviewMutation.mutateAsync({ id, status })
-      toast.success(`Application successfully ${status.toLowerCase()}!`)
-    } catch (err) {
-      toast.error(err.message || 'Failed to review application.')
+  // State
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All Status')
+
+  // Stats
+  const totalApps = allApps.length
+  const pendingCount = allApps.filter(a => a.status === 'Pending').length
+  const approvedCount = allApps.filter(a => a.status === 'Approved').length
+  const rejectedCount = allApps.filter(a => a.status === 'Rejected').length
+
+  // Filtered Apps
+  const filteredApps = useMemo(() => {
+    return allApps.filter(app => {
+      const matchesSearch = app.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            app.business_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            app.contact_person_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesStatus = statusFilter === 'All Status' || app.status === statusFilter
+
+      return matchesSearch && matchesStatus
+    })
+  }, [allApps, searchQuery, statusFilter])
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Pending':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400">
+            <Clock className="h-3 w-3" />
+            Pending
+          </span>
+        )
+      case 'Approved':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-750 dark:bg-emerald-950/20 dark:text-emerald-400">
+            <ShieldCheck className="h-3 w-3" />
+            Approved
+          </span>
+        )
+      case 'Rejected':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-750 dark:bg-rose-950/20 dark:text-rose-400">
+            <XCircle className="h-3 w-3" />
+            Rejected
+          </span>
+        )
+      default:
+        return null
     }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <WifiLoader />
-      </div>
-    )
   }
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* Header */}
-      <div className="flex flex-col gap-1.5">
-        <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-forest">
-          Builder Applications
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-          Review and verify builder applications before allowing them to publish builder project listings.
-        </p>
-      </div>
+      {/* Main Content */}
+      <div className="w-full">
+        
+        {/* Header */}
+        <div className="flex flex-col gap-1 mb-8">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-brand-forest">
+            Builder Applications
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-2xl">
+            Review and verify builder applications before allowing them to publish builder project listings.
+          </p>
+        </div>
 
-      {/* Content */}
-      <div className="mt-4">
-        {pendingApps.length === 0 ? (
-          <div className="text-center py-16 bg-neutral-50 dark:bg-neutral-900/40 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
-            <Building className="h-10 w-10 text-neutral-350 dark:text-neutral-700" />
-            <h3 className="font-serif text-lg font-bold text-neutral-700 dark:text-neutral-350">No Pending Applications</h3>
-            <p className="text-xs text-neutral-400 max-w-sm">
-              There are no builder registrations currently waiting for administrator verification.
-            </p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-4 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-neutral-600 dark:text-neutral-300">
+              <FileArchive className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-none">{totalApps}</p>
+              <p className="text-xs text-neutral-500 font-medium mt-1">Total Applications</p>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {pendingApps.map((app) => {
-              const fullName = `${app.first_name || ''} ${app.last_name || ''}`.trim() || 'Builder'
+          <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-4 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-none">{pendingCount}</p>
+              <p className="text-xs text-neutral-500 font-medium mt-1">Pending Review</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-4 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <FileCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-none">{approvedCount}</p>
+              <p className="text-xs text-neutral-500 font-medium mt-1">Approved</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 flex items-center gap-4 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <FileX className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 leading-none">{rejectedCount}</p>
+              <p className="text-xs text-neutral-500 font-medium mt-1">Rejected</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+            <Input 
+              placeholder="Search by builder name, email..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-11 bg-background rounded-xl border border-input w-full"
+            />
+          </div>
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-11 px-4 bg-background border border-input rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand-bronze/20"
+          >
+            <option value="All Status">Filter: All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
+        </div>
+
+        {/* List */}
+        <div className="flex flex-col gap-3 pb-8">
+          {isLoading ? (
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          ) : filteredApps.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-neutral-500">No applications found matching your criteria.</p>
+            </div>
+          ) : (
+            filteredApps.map((app) => {
               const companyInitials = app.company_name
                 ? app.company_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
                 : 'BP'
 
               return (
-                <div
-                  key={app.id}
-                  className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-850 rounded-2xl p-6 shadow-sm flex flex-col justify-between gap-5 relative overflow-hidden"
+                <div 
+                  key={app.id} 
+                  className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden"
                 >
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-terracotta" />
-
-                  <div className="flex flex-col gap-4 pl-2">
-                    <div className="flex items-start gap-4">
-                      {/* Builder logo placeholder */}
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-terracotta/10 text-brand-terracotta font-bold text-lg">
+                  <div className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="h-10 w-10 rounded-full bg-brand-bronze/10 text-brand-bronze flex items-center justify-center font-bold text-sm shrink-0">
                         {companyInitials}
                       </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-heading text-lg font-bold text-neutral-900 dark:text-white leading-tight truncate">
-                            {app.company_name}
-                          </h3>
-                          <span className="flex items-center gap-1 shrink-0 text-[10px] font-medium text-neutral-450 bg-neutral-50 dark:bg-neutral-950 px-2 py-0.5 rounded-full border border-neutral-100 dark:border-neutral-800">
-                            <Clock className="h-3 w-3" />
-                            {new Date(app.created_at).toLocaleDateString()}
-                          </span>
+                      <div className="flex flex-col gap-1 min-w-0 pr-4">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className="font-bold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px] sm:max-w-xs">{app.company_name}</h3>
+                          {getStatusBadge(app.status)}
                         </div>
-                        <p className="mt-1 text-xs text-neutral-500 flex items-center gap-1.5">
-                          <User className="h-3.5 w-3.5" />
-                          Representative: {fullName}
+                        <p className="text-[11px] text-neutral-500 truncate">
+                          Representative: <span className="font-medium text-neutral-700 dark:text-neutral-300">{app.contact_person_name}</span> 
                         </p>
                       </div>
                     </div>
-
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30 px-2 py-0.5 rounded-full">
-                        <ShieldAlert className="h-3 w-3" />
-                        Pending Verification
+                    <div className="flex items-center gap-6 shrink-0">
+                      <span className="text-xs text-neutral-500 font-medium hidden sm:block">
+                        {new Date(app.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </span>
+                      <Button
+                        onClick={() => navigate(`/builders/applications/${app.id}`)}
+                        variant="ghost"
+                        className="h-9 font-semibold text-xs px-4 rounded-xl text-brand-bronze hover:bg-brand-bronze/10 border border-transparent hover:border-neutral-200"
+                      >
+                        View Application <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                      </Button>
                     </div>
-
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed bg-neutral-50/50 dark:bg-neutral-950/40 p-4 rounded-xl border border-neutral-100 dark:border-neutral-850">
-                      {app.company_description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-neutral-500 pt-1 border-t border-neutral-100 dark:border-neutral-850">
-                      {app.email && (
-                        <span className="flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 text-neutral-450" />
-                          {app.email}
-                        </span>
-                      )}
-                      {app.phone && (
-                        <span className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-neutral-450" />
-                          {app.phone}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 pl-2 pt-3 border-t border-neutral-100 dark:border-neutral-850">
-                    <Button
-                      onClick={() => handleReview(app.id, 'Approved')}
-                      disabled={reviewMutation.isPending && reviewMutation.variables?.id === app.id}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 gap-1.5 rounded-xl shadow-sm"
-                    >
-                      {reviewMutation.isPending && reviewMutation.variables?.id === app.id && reviewMutation.variables?.status === 'Approved' ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                          Approving...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Approve
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => handleReview(app.id, 'Rejected')}
-                      disabled={reviewMutation.isPending && reviewMutation.variables?.id === app.id}
-                      variant="outline"
-                      className="flex-1 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-bold h-10 gap-1.5 rounded-xl dark:border-rose-900/30 dark:hover:bg-rose-950/20"
-                    >
-                      {reviewMutation.isPending && reviewMutation.variables?.id === app.id && reviewMutation.variables?.status === 'Rejected' ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                          Rejecting...
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-4 w-4" />
-                          Reject
-                        </>
-                      )}
-                    </Button>
                   </div>
                 </div>
               )
-            })}
-          </div>
-        )}
+            })
+          )}
+          
+          {/* Pagination mockup */}
+          {!isLoading && filteredApps.length > 0 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-xs text-neutral-500">Showing 1 to {filteredApps.length} of {filteredApps.length} applications</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" disabled><ChevronDown className="h-4 w-4 rotate-90" /></Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg bg-neutral-100 font-bold border-none">1</Button>
+                <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg" disabled><ChevronDown className="h-4 w-4 -rotate-90" /></Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

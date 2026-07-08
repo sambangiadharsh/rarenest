@@ -1,16 +1,17 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { LogIn, Loader2, Building2, Shield, Star } from 'lucide-react'
+import { LogIn, Loader2, Building2, Shield, Star, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
 import { setCredentials } from '@/app/store/authSlice'
 import { useLogin } from '@/features/auth'
+import GoogleAuthButton from '../components/GoogleAuthButton'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -27,6 +28,7 @@ export default function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showPassword, setShowPassword] = useState(false)
   const { mutateAsync: login, isPending: isLoading } = useLogin()
 
   React.useEffect(() => {
@@ -85,11 +87,11 @@ export default function Login() {
   return (
     <div className="flex min-h-svh">
       {/* Left brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-forest p-10 lg:flex lg:w-[45%]">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-[#492615] p-10 lg:flex lg:w-[45%]">
         {/* Decorative circles */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-forest-mid/40" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-brand-forest-mid/30" />
-        <div className="pointer-events-none absolute bottom-40 right-10 h-40 w-40 rounded-full bg-brand-sage/20" />
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#492615]/40" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-[#492615]/30" />
+        <div className="pointer-events-none absolute bottom-40 right-10 h-40 w-40 rounded-full bg-[#492615]/20" />
 
         {/* Logo */}
         <div className="relative flex items-center gap-3">
@@ -110,14 +112,14 @@ export default function Login() {
               <span className="text-brand-terracotta-light">real estate</span> <br />
               platform
             </h1>
-            <p className="mt-4 text-sm leading-relaxed text-brand-sage">
+            <p className="mt-4 text-sm leading-relaxed text-white">
               A powerful dashboard to oversee listings, users, enquiries, and all platform content from one place.
             </p>
           </div>
           <ul className="space-y-3">
             {features.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-forest-mid">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#492615]/30">
                   <Icon className="size-4 text-brand-sage" />
                 </div>
                 <span className="text-sm text-brand-sand">{text}</span>
@@ -136,13 +138,13 @@ export default function Login() {
       <div className="flex flex-1 flex-col items-center justify-center bg-brand-warm-white px-6 py-12">
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-2 lg:hidden">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-brand-forest">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-[#492615] shadow-lg">
             <span className="font-heading text-base font-bold text-white">R</span>
           </div>
           <span className="font-heading text-xl font-semibold text-brand-forest">RareNest Admin</span>
         </div>
 
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-[440px] rounded-[2rem] bg-white p-8 sm:p-10 shadow-[0_20px_60px_rgb(0,0,0,0.08)] border border-brand-sand/30">
           <div className="mb-8">
             <h2 className="font-heading text-2xl font-semibold text-brand-forest">Welcome back</h2>
             <p className="mt-1 text-sm text-muted-foreground">Sign in to your admin account to continue</p>
@@ -171,15 +173,24 @@ export default function Login() {
               <Label htmlFor="password" className="text-sm font-medium text-foreground">
                 Password
               </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                autoComplete="current-password"
-                aria-invalid={!!errors.password}
-                className="h-10 border-brand-sand bg-white focus-visible:ring-brand-forest/30"
-                {...register('password')}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  aria-invalid={!!errors.password}
+                  className="h-10 border-brand-sand bg-white pr-10 focus-visible:ring-brand-forest/30"
+                  {...register('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
@@ -187,7 +198,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className="h-10 w-full gap-2 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              className="h-10 w-full gap-2 bg-[#492615] text-white hover:bg-[#492615]/90"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -203,6 +214,19 @@ export default function Login() {
               )}
             </Button>
           </form>
+
+          <div className="relative mt-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-brand-sand"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-brand-warm-white px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <GoogleAuthButton />
+          </div>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
             Restricted to authorized administrators only.

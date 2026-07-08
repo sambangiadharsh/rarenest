@@ -1,4 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { GripVertical, ImagePlus, Loader2, Pencil, Plus, Power, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { getApiOrigin } from '@/shared/config/api'
@@ -33,6 +36,12 @@ function resolveUrl(url) {
 }
 
 const emptyForm = { title: '', subtitle: '', is_active: true }
+
+const bannerSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(100, 'Max 100 characters'),
+  subtitle: z.string().max(200, 'Subtitle is too long').optional(),
+  is_active: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(true),
+})
 
 // ── Image Dropzone ──────────────────────────────────────────────────────────────
 function ImageDropzone({ file, existingUrl, onFile, onClear }) {
@@ -98,7 +107,7 @@ function ImageDropzone({ file, existingUrl, onFile, onClear }) {
           onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
           className={`flex flex-col items-center justify-center gap-3 h-44 rounded-xl border-2 border-dashed cursor-pointer transition-colors select-none
-            ${dragging ? 'border-brand-forest bg-brand-forest/5' : 'border-border hover:border-brand-forest/50 hover:bg-muted/40'}`}
+            ${dragging ? 'border-brand-forest bg-[#492615]/5' : 'border-border hover:border-brand-forest/50 hover:bg-muted/40'}`}
         >
           <ImagePlus className="size-8 text-muted-foreground/50" />
           <div className="text-center">
@@ -132,19 +141,28 @@ export default function HeroBanners() {
   const { mutateAsync: reorderBanners } = useReorderHeroBanners()
 
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(emptyForm)
   const [imageFile, setImageFile] = useState(null)       // new File selected by user
   const [existingImageUrl, setExistingImageUrl] = useState(null) // current saved URL when editing
   const [showForm, setShowForm] = useState(false)
   const [localBanners, setLocalBanners] = useState(null) // optimistic DnD state
   const dragIndexRef = useRef(null)
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(bannerSchema),
+    defaultValues: emptyForm,
+  })
+
   const banners = localBanners ?? (data?.data ?? [])
   const isSaving = isCreating || isUpdating
 
   const openCreate = () => {
     setEditingId(null)
-    setForm(emptyForm)
+    reset(emptyForm)
     setImageFile(null)
     setExistingImageUrl(null)
     setShowForm(true)
@@ -152,7 +170,7 @@ export default function HeroBanners() {
 
   const openEdit = (banner) => {
     setEditingId(banner.id)
-    setForm({ title: banner.title, subtitle: banner.subtitle ?? '', is_active: !!banner.is_active })
+    reset({ title: banner.title, subtitle: banner.subtitle ?? '', is_active: !!banner.is_active })
     setImageFile(null)
     setExistingImageUrl(banner.image_url)
     setShowForm(true)
@@ -161,21 +179,20 @@ export default function HeroBanners() {
   const closeForm = () => {
     setShowForm(false)
     setEditingId(null)
-    setForm(emptyForm)
+    reset(emptyForm)
     setImageFile(null)
     setExistingImageUrl(null)
   }
 
-  const handleSave = async () => {
-    if (!form.title.trim()) { toast.error('Title is required.'); return }
+  const onSubmit = async (data) => {
     // For new banners require a file; for edits allow keeping existing image
     if (!editingId && !imageFile) { toast.error('Please upload a banner image.'); return }
 
     try {
       const payload = {
-        title: form.title.trim(),
-        subtitle: form.subtitle.trim() || '',
-        is_active: form.is_active,
+        title: data.title.trim(),
+        subtitle: data.subtitle?.trim() || '',
+        is_active: data.is_active,
         ...(imageFile ? { file: imageFile } : {}),
       }
 
@@ -282,46 +299,49 @@ export default function HeroBanners() {
               onClear={() => { setImageFile(null); if (editingId) setExistingImageUrl(null) }}
             />
 
-            {/* Title & Subtitle */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Title *</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Own a home that tells a story"
-                />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Title & Subtitle */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Title *</Label>
+                  <Input
+                    {...register('title')}
+                    placeholder="e.g. Own a home that tells a story"
+                    className={errors.title ? 'border-destructive' : ''}
+                  />
+                  {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Subtitle</Label>
+                  <Input
+                    {...register('subtitle')}
+                    placeholder="Optional supporting text shown below the title"
+                    className={errors.subtitle ? 'border-destructive' : ''}
+                  />
+                  {errors.subtitle && <p className="text-xs text-destructive">{errors.subtitle.message}</p>}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Subtitle</Label>
-                <Input
-                  value={form.subtitle}
-                  onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))}
-                  placeholder="Optional supporting text shown below the title"
-                />
+
+              {/* Status */}
+              <div className="space-y-2 max-w-xs">
+                <Label>Status</Label>
+                <select
+                  {...register('is_active')}
+                  className={selectCls}
+                >
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
               </div>
-            </div>
 
-            {/* Status */}
-            <div className="space-y-2 max-w-xs">
-              <Label>Status</Label>
-              <select
-                value={form.is_active ? 'active' : 'inactive'}
-                onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.value === 'active' }))}
-                className={selectCls}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving && <Loader2 className="size-4 animate-spin" />}
-                {isSaving ? 'Uploading…' : 'Save Banner'}
-              </Button>
-              <Button variant="outline" onClick={closeForm}>Cancel</Button>
-            </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="size-4 animate-spin" />}
+                  {isSaving ? 'Uploading…' : 'Save Banner'}
+                </Button>
+                <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}

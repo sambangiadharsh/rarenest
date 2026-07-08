@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const errorMiddleware = require('./middlewares/errorMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -69,20 +70,6 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Rarenest API is running' });
 });
 
-// Basic Error Handler
-app.use((err, req, res, next) => {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ success: false, message: 'File too large' });
-    }
-    if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
-        return res.status(400).json({ success: false, message: err.message || 'Invalid upload' });
-    }
-    console.error(err.stack);
-    res.status(500).json({
-        success: false,
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
-    });
-});
+app.use(errorMiddleware);
 
 module.exports = app;

@@ -111,7 +111,7 @@ function EditCategoryRow({ category, onSave, onCancel, isUpdating }) {
   const isActive = watch('is_active')
 
   return (
-    <tr className="border-b border-brand-forest/20 bg-brand-forest/[0.03]">
+    <tr className="border-b border-brand-forest/20 bg-[#492615]/[0.03]">
       <td colSpan={8} className="px-4 py-4">
         <form onSubmit={handleSubmit(onSave)} className="space-y-4">
           <div className="flex items-center gap-2 mb-1">
@@ -178,7 +178,7 @@ function EditCategoryRow({ category, onSave, onCancel, isUpdating }) {
               type="submit"
               size="sm"
               disabled={isUpdating}
-              className="gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              className="gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90"
             >
               {isUpdating ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
               Save changes
@@ -218,7 +218,7 @@ function EditFeatureRow({ feature, categories, onSave, onCancel, isUpdating }) {
   const isPopular = watch('is_popular')
 
   return (
-    <tr className="border-b border-brand-forest/20 bg-brand-forest/[0.03]">
+    <tr className="border-b border-brand-forest/20 bg-[#492615]/[0.03]">
       <td colSpan={9} className="px-4 py-4">
         <form onSubmit={handleSubmit(onSave)} className="space-y-4">
           <div className="flex items-center gap-2 mb-1">
@@ -324,7 +324,7 @@ function EditFeatureRow({ feature, categories, onSave, onCancel, isUpdating }) {
               type="submit"
               size="sm"
               disabled={isUpdating}
-              className="gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              className="gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90"
             >
               {isUpdating ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
               Save changes
@@ -534,7 +534,7 @@ export default function PropertyFeatures() {
                 <Button
                   type="submit"
                   disabled={isCreatingCat}
-                  className="h-9 gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid"
+                  className="h-9 gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90"
                 >
                   {isCreatingCat ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                   Add Category
@@ -564,10 +564,19 @@ export default function PropertyFeatures() {
             </div>
 
             {catsLoading && (
-              <div className="p-4 space-y-2">
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
+              <div className="space-y-0 divide-y divide-border">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="grid grid-cols-8 items-center gap-4 px-4 py-3.5">
+                    <Skeleton className="h-4 w-full col-span-3" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-10 ml-auto" />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -619,7 +628,7 @@ export default function PropertyFeatures() {
                   <tbody className="divide-y divide-border">
                     {filteredCategories.map((cat) => (
                       <Fragment key={cat.Id}>
-                        <tr className={`group transition-colors ${editingId === cat.Id ? 'bg-brand-forest/[0.04]' : 'hover:bg-muted/30'}`}>
+                        <tr className={`group transition-colors ${editingId === cat.Id ? 'bg-[#492615]/[0.04]' : 'hover:bg-muted/30'}`}>
                           <td className="px-4 py-3.5 font-medium text-foreground">{cat.Name}</td>
                           <td className="px-4 py-3.5"><ActiveBadge active={!!cat.IsActive} /></td>
                           <td className="px-4 py-3.5"><OrderChip order={cat.DisplayOrder ?? 0} /></td>
@@ -736,7 +745,7 @@ export default function PropertyFeatures() {
                   <Button
                     type="submit"
                     disabled={isCreatingFeat}
-                    className="h-9 gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid ml-auto"
+                    className="h-9 gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90 ml-auto"
                   >
                     {isCreatingFeat ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                     Add Feature
@@ -781,10 +790,21 @@ export default function PropertyFeatures() {
             </div>
 
             {featsLoading && (
-              <div className="p-4 space-y-2">
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
-                <Skeleton className="h-6 w-full" />
+              <div className="space-y-0 divide-y divide-border">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="grid grid-cols-10 items-center gap-4 px-4 py-3.5">
+                    <Skeleton className="h-4 w-full col-span-3" />
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-10 ml-auto" />
+                  </div>
+                ))}
               </div>
             )}
 
@@ -828,10 +848,10 @@ export default function PropertyFeatures() {
                   <tbody className="divide-y divide-border">
                     {filteredFeatures.map((feat) => (
                       <Fragment key={feat.Id}>
-                        <tr className={`group transition-colors ${editingId === feat.Id ? 'bg-brand-forest/[0.04]' : 'hover:bg-muted/30'}`}>
+                        <tr className={`group transition-colors ${editingId === feat.Id ? 'bg-[#492615]/[0.04]' : 'hover:bg-muted/30'}`}>
                           <td className="px-4 py-3.5 font-medium text-foreground">{feat.Name}</td>
                           <td className="px-4 py-3.5">
-                            <span className="inline-flex items-center rounded-md bg-brand-forest/5 px-2 py-1 text-xs font-medium text-brand-forest ring-1 ring-inset ring-brand-forest/10">
+                            <span className="inline-flex items-center rounded-md bg-[#492615]/5 px-2 py-1 text-xs font-medium text-[#492615] ring-1 ring-inset ring-[#492615]/10">
                               {feat.category_name}
                             </span>
                           </td>

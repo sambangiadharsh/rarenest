@@ -15,7 +15,7 @@ import {
   MoreVertical,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
-import WifiLoader from '@/shared/components/ui/WifiLoader'
+import { Skeleton } from '@/shared/components/ui/skeleton'
 import {
   usePendingReviews,
   useApprovedReviews,
@@ -98,7 +98,7 @@ function ReviewCard({ review, onApprove, onReject, isApproving, isRejecting }) {
     <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-sm transition-shadow hover:shadow-md flex flex-col md:flex-row gap-6 justify-between items-start md:items-stretch">
       {/* LEFT SECTION */}
       <div className="flex-1 flex gap-4 items-start min-w-0">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-forest/10 text-brand-forest font-bold text-lg">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#492615]/10 text-brand-forest font-bold text-lg">
           {reviewerInitials}
         </div>
         <div className="space-y-1.5 flex-1 min-w-0">
@@ -354,14 +354,6 @@ export default function BuilderReviews() {
   const actingId = approvingId ?? rejectingId
   const isLoading = pendingQuery.isLoading || approvedQuery.isLoading || rejectedQuery.isLoading
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <WifiLoader />
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Header */}
@@ -374,119 +366,125 @@ export default function BuilderReviews() {
         </p>
       </div>
 
-      {/* Top Actions: Search and Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-neutral-50 dark:bg-neutral-900/60 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 mt-2">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-          <input
-            type="text"
-            placeholder="Search reviews..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl pl-9 pr-3 py-2 text-sm outline-none focus:border-brand-forest/50 transition-colors"
-          />
+        {/* Top Actions: Search and Filters */}
+        <div className="flex flex-wrap items-center gap-2 mt-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search reviews..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+
+          {/* Builder Filter */}
+          <select
+            value={builderFilter}
+            onChange={(e) => setBuilderFilter(e.target.value)}
+            className="h-9 min-w-[160px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="All">All Builders</option>
+            {uniqueBuilders.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+
+          {/* Rating Filter */}
+          <select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(e.target.value)}
+            className="h-9 min-w-[120px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="All">All Ratings</option>
+            <option value="5">5 Stars</option>
+            <option value="4">4 Stars</option>
+            <option value="3">3 Stars</option>
+            <option value="2">2 Stars</option>
+            <option value="1">1 Star</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 min-w-[120px] rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Approved">Approved</option>
+            <option value="Rejected">Rejected</option>
+          </select>
         </div>
 
-        {/* Builder Filter */}
-        <select
-          value={builderFilter}
-          onChange={(e) => setBuilderFilter(e.target.value)}
-          className="w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-sm outline-none cursor-pointer focus:border-brand-forest/50"
-        >
-          <option value="All">All Builders</option>
-          {uniqueBuilders.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-
-        {/* Rating Filter */}
-        <select
-          value={ratingFilter}
-          onChange={(e) => setRatingFilter(e.target.value)}
-          className="w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-sm outline-none cursor-pointer focus:border-brand-forest/50"
-        >
-          <option value="All">All Ratings</option>
-          <option value="5">5 Stars</option>
-          <option value="4">4 Stars</option>
-          <option value="3">3 Stars</option>
-          <option value="2">2 Stars</option>
-          <option value="1">1 Star</option>
-        </select>
-
-        {/* Status Filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-sm outline-none cursor-pointer focus:border-brand-forest/50"
-        >
-          <option value="All">All Statuses</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-        </select>
-      </div>
-
-      {/* Reviews List */}
-      <div className="mt-4 space-y-6">
-        {filteredReviews.length === 0 ? (
-          <div className="text-center py-16 bg-neutral-50 dark:bg-neutral-900/40 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
-            <XCircle className="h-10 w-10 text-neutral-300 dark:text-neutral-700" />
-            <h3 className="font-serif text-lg font-bold text-neutral-700 dark:text-neutral-350">No Reviews Found</h3>
-            <p className="text-xs text-neutral-400 max-w-sm">
-              No builder reviews match the selected search criteria or filter options.
-            </p>
-          </div>
-        ) : (
-          <>
+        {/* Reviews List */}
+        <div className="mt-4 space-y-6">
+          {isLoading ? (
             <div className="space-y-4">
-              {paginatedReviews.map((review) => (
-                <ReviewCard
-                  key={review.id}
-                  review={review}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  isApproving={isApproving && approvingId === review.id}
-                  isRejecting={isRejecting && rejectingId === review.id}
-                />
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-40 w-full rounded-xl" />
               ))}
             </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8 pt-4 border-t border-neutral-100 dark:border-neutral-850">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg h-9 gap-1"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <span className="text-xs font-semibold text-neutral-500">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg h-9 gap-1"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+          ) : filteredReviews.length === 0 ? (
+            <div className="text-center py-16 bg-neutral-50 dark:bg-neutral-900/40 border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
+              <XCircle className="h-10 w-10 text-neutral-300 dark:text-neutral-700" />
+              <h3 className="font-serif text-lg font-bold text-neutral-700 dark:text-neutral-350">No Reviews Found</h3>
+              <p className="text-xs text-neutral-400 max-w-sm">
+                No builder reviews match the selected search criteria or filter options.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {paginatedReviews.map((review) => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    isApproving={isApproving && approvingId === review.id}
+                    isRejecting={isRejecting && rejectingId === review.id}
+                  />
+                ))}
               </div>
-            )}
-          </>
-        )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8 pt-4 border-t border-neutral-100 dark:border-neutral-850">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg h-9 gap-1"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <span className="text-xs font-semibold text-neutral-500">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg h-9 gap-1"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
   )
 }

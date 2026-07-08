@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
 const propertyService = require('../services/propertyService');
 const propertySchema = require('../models/propertyModel');
 const jwt = require('jsonwebtoken');
@@ -63,8 +65,7 @@ async function canViewRestrictedProperty(req, property) {
 
 // @desc    Get all properties
 // @route   GET /api/properties
-exports.getProperties = async (req, res) => {
-    try {
+exports.getProperties = asyncHandler(async (req, res) => {
         const filters = { ...req.query };
         const { is_verified, seller_id } = filters;
         const wantsUnverifiedList =
@@ -98,23 +99,18 @@ exports.getProperties = async (req, res) => {
             count: properties.length,
             data: properties
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Get single property
 // @route   GET /api/properties/:id
-exports.getProperty = async (req, res) => {
-    try {
+exports.getProperty = asyncHandler(async (req, res) => {
         const auth = await getOptionalAuth(req);
         const isAdmin = auth?.role === 'Admin';
         const property = await propertyService.getPropertyById(req.params.id, {
             includeEnquiries: isAdmin,
         });
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const hasActivePropertyType =
@@ -126,25 +122,20 @@ exports.getProperty = async (req, res) => {
         if (!isPubliclyVisible) {
             const isAuthorized = await canViewRestrictedProperty(req, property);
             if (!isAuthorized) {
-                return res.status(404).json({ success: false, message: 'Property not found' });
+                throw new AppError('Property not found', 404);
             }
         }
 
         res.status(200).json({ success: true, data: property });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Create new property
 // @route   POST /api/properties
-exports.createProperty = async (req, res) => {
-    try {
+exports.createProperty = asyncHandler(async (req, res) => {
         mapIncomingLocationFields(req.body);
         const { error } = propertySchema.create.validate(req.body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const propertyData = { ...req.body, seller_id: req.user.id };
@@ -152,39 +143,27 @@ exports.createProperty = async (req, res) => {
         if (propertyData.listing_type === 'BuilderProject') {
             const builder = await builderRepository.findProfileByUserId(propertyData.seller_id);
             if (!builder || builder.builder_status !== 'Approved') {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Builder approval required to create a Builder Project listing.'
-                });
+                throw new AppError('Builder approval required to create a Builder Project listing.', 403);
             }
         }
 
         const property = await propertyService.createProperty(propertyData);
 
         res.status(201).json({ success: true, data: property });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Guest seller account — create Seller account + auto-login cookie (no property yet)
 // @route   POST /api/properties/guest-account
-exports.createGuestSellerAccount = async (req, res) => {
-    try {
+exports.createGuestSellerAccount = asyncHandler(async (req, res) => {
         const { name, email, phone } = req.body;
         if (!name || !email || !phone) {
-            return res.status(400).json({ success: false, message: 'Please provide name, email and phone' });
+            throw new AppError('Please provide name, email and phone', 400);
         }
 
         const result = await propertyService.createGuestSellerAccount({ name, email, phone });
 
         if (result.error === 'requires_login') {
-            return res.status(409).json({
-                success: false,
-                requiresLogin: true,
-                message: 'An account with this email already exists. Please log in.',
-            });
+            throw new AppError('An account with this email already exists. Please log in.', 409, { requiresLogin: true });
         }
 
         const token = attachAuthCookie(res, result.user.id);
@@ -201,30 +180,21 @@ exports.createGuestSellerAccount = async (req, res) => {
                 last_name: result.user.last_name,
             },
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Guest create listing — new Seller account + property + auto-login cookie
 // @route   POST /api/properties/guest
-exports.createGuestListing = async (req, res) => {
-    try {
+exports.createGuestListing = asyncHandler(async (req, res) => {
         mapIncomingLocationFields(req.body);
         const { error } = propertySchema.guestCreate.validate(req.body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const result = await propertyService.createGuestListing(req.body);
 
         if (result.error === 'requires_login') {
-            return res.status(409).json({
-                success: false,
-                requiresLogin: true,
-                message: 'An account with this email already exists. Please log in to create a listing.',
-            });
+            throw new AppError('An account with this email already exists. Please log in to create a listing.', 409, { requiresLogin: true });
         }
 
         const token = attachAuthCookie(res, result.user.id);
@@ -243,30 +213,25 @@ exports.createGuestListing = async (req, res) => {
                 last_name: result.user.last_name,
             },
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Update property
 // @route   PUT /api/properties/:id
-exports.updateProperty = async (req, res) => {
-    try {
+exports.updateProperty = asyncHandler(async (req, res) => {
         mapIncomingLocationFields(req.body);
         const { error } = propertySchema.update.validate(req.body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const isOwner = await propertyService.checkOwnership(req.params.id, req.user.id);
         
         if (isOwner === null) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         if (!isOwner && req.user.role !== 'Admin') {
-            return res.status(403).json({ success: false, message: 'Not authorized to update this property' });
+            throw new AppError('Not authorized to update this property', 403);
         }
 
         // Strip is_verified from body unless user is Admin
@@ -276,142 +241,106 @@ exports.updateProperty = async (req, res) => {
 
         const property = await propertyService.updateProperty(req.params.id, req.body);
         res.status(200).json({ success: true, data: property });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Delete property
 // @route   DELETE /api/properties/:id
-exports.deleteProperty = async (req, res) => {
-    try {
+exports.deleteProperty = asyncHandler(async (req, res) => {
         const isOwner = await propertyService.checkOwnership(req.params.id, req.user.id);
 
         if (isOwner === null) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         if (!isOwner && req.user.role !== 'Admin') {
-            return res.status(403).json({ success: false, message: 'Not authorized to delete this property' });
+            throw new AppError('Not authorized to delete this property', 403);
         }
 
         await propertyService.deleteProperty(req.params.id);
         res.status(200).json({ success: true, message: 'Property deleted' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Get verification history for a property (owner or admin)
 // @route   GET /api/properties/:id/verification-history
-exports.getPropertyVerificationHistory = async (req, res) => {
-    try {
+exports.getPropertyVerificationHistory = asyncHandler(async (req, res) => {
         const property = await propertyService.getPropertyById(req.params.id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const isOwner = String(req.user.id) === String(property.seller_id);
         if (!isOwner && req.user.role !== 'Admin') {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+            throw new AppError('Not authorized', 403);
         }
 
         const history = await propertyService.getVerificationHistory(req.params.id);
         res.status(200).json({ success: true, data: history });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Seller resubmits a rejected/change-requested property
 // @route   POST /api/properties/:id/resubmit
-exports.resubmitProperty = async (req, res) => {
-    try {
+exports.resubmitProperty = asyncHandler(async (req, res) => {
         const property = await propertyService.getPropertyById(req.params.id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const isOwner = String(req.user.id) === String(property.seller_id);
         if (!isOwner) {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+            throw new AppError('Not authorized', 403);
         }
 
         const resubmittableStatuses = ['Rejected', 'RequestChanges'];
         if (!resubmittableStatuses.includes(property.verification_status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Property cannot be resubmitted in its current state',
-            });
+            throw new AppError('Property cannot be resubmitted in its current state', 400);
         }
 
         const updated = await propertyService.resubmitProperty(req.params.id, req.user.id);
         res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Get enquiries for a property (owner or admin)
 // @route   GET /api/properties/:id/enquiries
-exports.getPropertyEnquiries = async (req, res) => {
-    try {
+exports.getPropertyEnquiries = asyncHandler(async (req, res) => {
         const property = await propertyService.getPropertyById(req.params.id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const isOwner = String(req.user.id) === String(property.seller_id);
         if (!isOwner && req.user.role !== 'Admin') {
-            return res.status(403).json({ success: false, message: 'Not authorized' });
+            throw new AppError('Not authorized', 403);
         }
 
         const enquiries = await propertyService.getPropertyEnquiries(req.params.id);
         res.status(200).json({ success: true, data: enquiries });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Toggle is_featured for a property (admin only)
 // @route   PATCH /api/properties/:id/featured
-exports.toggleFeatured = async (req, res) => {
-    try {
+exports.toggleFeatured = asyncHandler(async (req, res) => {
         const property = await propertyService.getPropertyById(req.params.id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
         const newValue = !isBitTruthy(property.is_featured);
         const updated = await propertyService.updateProperty(req.params.id, { is_featured: newValue });
         res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Verify/Approve a property
 // @route   PUT /api/properties/:id/verify
-exports.verifyProperty = async (req, res) => {
-    try {
+exports.verifyProperty = asyncHandler(async (req, res) => {
         const { status, reason } = req.body;
         const validStatuses = ['Approved', 'Rejected', 'RequestChanges'];
 
         if (!status || !validStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide a valid status: Approved, Rejected, or RequestChanges',
-            });
+            throw new AppError('Please provide a valid status: Approved, Rejected, or RequestChanges', 400);
         }
 
         const property = await propertyService.getPropertyById(req.params.id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const updatedProperty = await propertyService.verifyProperty(req.params.id, {
@@ -420,9 +349,5 @@ exports.verifyProperty = async (req, res) => {
             adminId: req.user.id,
         });
         res.status(200).json({ success: true, data: updatedProperty });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 

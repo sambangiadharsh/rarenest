@@ -58,7 +58,8 @@ export function useMyBuilderApplication(options = {}) {
 export function useSubmitBuilderApplication() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: builderApi.submitBuilderApplication,
+    mutationFn: ({ formData, onUploadProgress }) =>
+      builderApi.submitBuilderApplication(formData, { onUploadProgress }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-builder-application'] })
     },

@@ -1,25 +1,37 @@
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Star, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { useSubmitBuilderReview } from '../hooks/useBuilder'
 
+const reviewSchema = z.object({
+  rating: z.number().min(1, 'Please select a rating.'),
+  comment: z.string().max(1000, 'Comment is too long').optional(),
+})
+
 export default function ReviewModal({ builderId, onClose }) {
-  const [rating, setRating] = useState(0)
   const [hovered, setHovered] = useState(0)
-  const [comment, setComment] = useState('')
   const [submitted, setSubmitted] = useState(false)
+
+  const {
+    register,
+    handleSubmit: hookFormSubmit,
+    control,
+    watch,
+    formState: { errors }
+  } = useForm({
+    resolver: zodResolver(reviewSchema),
+    defaultValues: { rating: 0, comment: '' }
+  })
 
   const { mutateAsync, isPending } = useSubmitBuilderReview(builderId)
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (rating === 0) {
-      toast.error('Please select a rating.')
-      return
-    }
+  const onSubmit = async (data) => {
     try {
-      await mutateAsync({ rating, comment })
+      await mutateAsync({ rating: data.rating, comment: data.comment })
       setSubmitted(true)
     } catch (err) {
       toast.error(err.message || 'Failed to submit review.')
@@ -58,31 +70,38 @@ export default function ReviewModal({ builderId, onClose }) {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5 p-5">
+          <form onSubmit={hookFormSubmit(onSubmit)} className="space-y-5 p-5">
             <div>
               <p className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Rating
               </p>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHovered(star)}
-                    onMouseLeave={() => setHovered(0)}
-                    className="rounded p-0.5 transition-transform hover:scale-110"
-                  >
-                    <Star
-                      className={`h-8 w-8 transition-colors ${
-                        star <= (hovered || rating)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-neutral-300 dark:text-neutral-600'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
+              <Controller
+                name="rating"
+                control={control}
+                render={({ field }) => (
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => field.onChange(star)}
+                        onMouseEnter={() => setHovered(star)}
+                        onMouseLeave={() => setHovered(0)}
+                        className="rounded p-0.5 transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`h-8 w-8 transition-colors ${
+                            star <= (hovered || field.value)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-neutral-300 dark:text-neutral-600'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              />
+              {errors.rating && <span className="text-[10px] text-destructive font-semibold mt-1 block">{errors.rating.message}</span>}
             </div>
 
             <div>
@@ -94,16 +113,16 @@ export default function ReviewModal({ builderId, onClose }) {
               </label>
               <textarea
                 id="review-comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                {...register('comment')}
                 rows={4}
                 maxLength={1000}
                 placeholder="Share your experience with this builder..."
-                className="w-full resize-none rounded-xl border border-brand-sand bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-brand-terracotta focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                className={`w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:outline-none dark:bg-neutral-800 dark:text-white transition ${errors.comment ? 'border-destructive focus:ring-1 focus:ring-destructive' : 'border-brand-sand focus:border-brand-terracotta dark:border-neutral-700'}`}
               />
               <p className="mt-1 text-right text-xs text-neutral-400">
-                {comment.length}/1000
+                {watch('comment')?.length || 0}/1000
               </p>
+              {errors.comment && <span className="text-[10px] text-destructive font-semibold">{errors.comment.message}</span>}
             </div>
 
             <div className="flex gap-3 pt-1">

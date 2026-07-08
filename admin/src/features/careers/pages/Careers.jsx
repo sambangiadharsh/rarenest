@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
@@ -36,6 +39,19 @@ const emptyForm = {
   status: 'Open',
 }
 
+const careerSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required').max(100),
+  department: z.string().optional(),
+  location: z.string().optional(),
+  employment_type: z.string().optional(),
+  experience_level: z.string().optional(),
+  salary_range: z.string().optional(),
+  application_email: z.union([z.string().email('Invalid email'), z.literal('')]).optional(),
+  status: z.enum(['Open', 'Closed']).default('Open'),
+  description: z.string().optional(),
+  requirements: z.string().optional(),
+})
+
 export default function Careers() {
   const { data, isLoading, isError, error } = useCareersAdmin()
   const { mutateAsync: createCareer, isPending: isCreating } = useCreateCareer()
@@ -43,21 +59,31 @@ export default function Careers() {
   const { mutateAsync: deleteCareer, isPending: isDeleting } = useDeleteCareer()
 
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(careerSchema),
+    defaultValues: emptyForm,
+  })
 
   const careers = data?.data ?? []
   const isSaving = isCreating || isUpdating
 
   const openCreate = () => {
     setEditingId(null)
-    setForm(emptyForm)
+    reset(emptyForm)
     setShowForm(true)
   }
 
   const openEdit = (career) => {
     setEditingId(career.id)
-    setForm({
+    reset({
       title: career.title || '',
       department: career.department || '',
       location: career.location || '',
@@ -75,26 +101,21 @@ export default function Careers() {
   const closeForm = () => {
     setShowForm(false)
     setEditingId(null)
-    setForm(emptyForm)
+    reset(emptyForm)
   }
 
-  const handleSave = async () => {
-    if (!form.title.trim()) {
-      toast.error('Title is required.')
-      return
-    }
-
+  const onSubmit = async (data) => {
     const payload = {
-      title: form.title.trim(),
-      department: form.department || null,
-      location: form.location || null,
-      employment_type: form.employment_type || null,
-      experience_level: form.experience_level || null,
-      description: form.description || null,
-      requirements: form.requirements || null,
-      salary_range: form.salary_range || null,
-      application_email: form.application_email || null,
-      status: form.status,
+      title: data.title.trim(),
+      department: data.department || null,
+      location: data.location || null,
+      employment_type: data.employment_type || null,
+      experience_level: data.experience_level || null,
+      description: data.description || null,
+      requirements: data.requirements || null,
+      salary_range: data.salary_range || null,
+      application_email: data.application_email || null,
+      status: data.status,
     }
 
     try {
@@ -155,96 +176,79 @@ export default function Careers() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Title *</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                />
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Title *</Label>
+                  <Input {...register('title')} className={errors.title ? 'border-destructive' : ''} />
+                  {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Input {...register('department')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Location</Label>
+                  <Input {...register('location')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Employment type</Label>
+                  <Input {...register('employment_type')} placeholder="Full-time, Part-time..." />
+                </div>
+                <div className="space-y-2">
+                  <Label>Experience level</Label>
+                  <Input {...register('experience_level')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Salary range</Label>
+                  <Input {...register('salary_range')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Application email</Label>
+                  <Input type="email" {...register('application_email')} className={errors.application_email ? 'border-destructive' : ''} />
+                  {errors.application_email && <p className="text-xs text-destructive">{errors.application_email.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <select {...register('status')} className={selectClassName}>
+                    <option value="Open">Open</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Department</Label>
-                <Input
-                  value={form.department}
-                  onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Employment type</Label>
-                <Input
-                  value={form.employment_type}
-                  onChange={(e) => setForm((f) => ({ ...f, employment_type: e.target.value }))}
-                  placeholder="Full-time, Part-time..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Experience level</Label>
-                <Input
-                  value={form.experience_level}
-                  onChange={(e) => setForm((f) => ({ ...f, experience_level: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Salary range</Label>
-                <Input
-                  value={form.salary_range}
-                  onChange={(e) => setForm((f) => ({ ...f, salary_range: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Application email</Label>
-                <Input
-                  type="email"
-                  value={form.application_email}
-                  onChange={(e) => setForm((f) => ({ ...f, application_email: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
-                  className={selectClassName}
-                >
-                  <option value="Open">Open</option>
-                  <option value="Closed">Closed</option>
-                </select>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <RichTextEditor
-                value={form.description}
-                onChange={(description) => setForm((f) => ({ ...f, description }))}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <RichTextEditor value={field.value} onChange={field.onChange} />
+                  )}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label>Requirements</Label>
-              <RichTextEditor
-                value={form.requirements}
-                onChange={(requirements) => setForm((f) => ({ ...f, requirements }))}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label>Requirements</Label>
+                <Controller
+                  name="requirements"
+                  control={control}
+                  render={({ field }) => (
+                    <RichTextEditor value={field.value} onChange={field.onChange} />
+                  )}
+                />
+              </div>
 
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving && <Loader2 className="size-4 animate-spin" />}
-                Save
-              </Button>
-              <Button variant="outline" onClick={closeForm}>
-                Cancel
-              </Button>
-            </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="size-4 animate-spin" />}
+                  Save
+                </Button>
+                <Button type="button" variant="outline" onClick={closeForm}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       )}

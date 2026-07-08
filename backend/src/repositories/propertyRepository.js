@@ -122,18 +122,20 @@ class PropertyRepository {
         request.input('property_story', sql.NVarChar, propertyData.property_story || null);
         request.input('property_age', sql.Int, propertyData.property_age ?? null);
         request.input('listing_type', sql.NVarChar, propertyData.listing_type || 'Individual');
+        request.input('beds', sql.Int, propertyData.beds ?? null);
+        request.input('baths', sql.Int, propertyData.baths ?? null);
  
         const result = await request.query(`
             INSERT INTO Properties (
                 seller_id, title, property_type_id, asking_price, size_sqft,
                 location_city, location_state, location_district, Area, Pincode, contact_email,
-                contact_phone, property_story, property_age, listing_type
+                contact_phone, property_story, property_age, listing_type, beds, baths
             )
             OUTPUT inserted.*
             VALUES (
                 @seller_id, @title, @property_type_id, @asking_price, @size_sqft,
                 @location_city, @location_state, @location_district, @Area, @Pincode, @contact_email,
-                @contact_phone, @property_story, @property_age, @listing_type
+                @contact_phone, @property_story, @property_age, @listing_type, @beds, @baths
             )
         `);
         return this.findById(result.recordset[0].id);
@@ -148,7 +150,7 @@ class PropertyRepository {
             'title', 'property_type_id', 'asking_price', 'size_sqft',
             'location_city', 'location_state', 'location_district', 'Area', 'Pincode',
             'contact_email', 'contact_phone', 'property_story', 'property_age', 'status',
-            'is_visible', 'is_featured', 'listing_type',
+            'is_visible', 'is_featured', 'listing_type', 'beds', 'baths',
         ];
 
         const updateClauses = [];
@@ -159,8 +161,8 @@ class PropertyRepository {
 
             if (key === 'asking_price' || key === 'size_sqft') {
                 request.input(key, sql.Decimal(18, 2), value);
-            } else if (key === 'property_age') {
-                request.input(key, sql.Int, value);
+            } else if (key === 'property_age' || key === 'beds' || key === 'baths') {
+                request.input(key, sql.Int, value ?? null);
             } else if (key === 'property_type_id') {
                 request.input(key, sql.UniqueIdentifier, value);
             } else if (key === 'is_visible' || key === 'is_featured') {

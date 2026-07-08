@@ -85,7 +85,7 @@ function EditRow({ type, onSave, onCancel, isUpdating }) {
   const isActive = watch('is_active')
 
   return (
-    <tr className="border-b border-brand-forest/20 bg-brand-forest/[0.03]">
+    <tr className="border-b border-brand-forest/20 bg-[#492615]/[0.03]">
       <td colSpan={8} className="px-4 py-4">
         <form onSubmit={handleSubmit(onSave)} className="space-y-4">
           <div className="flex items-center gap-2 mb-1">
@@ -155,7 +155,7 @@ function EditRow({ type, onSave, onCancel, isUpdating }) {
               type="submit"
               size="sm"
               disabled={isUpdating}
-              className="gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              className="gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90"
             >
               {isUpdating ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
               Save changes
@@ -242,7 +242,7 @@ export default function PropertyTypes() {
             Manage property categories used across listings.
           </p>
         </div>
-        <div className="rounded-full bg-brand-forest/8 px-3 py-1 text-xs font-medium text-brand-forest">
+        <div className="rounded-full bg-[#492615]/8 px-3 py-1 text-xs font-medium text-brand-forest">
           {isLoading ? '…' : `${propertyTypes.length} type${propertyTypes.length === 1 ? '' : 's'}`}
         </div>
       </div>
@@ -278,7 +278,7 @@ export default function PropertyTypes() {
             <Button
               type="submit"
               disabled={isCreating}
-              className="h-9 gap-1.5 bg-brand-forest text-white hover:bg-brand-forest-mid"
+              className="h-9 gap-1.5 bg-[#492615] text-white hover:bg-[#492615]/90"
             >
               {isCreating ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -315,11 +315,15 @@ export default function PropertyTypes() {
         {isLoading && (
           <div className="space-y-0 divide-y divide-border">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+              <div key={i} className="grid grid-cols-8 items-center gap-4 px-4 py-3.5">
+                <Skeleton className="h-4 w-full col-span-3" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-12" />
                 <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-6 rounded-md" />
-                <Skeleton className="ml-auto h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-10 ml-auto" />
               </div>
             ))}
           </div>
@@ -394,7 +398,7 @@ export default function PropertyTypes() {
                     <tr
                       className={`group transition-colors ${
                         editingId === type.id
-                          ? 'bg-brand-forest/[0.04]'
+                          ? 'bg-[#492615]/[0.04]'
                           : 'hover:bg-muted/30'
                       }`}
                     >

@@ -13,6 +13,8 @@ import {
   Triangle,
   ChevronLeft,
   ChevronRight,
+  Bed,
+  Bath,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -337,6 +339,20 @@ export default function PropertyDetail() {
 
                 {Number(property.size_sqft).toLocaleString('en-IN')} sqft
               </div>
+
+              {property.beds !== null && property.beds !== undefined && property.beds !== '' && (
+                <div className="flex items-center gap-2">
+                  <Bed className="h-4 w-4 text-brand-terracotta" />
+                  {property.beds} {Number(property.beds) === 1 ? 'Bed' : 'Beds'}
+                </div>
+              )}
+
+              {property.baths !== null && property.baths !== undefined && property.baths !== '' && (
+                <div className="flex items-center gap-2">
+                  <Bath className="h-4 w-4 text-brand-terracotta" />
+                  {property.baths} {Number(property.baths) === 1 ? 'Bath' : 'Baths'}
+                </div>
+              )}
 
               {propertyAgeLabel && (
                 <div className="text-neutral-600 dark:text-neutral-400">

@@ -30,3 +30,9 @@ export function useResetPassword() {
     mutationFn: authService.resetPassword,
   })
 }
+
+export function useGoogleLogin() {
+  return useMutation({
+    mutationFn: authService.googleLogin,
+  })
+}

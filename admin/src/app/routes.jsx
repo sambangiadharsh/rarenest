@@ -6,6 +6,7 @@ import { PropertiesPage, PropertyFeaturesPage } from '@/features/properties'
 import { PropertyTypesPage } from '@/features/propertyTypes'
 import {
   BuilderApplicationsPage,
+  BuilderApplicationDetailPage,
   BuildersPage,
   BuilderReviewsPage,
   FeaturedBuildersPage,
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
           { path: 'properties/features', element: <PropertyFeaturesPage /> },
           { path: 'builders', element: <BuildersPage /> },
           { path: 'builders/applications', element: <BuilderApplicationsPage /> },
+          { path: 'builders/applications/:id', element: <BuilderApplicationDetailPage /> },
           { path: 'builders/reviews', element: <BuilderReviewsPage /> },
           { path: 'builders/featured', element: <FeaturedBuildersPage /> },
           { path: 'content/careers', element: <CareersPage /> },

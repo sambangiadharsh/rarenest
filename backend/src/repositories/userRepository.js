@@ -42,22 +42,54 @@ class UserRepository {
     }
 
     async create(userData) {
-        const { email, password_hash, first_name, last_name, phone, address, role } = userData;
+        const { email, password_hash, first_name, last_name, phone, address, role, provider, google_id, profile_image } = userData;
         const pool = await poolPromise;
         const result = await pool.request()
             .input('email', sql.NVarChar, email)
-            .input('password', sql.NVarChar, password_hash)
-            .input('first_name', sql.NVarChar, first_name)
-            .input('last_name', sql.NVarChar, last_name)
-            .input('phone', sql.NVarChar, phone)
-            .input('address', sql.NVarChar, address)
-            .input('role', sql.NVarChar, role || 'Buyer')
+            .input('password', sql.NVarChar, password_hash || null)
+            .input('first_name', sql.NVarChar, first_name || null)
+            .input('last_name', sql.NVarChar, last_name || null)
+            .input('phone', sql.NVarChar, phone || null)
+            .input('address', sql.NVarChar, address || null)
+            .input('role', sql.NVarChar, role || 'User')
+            .input('provider', sql.NVarChar, provider || 'local')
+            .input('google_id', sql.NVarChar, google_id || null)
+            .input('profile_image', sql.NVarChar, profile_image || null)
             .query(`
-                INSERT INTO Users (email, password_hash, first_name, last_name, phone, address, role)
-                OUTPUT inserted.id, inserted.email, inserted.role, inserted.first_name, inserted.last_name
-                VALUES (@email, @password, @first_name, @last_name, @phone, @address, @role)
+                INSERT INTO Users (email, password_hash, first_name, last_name, phone, address, role, provider, google_id, profile_image)
+                OUTPUT inserted.id, inserted.email, inserted.role, inserted.first_name, inserted.last_name, inserted.provider, inserted.google_id, inserted.profile_image
+                VALUES (@email, @password, @first_name, @last_name, @phone, @address, @role, @provider, @google_id, @profile_image)
             `);
         return result.recordset[0];
+    }
+
+    async linkGoogleAccount(userId, googleId, profileImage) {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('id', sql.UniqueIdentifier, userId)
+            .input('google_id', sql.NVarChar, googleId)
+            .input('profile_image', sql.NVarChar, profileImage || null)
+            .query(`
+                UPDATE Users
+                SET google_id = @google_id,
+                    provider = 'google',
+                    profile_image = COALESCE(@profile_image, profile_image),
+                    updated_at = GETDATE()
+                OUTPUT inserted.id, inserted.email, inserted.role, inserted.first_name, inserted.last_name, inserted.provider, inserted.google_id, inserted.profile_image
+                WHERE id = @id
+            `);
+        return result.recordset[0];
+    }
+
+    async updateLastLogin(userId) {
+        const pool = await poolPromise;
+        await pool.request()
+            .input('id', sql.UniqueIdentifier, userId)
+            .query(`
+                UPDATE Users
+                SET updated_at = GETDATE()
+                WHERE id = @id
+            `);
     }
 
     async updateResetToken(userId, hashedToken, expireDate) {

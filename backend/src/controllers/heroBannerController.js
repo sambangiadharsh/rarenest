@@ -1,28 +1,19 @@
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
 const heroBannerService = require('../services/heroBannerService');
 const heroBannerSchema = require('../models/heroBannerModel');
 
-exports.getActiveBanners = async (req, res) => {
-    try {
+exports.getActiveBanners = asyncHandler(async (req, res) => {
         const banners = await heroBannerService.getActiveBanners();
         res.status(200).json({ success: true, count: banners.length, data: banners });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.getAllBanners = async (req, res) => {
-    try {
+exports.getAllBanners = asyncHandler(async (req, res) => {
         const banners = await heroBannerService.getAllBanners();
         res.status(200).json({ success: true, count: banners.length, data: banners });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.createBanner = async (req, res) => {
-    try {
+exports.createBanner = asyncHandler(async (req, res) => {
         // Coerce multipart string fields
         const body = {
             title: req.body.title,
@@ -41,22 +32,14 @@ exports.createBanner = async (req, res) => {
 
         const { error } = schemaToUse.validate(body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const banner = await heroBannerService.createBanner(body, req.file || null);
         res.status(201).json({ success: true, data: banner });
-    } catch (err) {
-        if (err.statusCode === 400) {
-            return res.status(400).json({ success: false, message: err.message });
-        }
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.updateBanner = async (req, res) => {
-    try {
+exports.updateBanner = asyncHandler(async (req, res) => {
         const body = {};
         if (req.body.title !== undefined) body.title = req.body.title;
         if (req.body.subtitle !== undefined) body.subtitle = req.body.subtitle;
@@ -68,59 +51,28 @@ exports.updateBanner = async (req, res) => {
 
         const { error } = heroBannerSchema.update.validate(body);
         if (error && !req.file) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const banner = await heroBannerService.updateBanner(req.params.id, body, req.file || null);
         res.status(200).json({ success: true, data: banner });
-    } catch (err) {
-        if (err.statusCode === 404) {
-            return res.status(404).json({ success: false, message: err.message });
-        }
-        if (err.statusCode === 400) {
-            return res.status(400).json({ success: false, message: err.message });
-        }
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.deleteBanner = async (req, res) => {
-    try {
+exports.deleteBanner = asyncHandler(async (req, res) => {
         await heroBannerService.deleteBanner(req.params.id);
         res.status(200).json({ success: true, data: {} });
-    } catch (err) {
-        if (err.statusCode === 404) {
-            return res.status(404).json({ success: false, message: err.message });
-        }
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.toggleActive = async (req, res) => {
-    try {
+exports.toggleActive = asyncHandler(async (req, res) => {
         const banner = await heroBannerService.toggleActive(req.params.id);
         res.status(200).json({ success: true, data: banner });
-    } catch (err) {
-        if (err.statusCode === 404) {
-            return res.status(404).json({ success: false, message: err.message });
-        }
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.reorderBanners = async (req, res) => {
-    try {
+exports.reorderBanners = asyncHandler(async (req, res) => {
         const { error } = heroBannerSchema.reorder.validate(req.body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
         await heroBannerService.reorderBanners(req.body.items);
         res.status(200).json({ success: true, message: 'Order updated' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});

@@ -6,9 +6,11 @@ import {
   List,
   Sparkles,
 } from 'lucide-react'
-import WifiLoader from '@/shared/components/ui/WifiLoader'
+
+import { SkeletonWrapper } from '@/shared/skeletons'
 import { Button } from '@/shared/components/ui/button'
 import PropertyCard from '@/features/properties/components/PropertyCard'
+import PropertyCardSkeleton from '@/features/properties/components/PropertyCardSkeleton'
 import { useProperties } from '@/features/properties'
 import { usePropertyTypes } from '@/features/properties'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
@@ -105,9 +107,7 @@ export default function Properties() {
     <div className="flex flex-col gap-8 pt-10 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* 1. Header Information Block */}
       <div className="flex flex-col gap-2">
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-brand-bronze uppercase bg-brand-bronze/10 px-3 py-1 rounded-full max-w-max">
-          <Sparkles className="h-3.5 w-3.5" /> High Performance Catalog
-        </div>
+        
         <h1 className="font-serif text-3xl sm:text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-white">
           The Rare Dwelling Archive
         </h1>
@@ -300,37 +300,48 @@ export default function Properties() {
 
         {/* Right Side Cards Display grid */}
         <div className="lg:col-span-3">
-          {isLoading ? (
-            <div className="flex justify-center py-20">
-              <WifiLoader />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-neutral-200 dark:border-neutral-850 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
-              <span className="text-3xl">🏝</span>
-              <h3 className="font-serif text-lg font-bold text-neutral-700 dark:text-neutral-200">No Matching Archives</h3>
-              <p className="text-xs text-neutral-400 max-w-sm">
-                We couldn't locate any alternative residences that conform to your exact parameters. Try clearing your search fields.
-              </p>
-              <Button onClick={handleResetFilters} variant="outline" size="sm" className="rounded-xl border-brand-bronze text-brand-bronze hover:bg-brand-bronze hover:text-white mt-1">
-                Clear Filters
-              </Button>
-            </div>
-          ) : (
-            <div className={
-  viewMode === 'grid' 
-    ? "grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in duration-300"
-    : "flex flex-col gap-6 animate-in fade-in duration-300"
-}>
-              {filtered.map((prop, idx) => (
-                <PropertyCard
-                  key={prop.id}
-                  property={prop}
-                  index={idx}
-                  layout={viewMode === 'list' ? 'list' : 'grid'}
-                />
-              ))}
-            </div>
-          )}
+          <SkeletonWrapper 
+            loading={isLoading} 
+            skeleton={
+              <div className={
+                viewMode === 'grid' 
+                  ? "grid grid-cols-1 md:grid-cols-3 gap-8"
+                  : "flex flex-col gap-6"
+              }>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <PropertyCardSkeleton key={i} layout={viewMode === 'list' ? 'list' : 'grid'} />
+                ))}
+              </div>
+            }
+          >
+            {filtered.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-neutral-200 dark:border-neutral-850 rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
+                <span className="text-3xl">🏝</span>
+                <h3 className="font-serif text-lg font-bold text-neutral-700 dark:text-neutral-200">No Matching Archives</h3>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  We couldn't locate any alternative residences that conform to your exact parameters. Try clearing your search fields.
+                </p>
+                <Button onClick={handleResetFilters} variant="outline" size="sm" className="rounded-xl border-brand-bronze text-brand-bronze hover:bg-brand-bronze hover:text-white mt-1">
+                  Clear Filters
+                </Button>
+              </div>
+            ) : (
+              <div className={
+                viewMode === 'grid' 
+                  ? "grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in duration-300"
+                  : "flex flex-col gap-6 animate-in fade-in duration-300"
+              }>
+                {filtered.map((prop, idx) => (
+                  <PropertyCard
+                    key={prop.id}
+                    property={prop}
+                    index={idx}
+                    layout={viewMode === 'list' ? 'list' : 'grid'}
+                  />
+                ))}
+              </div>
+            )}
+          </SkeletonWrapper>
         </div>
       </div>
     </div>

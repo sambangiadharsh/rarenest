@@ -1,53 +1,35 @@
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
 const locationService = require('../services/locationService');
 
-exports.getStates = async (req, res) => {
-    try {
+exports.getStates = asyncHandler(async (req, res) => {
         const states = await locationService.getStates();
         return res.status(200).json(states);
-    } catch (err) {
-        console.error('Error in getStates:', err);
-        return res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.getDistricts = async (req, res) => {
-    try {
+exports.getDistricts = asyncHandler(async (req, res) => {
         const { state } = req.query;
         if (!state) {
-            return res.status(400).json({ success: false, message: 'State parameter is required' });
+            throw new AppError('State parameter is required', 400);
         }
         const districts = await locationService.getDistricts(state);
         return res.status(200).json(districts);
-    } catch (err) {
-        console.error('Error in getDistricts:', err);
-        return res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.getCities = async (req, res) => {
-    try {
+exports.getCities = asyncHandler(async (req, res) => {
         const { state, district } = req.query;
         if (!state || !district) {
-            return res.status(400).json({ success: false, message: 'State and district parameters are required' });
+            throw new AppError('State and district parameters are required', 400);
         }
         const cities = await locationService.getCities(state, district);
         return res.status(200).json(cities);
-    } catch (err) {
-        console.error('Error in getCities:', err);
-        return res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
-exports.searchLocations = async (req, res) => {
-    try {
+exports.searchLocations = asyncHandler(async (req, res) => {
         const { q } = req.query;
         if (!q) {
             return res.status(200).json([]);
         }
         const locations = await locationService.searchLocations(q);
         return res.status(200).json(locations);
-    } catch (err) {
-        console.error('Error in searchLocations:', err);
-        return res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});

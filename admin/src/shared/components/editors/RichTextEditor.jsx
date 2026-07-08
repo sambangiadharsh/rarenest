@@ -24,7 +24,7 @@ import { cn } from '@/shared/lib/utils'
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ToolbarSeparator() {
-  return <div className="mx-1 h-5 w-px shrink-0 bg-border" />
+  return <div className="mx-1 h-6 w-px shrink-0 bg-brand-sand" />
 }
 
 function HeadingDropdown({ editor }) {
@@ -63,17 +63,17 @@ function HeadingDropdown({ editor }) {
         title="Headings"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex h-7 items-center gap-0.5 rounded-md px-1.5 text-sm transition-all duration-100',
+          'flex h-8 items-center gap-0.5 rounded-md px-2 text-sm transition-all duration-100',
           editor.isActive('heading')
             ? 'bg-brand-forest text-white shadow-sm'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            : 'text-brand-mid hover:bg-brand-cream hover:text-brand-forest',
         )}
       >
         <span className="font-semibold text-[13px]">H</span>
         <ChevronDown className="size-3 opacity-60" />
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded-md border border-border bg-white p-1 shadow-md">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-brand-sand bg-white p-1 shadow-lg">
           {options.map((opt) => (
             <button
               key={opt.label}
@@ -83,8 +83,8 @@ function HeadingDropdown({ editor }) {
                 setIsOpen(false)
               }}
               className={cn(
-                'flex w-full items-center rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-accent hover:text-foreground',
-                opt.active() ? 'bg-accent font-semibold text-brand-forest' : 'text-muted-foreground'
+                'flex w-full items-center rounded-md px-2.5 py-2 text-xs transition-colors hover:bg-brand-cream hover:text-brand-forest',
+                opt.active() ? 'bg-brand-cream font-semibold text-brand-forest' : 'text-muted-foreground'
               )}
             >
               {opt.label}
@@ -140,17 +140,17 @@ function ListDropdown({ editor }) {
         title="Lists"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex h-7 items-center gap-0.5 rounded-md px-1.5 text-sm transition-all duration-100',
+          'flex h-8 items-center gap-0.5 rounded-md px-2 text-sm transition-all duration-100',
           isListActive
             ? 'bg-brand-forest text-white shadow-sm'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            : 'text-brand-mid hover:bg-brand-cream hover:text-brand-forest',
         )}
       >
         <List className="size-3.5" />
         <ChevronDown className="size-3 opacity-60" />
       </button>
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[120px] rounded-md border border-border bg-white p-1 shadow-md">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[140px] rounded-lg border border-brand-sand bg-white p-1 shadow-lg">
           {options.map((opt) => {
             const Icon = opt.icon
             return (
@@ -162,8 +162,8 @@ function ListDropdown({ editor }) {
                   setIsOpen(false)
                 }}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors hover:bg-accent hover:text-foreground',
-                  opt.active() ? 'bg-accent font-semibold text-brand-forest' : 'text-muted-foreground'
+                  'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-xs transition-colors hover:bg-brand-cream hover:text-brand-forest',
+                  opt.active() ? 'bg-brand-cream font-semibold text-brand-forest' : 'text-muted-foreground'
                 )}
               >
                 <Icon className="size-3.5" />
@@ -190,10 +190,10 @@ function ToolbarBtn({ btn, editor }) {
         btn.action(editor)
       }}
       className={cn(
-        'flex size-7 items-center justify-center rounded-md text-sm transition-all duration-100',
+        'flex size-8 items-center justify-center rounded-md text-sm transition-all duration-100',
         active
           ? 'bg-brand-forest text-white shadow-sm'
-          : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+          : 'text-brand-mid hover:bg-brand-cream hover:text-brand-forest',
       )}
     >
       <Icon className="size-3.5" />
@@ -211,7 +211,7 @@ function UndoRedoBtn({ title, onAction, disabled, icon: Icon }) {
         onAction()
       }}
       disabled={disabled}
-      className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-all duration-100 hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+      className="flex size-8 items-center justify-center rounded-md text-brand-mid transition-all duration-100 hover:bg-brand-cream hover:text-brand-forest disabled:pointer-events-none disabled:opacity-30"
     >
       <Icon className="size-3.5" />
     </button>
@@ -260,8 +260,7 @@ export default function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'rich-content focus:outline-none px-5 py-4',
-        style: `min-height: ${minHeight}px`,
+        class: 'rich-content focus:outline-none px-6 py-5 min-h-full',
       },
     },
   })
@@ -282,9 +281,11 @@ export default function RichTextEditor({
   if (!editor) {
     return (
       <div
-        className={cn('rounded-xl border border-border bg-muted/10 animate-pulse', className)}
+        className={cn('relative overflow-hidden rounded-xl border border-brand-sand bg-brand-cream/50 flex-1 min-h-0', className)}
         style={{ minHeight: minHeight + 96 }}
-      />
+      >
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent" />
+      </div>
     )
   }
 
@@ -311,13 +312,13 @@ export default function RichTextEditor({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-xl border border-border bg-white shadow-xs',
-        'transition-all duration-200 focus-within:border-brand-forest/50 focus-within:shadow-sm',
+        'flex flex-col overflow-hidden rounded-xl border border-brand-sand/80 bg-white shadow-[0_10px_28px_rgba(42,42,42,0.07)]',
+        'transition-all duration-200 focus-within:border-brand-forest/50 focus-within:shadow-[0_14px_34px_rgba(42,42,42,0.1)]',
         className,
       )}
     >
       {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-muted/40 px-2.5 py-1.5">
+      <div className="shrink-0 flex flex-wrap items-center gap-1 border-b border-brand-sand bg-brand-warm-white px-3 py-2">
         {/* Undo / Redo */}
         <div className="flex items-center gap-0.5">
           <UndoRedoBtn
@@ -518,7 +519,7 @@ export default function RichTextEditor({
           type="button"
           title="Add Image"
           onClick={addImage}
-          className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-all duration-100 hover:bg-accent hover:text-foreground"
+          className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-brand-mid transition-all duration-100 hover:bg-brand-cream hover:text-brand-forest"
         >
           <ImagePlus className="size-3.5" />
           <span>Add</span>
@@ -526,9 +527,12 @@ export default function RichTextEditor({
       </div>
 
       {/* ── Content area ── */}
-      <div className="relative">
+      <div 
+        className="relative bg-white flex-1 min-h-0 overflow-y-auto"
+        style={{ minHeight }}
+      >
         {isEmpty && (
-          <p className="pointer-events-none absolute left-5 top-4 select-none text-sm text-muted-foreground/50">
+          <p className="pointer-events-none absolute left-6 top-5 select-none text-sm text-muted-foreground/50">
             {placeholder}
           </p>
         )}
@@ -536,9 +540,10 @@ export default function RichTextEditor({
       </div>
 
       {/* ── Footer: word count ── */}
-      <div className="flex items-center justify-between border-t border-border bg-muted/20 px-4 py-1.5">
-        <div className="flex gap-2 text-[11px] text-muted-foreground/50">
-          <span>Use the toolbar above or keyboard shortcuts to format content.</span>
+      <div className="shrink-0 flex items-center justify-between border-t border-brand-sand bg-brand-warm-white px-4 py-2">
+        <div className="flex items-center gap-2 text-[11px] font-medium text-brand-forest/70">
+          <span className="size-1.5 rounded-full bg-brand-sage" />
+          <span>Ready</span>
         </div>
         <div className="flex gap-3 text-[11px] tabular-nums text-muted-foreground/60">
           <span>{wordCount} {wordCount === 1 ? 'word' : 'words'}</span>

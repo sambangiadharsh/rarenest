@@ -515,6 +515,12 @@ export default function MyPropertyDetail() {
                   {property.size_sqft && (
                     <span>{Number(property.size_sqft).toLocaleString('en-IN')} Sq.ft</span>
                   )}
+                  {property.beds !== null && property.beds !== undefined && property.beds !== '' && (
+                    <span>{property.beds} {Number(property.beds) === 1 ? 'Bed' : 'Beds'}</span>
+                  )}
+                  {property.baths !== null && property.baths !== undefined && property.baths !== '' && (
+                    <span>{property.baths} {Number(property.baths) === 1 ? 'Bath' : 'Baths'}</span>
+                  )}
                   {ageLabel && <span>{ageLabel}</span>}
                 </div>
               </div>
@@ -565,6 +571,8 @@ export default function MyPropertyDetail() {
                   { label: 'Property Type', value: property.property_type_name },
                   { label: 'Listed On', value: formatDate(property.created_at) },
                   { label: 'Built-up Area', value: property.size_sqft ? `${Number(property.size_sqft).toLocaleString('en-IN')} Sq.ft` : null },
+                  property.beds !== null && property.beds !== undefined && property.beds !== '' ? { label: 'Beds', value: property.beds } : null,
+                  property.baths !== null && property.baths !== undefined && property.baths !== '' ? { label: 'Baths', value: property.baths } : null,
                   { label: 'Property Age', value: ageLabel },
                   { label: 'Area', value: property.Area },
                   { label: 'City', value: property.location_city },
@@ -572,7 +580,7 @@ export default function MyPropertyDetail() {
                   { label: 'State', value: property.location_state },
                   { label: 'Pincode', value: property.Pincode },
                   { label: 'Status', value: property.status },
-                ].map(({ label, value }) => (
+                ].filter(Boolean).map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-xs text-neutral-400">{label}</p>
                     <p className="mt-0.5 text-sm font-medium text-neutral-800 dark:text-neutral-100">{value || '—'}</p>

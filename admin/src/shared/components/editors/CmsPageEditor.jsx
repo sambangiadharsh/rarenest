@@ -15,10 +15,10 @@ const STATUS_OPTIONS = [
 
 function SectionCard({ title, icon: Icon, children, className }) {
   return (
-    <div className={`overflow-hidden rounded-xl border border-border bg-card shadow-xs ${className ?? ''}`}>
-      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-3">
-        {Icon && <Icon className="size-3.5 text-muted-foreground" />}
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
+    <div className={`overflow-hidden rounded-xl border border-brand-sand/80 bg-white shadow-[0_8px_24px_rgba(42,42,42,0.06)] ${className ?? ''}`}>
+      <div className="flex items-center gap-2 border-b border-brand-sand bg-brand-warm-white px-4 py-3">
+        {Icon && <Icon className="size-3.5 text-brand-forest" />}
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-forest">{title}</h3>
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -112,42 +112,45 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
     <div className="space-y-6">
       <PageHeader pageTitle={pageTitle} pageDescription={pageDescription} />
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+      <div className="flex flex-col lg:flex-row gap-5 items-stretch">
 
         {/* ── Left: main editing area ── */}
-        <div className="space-y-4 min-w-0">
-          {/* Title */}
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-xs">
-            <div className="border-b border-border bg-muted/30 px-4 py-2.5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Page Title</span>
+        <div className="flex-1 relative min-h-[500px] lg:min-h-0">
+          <div className="lg:absolute lg:inset-0 flex flex-col gap-4">
+            {/* Title */}
+            <div className="shrink-0 overflow-hidden rounded-xl border border-brand-sand/80 bg-white shadow-[0_8px_24px_rgba(42,42,42,0.06)]">
+              <div className="border-b border-brand-sand bg-brand-warm-white px-4 py-2.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-forest">Page Title</span>
+              </div>
+              <div className="p-4">
+                <input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Page title"
+                  className="w-full bg-transparent font-heading text-2xl font-semibold tracking-normal text-foreground placeholder:font-sans placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/50 focus:outline-none"
+                />
+              </div>
             </div>
-            <div className="p-3">
-              <input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter a clear, descriptive title…"
-                className="w-full bg-transparent font-heading text-xl font-semibold text-foreground placeholder:font-sans placeholder:text-base placeholder:font-normal placeholder:text-muted-foreground/50 focus:outline-none"
+
+            {/* Body */}
+            <div className="flex flex-col flex-1 min-h-0">
+              <div className="mb-2 shrink-0 flex items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-forest">Body Content</span>
+              </div>
+              <RichTextEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Start writing your content here..."
+                minHeight={0}
+                className="flex-1 min-h-0"
               />
             </div>
-          </div>
-
-          {/* Body */}
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Body Content</span>
-            </div>
-            <RichTextEditor
-              value={content}
-              onChange={setContent}
-              placeholder="Start writing your content here… Use the toolbar to add headings, bold text, lists, quotes, and more."
-              minHeight={380}
-            />
           </div>
         </div>
 
         {/* ── Right: sidebar ── */}
-        <div className="space-y-4">
+        <div className="w-full lg:w-[320px] shrink-0 space-y-4">
 
           {/* Publish card */}
           <SectionCard title="Publish" icon={Globe}>
@@ -165,8 +168,8 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
                         onClick={() => setStatus(opt.value)}
                         className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
                           selected
-                            ? `${opt.bg} ${opt.color} border-current`
-                            : 'border-border text-muted-foreground hover:bg-muted'
+                            ? `${opt.bg} ${opt.color} border-current shadow-sm`
+                            : 'border-brand-sand text-muted-foreground hover:bg-brand-cream'
                         }`}
                       >
                         <Icon className="size-3.5" />
@@ -214,7 +217,7 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
                   value={metaTitle}
                   onChange={(e) => setMetaTitle(e.target.value)}
                   placeholder="Leave blank to use page title"
-                  className="h-8 text-xs"
+                  className="h-9 rounded-lg border-brand-sand bg-brand-warm-white text-xs"
                 />
                 <p className="text-[11px] text-muted-foreground/60">
                   {metaTitle.length}/60 characters
@@ -230,8 +233,8 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
                   value={metaDescription}
                   onChange={(e) => setMetaDescription(e.target.value)}
                   rows={4}
-                  className="flex w-full rounded-lg border border-input bg-transparent px-3 py-2 text-xs shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/50 resize-none"
-                  placeholder="Brief description shown in search results…"
+                  className="flex w-full resize-none rounded-lg border border-brand-sand bg-brand-warm-white px-3 py-2 text-xs shadow-xs transition-colors placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Brief description shown in search results..."
                 />
                 <p className="text-[11px] text-muted-foreground/60">
                   {metaDescription.length}/160 characters
@@ -241,7 +244,7 @@ export default function CmsPageEditor({ pageKey, pageTitle, pageDescription }) {
           </SectionCard>
 
           {/* Tips card */}
-          <div className="rounded-xl border border-brand-sand bg-brand-cream/50 p-4">
+          <div className="rounded-xl border border-brand-sand bg-brand-warm-white p-4 shadow-[0_8px_24px_rgba(42,42,42,0.05)]">
             <div className="flex items-start gap-2.5">
               <Info className="mt-0.5 size-4 shrink-0 text-brand-terracotta" />
               <div className="space-y-1.5">

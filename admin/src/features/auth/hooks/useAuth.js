@@ -12,3 +12,9 @@ export function useLogout() {
     mutationFn: authService.logout,
   })
 }
+
+export function useGoogleLogin() {
+  return useMutation({
+    mutationFn: (token) => authService.googleLogin(token),
+  })
+}

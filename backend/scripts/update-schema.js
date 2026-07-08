@@ -287,6 +287,23 @@ async function run() {
                     user_id UNIQUEIDENTIFIER NOT NULL,
                     company_name NVARCHAR(255) NOT NULL,
                     company_description NVARCHAR(MAX) NOT NULL,
+                    company_registration_number NVARCHAR(100) NOT NULL,
+                    company_logo_url NVARCHAR(500) NULL,
+                    website NVARCHAR(255) NULL,
+                    contact_person_name NVARCHAR(150) NOT NULL,
+                    business_email NVARCHAR(255) NOT NULL,
+                    business_phone NVARCHAR(30) NOT NULL,
+                    office_address NVARCHAR(MAX) NOT NULL,
+                    city NVARCHAR(100) NOT NULL,
+                    state NVARCHAR(100) NOT NULL,
+                    is_primary_contact BIT NOT NULL DEFAULT 0,
+                    business_registration_certificate_url NVARCHAR(500) NOT NULL,
+                    applicant_government_id_url NVARCHAR(500) NOT NULL,
+                    gst_number NVARCHAR(50) NULL,
+                    gst_certificate_url NVARCHAR(500) NULL,
+                    rera_number NVARCHAR(50) NULL,
+                    rera_certificate_url NVARCHAR(500) NULL,
+                    declaration_accepted BIT NOT NULL DEFAULT 0,
                     status NVARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
                     reviewed_by UNIQUEIDENTIFIER NULL,
                     reviewed_at DATETIME NULL,
@@ -295,6 +312,43 @@ async function run() {
                     FOREIGN KEY (reviewed_by) REFERENCES Users(id)
                 );
             END
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'company_registration_number')
+                ALTER TABLE BuilderApplications ADD company_registration_number NVARCHAR(100) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'company_logo_url')
+                ALTER TABLE BuilderApplications ADD company_logo_url NVARCHAR(500) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'website')
+                ALTER TABLE BuilderApplications ADD website NVARCHAR(255) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'contact_person_name')
+                ALTER TABLE BuilderApplications ADD contact_person_name NVARCHAR(150) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'business_email')
+                ALTER TABLE BuilderApplications ADD business_email NVARCHAR(255) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'business_phone')
+                ALTER TABLE BuilderApplications ADD business_phone NVARCHAR(30) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'office_address')
+                ALTER TABLE BuilderApplications ADD office_address NVARCHAR(MAX) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'city')
+                ALTER TABLE BuilderApplications ADD city NVARCHAR(100) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'state')
+                ALTER TABLE BuilderApplications ADD state NVARCHAR(100) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'is_primary_contact')
+                ALTER TABLE BuilderApplications ADD is_primary_contact BIT NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'business_registration_certificate_url')
+                ALTER TABLE BuilderApplications ADD business_registration_certificate_url NVARCHAR(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'applicant_government_id_url')
+                ALTER TABLE BuilderApplications ADD applicant_government_id_url NVARCHAR(500) NOT NULL DEFAULT '';
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'gst_number')
+                ALTER TABLE BuilderApplications ADD gst_number NVARCHAR(50) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'gst_certificate_url')
+                ALTER TABLE BuilderApplications ADD gst_certificate_url NVARCHAR(500) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'rera_number')
+                ALTER TABLE BuilderApplications ADD rera_number NVARCHAR(50) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'rera_certificate_url')
+                ALTER TABLE BuilderApplications ADD rera_certificate_url NVARCHAR(500) NULL;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'declaration_accepted')
+                ALTER TABLE BuilderApplications ADD declaration_accepted BIT NOT NULL DEFAULT 0;
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('BuilderApplications') AND name = 'social_links')
+                ALTER TABLE BuilderApplications ADD social_links NVARCHAR(MAX) NULL;
 
             -- 3. Update BuilderProfiles
             IF NOT EXISTS (
@@ -348,6 +402,67 @@ async function run() {
                 ALTER TABLE BuilderProfiles
                     ADD CONSTRAINT FK_BuilderProfiles_approved_by
                     FOREIGN KEY (approved_by) REFERENCES Users(id);
+            END
+        `);
+
+        console.log("Updating Users table for Google Authentication support...");
+        // 1. Alter password_hash to be nullable
+        await pool.request().query(`
+            ALTER TABLE Users ALTER COLUMN password_hash NVARCHAR(MAX) NULL;
+        `);
+
+        // 2. Add google_id column if missing, and create filtered index
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Users') AND name = 'google_id'
+            )
+            BEGIN
+                ALTER TABLE Users ADD google_id NVARCHAR(255) NULL;
+            END
+        `);
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('Users') AND name = 'UQ_Users_google_id'
+            )
+            BEGIN
+                CREATE UNIQUE NONCLUSTERED INDEX UQ_Users_google_id
+                ON Users(google_id)
+                WHERE google_id IS NOT NULL;
+            END
+        `);
+
+        // 3. Add provider column if missing
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Users') AND name = 'provider'
+            )
+            BEGIN
+                ALTER TABLE Users ADD provider NVARCHAR(20) DEFAULT 'local';
+            END
+        `);
+
+        // 4. Add CK constraint for provider if not present
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.check_constraints
+                WHERE parent_object_id = OBJECT_ID('Users') AND name = 'CK_Users_provider'
+            )
+            BEGIN
+                ALTER TABLE Users ADD CONSTRAINT CK_Users_provider CHECK (provider IN ('local', 'google'));
+            END
+        `);
+
+        // 5. Add profile_image column if missing
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.columns
+                WHERE object_id = OBJECT_ID('Users') AND name = 'profile_image'
+            )
+            BEGIN
+                ALTER TABLE Users ADD profile_image NVARCHAR(MAX) NULL;
             END
         `);
 

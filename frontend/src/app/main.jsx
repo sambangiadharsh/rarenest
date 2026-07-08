@@ -8,7 +8,9 @@ import { store } from '@/app/store'
 import { logout } from '@/app/store/authSlice'
 import { queryClient } from '@/shared/lib/queryClient'
 import { router } from '@/app/routes'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import '../index.css'
+import 'react-loading-skeleton/dist/skeleton.css'
 
 const persistedUser = store.getState().auth.user
 if (persistedUser?.role?.toLowerCase() === 'admin') {
@@ -19,7 +21,9 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <RouterProvider router={router} />
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+          <RouterProvider router={router} />
+        </GoogleOAuthProvider>
       </Provider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

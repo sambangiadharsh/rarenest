@@ -15,6 +15,7 @@ export function useDraftPersistence({
   currentStep,
   getDraftData,
   restoreDraft,
+  onDraftFound,
   debounceMs = 800,
   enabled = true,
 }) {
@@ -35,16 +36,40 @@ export function useDraftPersistence({
     media: draftMedia,
   }), [currentStep, draftId, draftMedia, getDraftData])
 
+  const applyDraft = React.useCallback((draftInfo) => {
+    setDraftId(draftInfo.draftId || null)
+    setDraftMedia(draftInfo.media || [])
+    restoreDraft?.(draftInfo.draftData || {}, draftInfo.currentStep)
+    if (draftInfo.isRemote) {
+      toast.success('Your draft has been restored.')
+    }
+  }, [restoreDraft])
+
+  const hasHandledDraftRef = React.useRef(false)
+
   React.useEffect(() => {
     if (!enabled) return
 
+    let hasHandledLocal = false
     const local = readLocalDraft(storageKey)
-    if (local) {
-      window.setTimeout(() => {
-        setDraftId(local.draftId || null)
-        setDraftMedia(local.media || [])
-        restoreDraft?.(local.draftData || {}, local.currentStep)
-      }, 0)
+    if (local && Object.keys(local.draftData || {}).length > 0) {
+      const draftInfo = {
+        draftId: local.draftId,
+        media: local.media,
+        draftData: local.draftData,
+        currentStep: local.currentStep,
+        isRemote: false
+      }
+      
+      if (!hasHandledDraftRef.current) {
+        hasHandledDraftRef.current = true
+        if (onDraftFound) {
+          onDraftFound(draftInfo, applyDraft)
+        } else {
+          window.setTimeout(() => applyDraft(draftInfo), 0)
+        }
+      }
+      hasHandledLocal = true
     }
 
     let cancelled = false
@@ -55,8 +80,7 @@ export function useDraftPersistence({
       if (cancelled || !res?.success || !res.data) return
       const remote = res.data
       const latestLocal = readLocalDraft(storageKey)
-      setDraftId(remote.id)
-      setDraftMedia(remote.media || [])
+      
       if (isRemoteNewer(remote, latestLocal)) {
         const restored = {
           draftId: remote.id,
@@ -64,15 +88,29 @@ export function useDraftPersistence({
           updatedAt: remote.updated_at,
           draftData: remote.draft_data || {},
           media: remote.media || [],
+          isRemote: true
         }
         writeLocalDraft(storageKey, restored)
-        restoreDraft?.(restored.draftData, restored.currentStep)
-        toast.success('Your draft has been restored.')
+        if (!hasHandledDraftRef.current) {
+            hasHandledDraftRef.current = true
+            if (onDraftFound) {
+              onDraftFound(restored, applyDraft)
+            } else {
+              applyDraft(restored)
+            }
+        }
+      } else {
+        if (!hasHandledLocal) {
+          setDraftId(remote.id)
+          setDraftMedia(remote.media || [])
+        } else if (remote.id && !latestLocal?.draftId) {
+          setDraftId(remote.id)
+        }
       }
     }).catch(() => {})
 
     return () => { cancelled = true }
-  }, [draftType, enabled, propertyId, restoreDraft, storageKey])
+  }, [draftType, enabled, propertyId, applyDraft, onDraftFound, storageKey])
 
   const saveLocal = React.useCallback(() => {
     if (!enabled) return null
@@ -112,11 +150,31 @@ export function useDraftPersistence({
     return null
   }, [draftType, enabled, propertyId, saveLocal, storageKey])
 
-  const clearDraft = React.useCallback(async () => {
+  const clearDraft = React.useCallback(async (specificDraftId = null) => {
     removeLocalDraft(storageKey)
+    const idToDelete = specificDraftId || draftId
     setDraftId(null)
     setDraftMedia([])
-  }, [storageKey])
+    
+    // Attempt to delete draft from backend as well
+    if (idToDelete) {
+      try {
+        await draftService.deletePropertyDraft(idToDelete)
+      } catch (err) {
+        // Ignore errors for cleanup
+      }
+    } else {
+      try {
+        const res = await draftService.getPropertyDraft({
+          draft_type: draftType,
+          ...(draftType === 'Edit' ? { property_id: propertyId } : {}),
+        })
+        if (res?.data?.id) {
+          await draftService.deletePropertyDraft(res.data.id)
+        }
+      } catch (err) {}
+    }
+  }, [storageKey, draftId, draftType, propertyId])
 
   React.useEffect(() => () => window.clearTimeout(saveTimerRef.current), [])
 
@@ -133,3 +191,4 @@ export function useDraftPersistence({
     storageKey,
   }
 }
+

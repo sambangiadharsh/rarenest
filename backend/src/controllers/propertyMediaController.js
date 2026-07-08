@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
 const propertyService = require('../services/propertyService');
 const mediaService = require('../services/mediaService');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
@@ -14,18 +16,17 @@ async function assertOwnerOrAdmin(propertyId, user) {
 }
 
 // @route POST /api/properties/:id/media
-exports.uploadPropertyMedia = async (req, res) => {
-    try {
+exports.uploadPropertyMedia = asyncHandler(async (req, res) => {
         const authError = await assertOwnerOrAdmin(req.params.id, req.user);
         if (authError) {
-            return res.status(authError.status).json({ success: false, message: authError.message });
+            throw new AppError(authError.message, authError.status);
         }
 
         const images = req.files?.images || [];
         const videos = req.files?.videos || [];
 
         if (images.length === 0 && videos.length === 0) {
-            return res.status(400).json({ success: false, message: 'No files uploaded' });
+            throw new AppError('No files uploaded', 400);
         }
 
         const thumbnailIndex = req.body.thumbnail_index !== undefined
@@ -47,54 +48,35 @@ exports.uploadPropertyMedia = async (req, res) => {
             success: true,
             data: [...savedImages, ...savedVideos],
         });
-    } catch (err) {
-        console.error(err);
-        const status = err.statusCode || 500;
-        res.status(status).json({
-            success: false,
-            message: err.message || 'Upload failed',
-        });
-    }
-};
+});
 
 // @route PATCH /api/properties/:id/media/:mediaId/thumbnail
-exports.setThumbnail = async (req, res) => {
-    try {
+exports.setThumbnail = asyncHandler(async (req, res) => {
         const authError = await assertOwnerOrAdmin(req.params.id, req.user);
         if (authError) {
-            return res.status(authError.status).json({ success: false, message: authError.message });
+            throw new AppError(authError.message, authError.status);
         }
         
         const updated = await mediaService.setThumbnail(req.params.id, req.params.mediaId);
         if (!updated) {
-            return res.status(404).json({ success: false, message: 'Media not found' });
+            throw new AppError('Media not found', 404);
         }
 
         res.status(200).json({ success: true, data: updated });
-    } catch (err) {
-        console.error(err);
-        const status = err.statusCode || 500;
-        res.status(status).json({ success: false, message: err.message || 'Server Error' });
-    }
-};
+});
 
 // @route DELETE /api/properties/:id/media/:mediaId
-exports.deleteMedia = async (req, res) => {
-    try {
+exports.deleteMedia = asyncHandler(async (req, res) => {
         const authError = await assertOwnerOrAdmin(req.params.id, req.user);
         if (authError) {
-            return res.status(authError.status).json({ success: false, message: authError.message });
+            throw new AppError(authError.message, authError.status);
         }
 
         const media = await propertyMediaRepository.findById(req.params.mediaId);
         if (!media || media.property_id !== req.params.id) {
-            return res.status(404).json({ success: false, message: 'Media not found' });
+            throw new AppError('Media not found', 404);
         }
 
         await mediaService.deleteMedia(media);
         res.status(200).json({ success: true, message: 'Media deleted' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});

@@ -21,8 +21,9 @@ import {
   Award,
   Search,
 } from 'lucide-react'
+import { TableSkeleton } from '@/shared/skeletons'
+import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Button } from '@/shared/components/ui/button'
-import WifiLoader from '@/shared/components/ui/WifiLoader'
 import { toast } from 'sonner'
 
 export default function Builders() {
@@ -106,14 +107,6 @@ export default function Builders() {
 
   const isLoading = isLoadingBuilders || isLoadingApps || pendingReviews.isLoading || approvedReviews.isLoading || rejectedReviews.isLoading
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <WifiLoader />
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* Header */}
@@ -127,55 +120,63 @@ export default function Builders() {
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
-        {/* Pending Applications */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400">
-            <FileText className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Pending Applications</span>
-            <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{pendingApps}</span>
-            <span className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-2">Needs attention</span>
-          </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-[100px] w-full rounded-2xl" />
+          ))}
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
+          {/* Pending Applications */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400">
+              <FileText className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Pending Applications</span>
+              <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{pendingApps}</span>
+              <span className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-2">Needs attention</span>
+            </div>
+          </div>
 
-        {/* Approved Builders */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
-            <Users className="h-6 w-6" />
+          {/* Approved Builders */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400">
+              <Users className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Approved Builders</span>
+              <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{approvedBuildersCount}</span>
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-2">Active builders</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Approved Builders</span>
-            <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{approvedBuildersCount}</span>
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-2">Active builders</span>
-          </div>
-        </div>
 
-        {/* Reviews */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400">
-            <Star className="h-6 w-6" />
+          {/* Reviews */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400">
+              <Star className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Reviews</span>
+              <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{reviewsCount}</span>
+              <span className="text-xs font-medium text-blue-650 dark:text-blue-400 mt-2">Total reviews</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Reviews</span>
-            <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{reviewsCount}</span>
-            <span className="text-xs font-medium text-blue-650 dark:text-blue-400 mt-2">Total reviews</span>
-          </div>
-        </div>
 
-        {/* Featured Builders */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400">
-            <Award className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Featured Builders</span>
-            <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{featuredBuildersCount}</span>
-            <span className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-2">Featured on site</span>
+          {/* Featured Builders */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 flex items-center gap-4 shadow-sm">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/20 dark:text-purple-400">
+              <Award className="h-6 w-6" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">Featured Builders</span>
+              <span className="text-2xl font-bold text-neutral-900 dark:text-white mt-1 leading-none">{featuredBuildersCount}</span>
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-2">Featured on site</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       <div className="mt-4 flex flex-col gap-4">
@@ -204,7 +205,11 @@ export default function Builders() {
           </div>
         )}
 
-        {filteredBuilders.length === 0 ? (
+        {isLoading ? (
+          <div className="p-4 bg-card border border-border rounded-xl shadow-sm">
+            <TableSkeleton columns={5} rows={5} />
+          </div>
+        ) : filteredBuilders.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-16 text-center border border-dashed border-border rounded-xl bg-card shadow-sm">
             <Building className="h-10 w-10 text-muted-foreground" />
             <h3 className="font-serif text-lg font-bold text-foreground mt-2">No Builders Found</h3>
@@ -352,6 +357,6 @@ export default function Builders() {
           </div>
         )}
       </div>
-    </div>
+      </div>
   )
 }

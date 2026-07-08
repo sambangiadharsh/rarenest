@@ -7,14 +7,17 @@ import { Toaster } from 'sonner'
 import { store } from '@/app/store'
 import { queryClient } from '@/shared/lib/queryClient'
 import { router } from '@/app/routes'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import '../index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <RouterProvider router={router} />
-        <Toaster position="top-right" richColors />
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+          <RouterProvider router={router} />
+          <Toaster position="top-right" richColors />
+        </GoogleOAuthProvider>
       </Provider>
     </QueryClientProvider>
   </StrictMode>,

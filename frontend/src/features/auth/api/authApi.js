@@ -19,3 +19,7 @@ export function forgotPassword(payload) {
 export function resetPassword(payload) {
   return apiClient.post('/auth/reset-password', payload)
 }
+
+export function googleLogin(token) {
+  return apiClient.post('/auth/google', { token })
+}

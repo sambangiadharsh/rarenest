@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useDispatch } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle2, Loader2, Lock, Mail, Phone, Send, User, X } from 'lucide-react'
@@ -9,6 +12,16 @@ import { useCreateEnquiry, useGuestEnquiry } from '@/features/enquiries'
 import { mapApiUserToCredentials } from '@/shared/lib/authHelpers'
 import { setCredentials } from '@/app/store/authSlice'
 
+const guestSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  phone: z.string().min(8, 'Phone number must be at least 8 characters').max(20, 'Phone must be at most 20 characters'),
+})
+
+const loginSchema = z.object({
+  password: z.string().min(6, 'Password is required'),
+})
+
 export default function EnquiryModal({
   open,
   onClose,
@@ -17,11 +30,18 @@ export default function EnquiryModal({
 }) {
   const dispatch = useDispatch()
   const [step, setStep] = useState('form')
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
   const [done, setDone] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+
+  const guestForm = useForm({
+    resolver: zodResolver(guestSchema),
+    defaultValues: { name: '', email: '', phone: '' }
+  })
+
+  const loginForm = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { password: '' }
+  })
 
   const { mutateAsync: guestEnquiry, isPending: isGuestPending } = useGuestEnquiry()
   const { mutateAsync: login, isPending: isLoginPending } = useLogin()
@@ -29,22 +49,20 @@ export default function EnquiryModal({
 
   const resetAndClose = () => {
     setStep('form')
-    setName('')
-    setEmail('')
-    setPhone('')
-    setPassword('')
+    guestForm.reset()
+    loginForm.reset()
+    setLoginEmail('')
     setDone(false)
     onClose()
   }
 
-  const handleGuestSubmit = async (e) => {
-    e.preventDefault()
+  const handleGuestSubmit = async (data) => {
     try {
       const res = await guestEnquiry({
         property_id: propertyId,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
       })
       if (res?.success && res.user) {
         dispatch(setCredentials(mapApiUserToCredentials(res.user)))
@@ -57,6 +75,7 @@ export default function EnquiryModal({
       }
     } catch (err) {
       if (err.requiresLogin) {
+        setLoginEmail(data.email)
         setStep('login')
         return
       }
@@ -64,10 +83,9 @@ export default function EnquiryModal({
     }
   }
 
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault()
+  const handleLoginSubmit = async (data) => {
     try {
-      const res = await login({ email: email.trim(), password })
+      const res = await login({ email: loginEmail, password: data.password })
       if (!res?.success) {
         toast.error(res?.message || 'Login failed.')
         return
@@ -137,7 +155,7 @@ export default function EnquiryModal({
               </Button>
             </div>
           ) : step === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="flex flex-col gap-4">
               <p className="text-center text-sm text-neutral-500">
                 An account with this email already exists. Log in to send your enquiry.
               </p>
@@ -150,7 +168,7 @@ export default function EnquiryModal({
                   <input
                     type="email"
                     readOnly
-                    value={email}
+                    value={loginEmail}
                     className="w-full rounded-xl border border-brand-sand bg-neutral-50 py-2.5 pl-10 pr-3 text-sm dark:border-neutral-800 dark:bg-neutral-950"
                   />
                 </div>
@@ -163,12 +181,11 @@ export default function EnquiryModal({
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-xl border border-brand-sand py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950"
+                    {...loginForm.register('password')}
+                    className={`w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none transition ${loginForm.formState.errors.password ? 'border-destructive ring-1 ring-destructive' : 'border-brand-sand focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950'}`}
                   />
                 </div>
+                {loginForm.formState.errors.password && <span className="text-[10px] text-destructive font-semibold">{loginForm.formState.errors.password.message}</span>}
               </div>
               <Button type="submit" disabled={busy} className="w-full gap-2">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -183,7 +200,7 @@ export default function EnquiryModal({
               </button>
             </form>
           ) : (
-            <form onSubmit={handleGuestSubmit} className="flex flex-col gap-4">
+            <form onSubmit={guestForm.handleSubmit(handleGuestSubmit)} className="flex flex-col gap-4">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                   Full name
@@ -192,12 +209,11 @@ export default function EnquiryModal({
                   <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-xl border border-brand-sand py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950"
+                    {...guestForm.register('name')}
+                    className={`w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none transition ${guestForm.formState.errors.name ? 'border-destructive ring-1 ring-destructive' : 'border-brand-sand focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950'}`}
                   />
                 </div>
+                {guestForm.formState.errors.name && <span className="text-[10px] text-destructive font-semibold">{guestForm.formState.errors.name.message}</span>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
@@ -207,12 +223,11 @@ export default function EnquiryModal({
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl border border-brand-sand py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950"
+                    {...guestForm.register('email')}
+                    className={`w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none transition ${guestForm.formState.errors.email ? 'border-destructive ring-1 ring-destructive' : 'border-brand-sand focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950'}`}
                   />
                 </div>
+                {guestForm.formState.errors.email && <span className="text-[10px] text-destructive font-semibold">{guestForm.formState.errors.email.message}</span>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
@@ -222,12 +237,11 @@ export default function EnquiryModal({
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   <input
                     type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full rounded-xl border border-brand-sand py-2.5 pl-10 pr-3 text-sm outline-none focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950"
+                    {...guestForm.register('phone')}
+                    className={`w-full rounded-xl border py-2.5 pl-10 pr-3 text-sm outline-none transition ${guestForm.formState.errors.phone ? 'border-destructive ring-1 ring-destructive' : 'border-brand-sand focus:border-brand-terracotta/50 dark:border-neutral-800 dark:bg-neutral-950'}`}
                   />
                 </div>
+                {guestForm.formState.errors.phone && <span className="text-[10px] text-destructive font-semibold">{guestForm.formState.errors.phone.message}</span>}
               </div>
               <Button
                 type="submit"

@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { clearAllLocalDrafts } from '@/features/properties/utils/draftStorage'
 
 function loadPersistedUser() {
   const raw = localStorage.getItem('user')
@@ -32,6 +33,7 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
       localStorage.removeItem('user');
+      clearAllLocalDrafts();
     },
     setFilters(state, action) {
       state.activeFilters = { ...state.activeFilters, ...action.payload };

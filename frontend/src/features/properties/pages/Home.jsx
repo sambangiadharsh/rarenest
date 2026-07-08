@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Loader2,
-  MapPin,
+  
   SlidersHorizontal,
   X,
   Mail,
@@ -13,7 +13,6 @@ import {
   Star,
   ShieldCheck,
   Building2,
-  Sparkles,
   ArrowRight,
 } from 'lucide-react'
 import { useBuilders } from '@/features/builders'
@@ -32,13 +31,8 @@ export default function Home() {
   const { data: typesRes, isLoading: typesLoading } = usePropertyTypes()
   const { data: bannersRes } = useActiveBanners()
   const { data: buildersRes, isLoading: buildersLoading } = useBuilders()
-  const builderCarouselRef = React.useRef(null)
+  const [builderIndex, setBuilderIndex] = React.useState(0)
 
-  const scrollBuilders = (dir) => {
-    const el = builderCarouselRef.current
-    if (!el) return
-    el.scrollBy({ left: dir * 280, behavior: 'smooth' })
-  }
   const activeBanners = bannersRes?.data ?? []
   const realProperties = propertiesRes?.data || []
   const apiTypes = typesRes?.data || []
@@ -155,6 +149,9 @@ export default function Home() {
   const realBuilders = (buildersRes?.data ?? []).filter(
     (builder) => builder.builder_status === 'Approved' && (builder.is_featured === 1 || builder.is_featured === true)
   )
+
+  const maxBuilderIndex = Math.max(0, realBuilders.length - 4)
+  const visibleBuilders = realBuilders.slice(builderIndex, builderIndex + 4)
 
   return (
     <div className="flex flex-col gap-16 md:gap-24 w-full pb-16">
@@ -449,21 +446,23 @@ export default function Home() {
             </div>
 
             {/* Nav arrows — only when there are builders */}
-            {!buildersLoading && realBuilders.length > 0 && (
+            {!buildersLoading && realBuilders.length > 4 && (
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => scrollBuilders(-1)}
-                  aria-label="Scroll left"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors"
+                  onClick={() => setBuilderIndex((prev) => Math.max(0, prev - 1))}
+                  aria-label="Show previous builders"
+                  disabled={builderIndex === 0}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollBuilders(1)}
-                  aria-label="Scroll right"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors"
+                  onClick={() => setBuilderIndex((prev) => Math.min(maxBuilderIndex, prev + 1))}
+                  aria-label="Show next builders"
+                  disabled={builderIndex >= maxBuilderIndex}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -489,12 +488,8 @@ export default function Home() {
 
           {/* Carousel */}
           {!buildersLoading && realBuilders.length > 0 && (
-            <div
-              ref={builderCarouselRef}
-              className="flex gap-5 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth snap-x snap-mandatory"
-              style={{ scrollbarWidth: 'none' }}
-            >
-              {realBuilders.map((builder, idx) => {
+            <div className="flex gap-5 overflow-hidden pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 justify-center">
+              {visibleBuilders.map((builder, idx) => {
                 const AVATAR_COLORS = [
                   'bg-purple-100 text-purple-600',
                   'bg-teal-100 text-teal-600',
@@ -518,12 +513,22 @@ export default function Home() {
                 return (
                   <div
                     key={builder.id}
-                    className="group snap-start shrink-0 w-[240px] bg-white dark:bg-neutral-900 border border-brand-sand dark:border-neutral-800 rounded-2xl p-5 flex flex-col items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-center"
+                    className="group snap-start shrink-0 w-[260px] bg-white dark:bg-neutral-900 border border-brand-sand dark:border-neutral-800 rounded-2xl p-5 flex flex-col items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-center"
                   >
                     {/* Avatar */}
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ring-4 ring-brand-sand/60 dark:ring-neutral-800 ${colorClass}`}>
-                      {initials}
-                    </div>
+                    {builder.company_logo ? (
+                      <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-brand-sand/60 dark:ring-neutral-800 bg-white">
+                        <img 
+                          src={builder.company_logo_url} 
+                          alt={`${displayName} logo`} 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                    ) : (
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ring-4 ring-brand-sand/60 dark:ring-neutral-800 ${colorClass}`}>
+                        {initials}
+                      </div>
+                    )}
 
                     {/* Name + rating */}
                     <div className="flex flex-col gap-1.5 w-full">

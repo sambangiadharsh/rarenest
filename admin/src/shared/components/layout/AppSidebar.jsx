@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import logo from '@/assets/Logo.png'
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,7 +26,8 @@ import { mainNavItems, builderNavGroup, propertyNavGroup, contentNavGroup } from
 
 function isPathActive(pathname, href) {
   if (href === '/') return pathname === '/'
-  return pathname === href || pathname.startsWith(`${href}/`)
+  // Use exact match to avoid parent and child both appearing active
+  return pathname === href
 }
 
 function isBuilderGroupActive(pathname) {
@@ -47,32 +49,32 @@ export default function AppSidebar() {
   const contentOpen = isContentGroupActive(pathname)
 
   return (
-    <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader className="border-b border-sidebar-border pb-3">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link to="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-brand-forest shadow-sm">
-                  <span className="font-heading text-sm font-bold text-white">R</span>
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-bold font-heading text-brand-forest">
-                    RareNest
-                  </span>
-                  <span className="truncate text-[10px] font-medium uppercase tracking-wider text-brand-terracotta">
-                    Admin Console
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="border-b border-white/10 bg-[#492615] p-0">
+  <SidebarMenu>
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        className="h-24 p-0 hover:bg-transparent active:bg-transparent"
+      >
+        <Link
+          to="/"
+          className="flex items-center justify-start w-full pl-4"
+        >
+          <img
+            src={logo}
+            alt="RareNest"
+            className="block h-25 w-auto object-contain"
+          />
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  </SidebarMenu>
+</SidebarHeader>
 
-      <SidebarContent className="py-2">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+      <SidebarContent className="bg-[#492615] py-2">
+        <SidebarGroup className="first:border-t-0 first:pt-0 border-t border-white/5 pt-2">
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
             Main
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -86,10 +88,22 @@ export default function AppSidebar() {
                       asChild
                       isActive={active}
                       tooltip={item.title}
-                      className={active ? 'bg-brand-forest text-white hover:bg-brand-forest-mid hover:text-white font-medium' : ''}
+                      className={
+                        active
+                          ? 'relative bg-brand-sage/20 text-white font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-full before:bg-brand-sage'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-150'
+                      }
                     >
                       <Link to={item.href}>
-                        <Icon />
+                        <span
+                          className={
+                            active
+                              ? 'flex size-6 items-center justify-center rounded-md bg-brand-sage/25 text-brand-sage'
+                              : 'flex size-6 items-center justify-center rounded-md'
+                          }
+                        >
+                          <Icon className="size-4" />
+                        </span>
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -100,8 +114,8 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <SidebarGroup className="border-t border-white/5 pt-2">
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
             Builders
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -112,9 +126,15 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       tooltip={builderNavGroup.title}
                       isActive={builderOpen}
-                      className={builderOpen ? 'text-brand-forest font-medium' : ''}
+                      className={
+                        builderOpen
+                          ? 'bg-brand-sage/10 text-white font-medium hover:bg-brand-sage/15'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-150'
+                      }
                     >
-                      <builderNavGroup.icon />
+                      <span className="flex size-6 items-center justify-center rounded-md">
+                        <builderNavGroup.icon className="size-4" />
+                      </span>
                       <span>{builderNavGroup.title}</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -129,10 +149,14 @@ export default function AppSidebar() {
                             <SidebarMenuSubButton
                               asChild
                               isActive={active}
-                              className={active ? 'text-brand-forest font-medium' : ''}
+                              className={
+                                active
+                                  ? 'bg-brand-sage/20 text-white font-medium'
+                                  : 'text-white/60 hover:translate-x-0.5 hover:bg-white/5 hover:text-white transition-all duration-150'
+                              }
                             >
                               <Link to={item.href}>
-                                <Icon />
+                                <Icon className="size-4" />
                                 <span>{item.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -147,8 +171,8 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <SidebarGroup className="border-t border-white/5 pt-2">
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
             Property
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -159,9 +183,15 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       tooltip={propertyNavGroup.title}
                       isActive={propertyOpen}
-                      className={propertyOpen ? 'text-brand-forest font-medium' : ''}
+                      className={
+                        propertyOpen
+                          ? 'bg-brand-sage/10 text-white font-medium hover:bg-brand-sage/15'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-150'
+                      }
                     >
-                      <propertyNavGroup.icon />
+                      <span className="flex size-6 items-center justify-center rounded-md">
+                        <propertyNavGroup.icon className="size-4" />
+                      </span>
                       <span>{propertyNavGroup.title}</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -176,10 +206,14 @@ export default function AppSidebar() {
                             <SidebarMenuSubButton
                               asChild
                               isActive={active}
-                              className={active ? 'text-brand-forest font-medium' : ''}
+                              className={
+                                active
+                                  ? 'bg-brand-sage/20 text-white font-medium'
+                                  : 'text-white/60 hover:translate-x-0.5 hover:bg-white/5 hover:text-white transition-all duration-150'
+                              }
                             >
                               <Link to={item.href}>
-                                <Icon />
+                                <Icon className="size-4" />
                                 <span>{item.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -194,8 +228,8 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <SidebarGroup className="border-t border-white/5 pt-2">
+          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
             Content
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -206,9 +240,15 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       tooltip={contentNavGroup.title}
                       isActive={contentOpen}
-                      className={contentOpen ? 'text-brand-forest font-medium' : ''}
+                      className={
+                        contentOpen
+                          ? 'bg-brand-sage/10 text-white font-medium hover:bg-brand-sage/15'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-150'
+                      }
                     >
-                      <contentNavGroup.icon />
+                      <span className="flex size-6 items-center justify-center rounded-md">
+                        <contentNavGroup.icon className="size-4" />
+                      </span>
                       <span>{contentNavGroup.title}</span>
                       <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -223,10 +263,14 @@ export default function AppSidebar() {
                             <SidebarMenuSubButton
                               asChild
                               isActive={active}
-                              className={active ? 'text-brand-forest font-medium' : ''}
+                              className={
+                                active
+                                  ? 'bg-brand-sage/20 text-white font-medium'
+                                  : 'text-white/60 hover:translate-x-0.5 hover:bg-white/5 hover:text-white transition-all duration-150'
+                              }
                             >
                               <Link to={item.href}>
-                                <Icon />
+                                <Icon className="size-4" />
                                 <span>{item.title}</span>
                               </Link>
                             </SidebarMenuSubButton>
@@ -239,11 +283,12 @@ export default function AppSidebar() {
               </Collapsible>
             </SidebarMenu>
           </SidebarGroupContent>
+    
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border pt-2">
-        <p className="px-2 py-1 text-[10px] text-muted-foreground/50 group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="border-t border-white/10 bg-[#492615] pt-2">
+        <p className="px-2 py-1 text-[10px] text-white/40 group-data-[collapsible=icon]:hidden">
           v1.0 · RareNest Admin
         </p>
       </SidebarFooter>

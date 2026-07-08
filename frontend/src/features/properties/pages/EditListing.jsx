@@ -27,6 +27,8 @@ import {
   Camera,
   Eye,
   PencilLine,
+  Bed,
+  Bath,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import PageLoader from '@/shared/components/ui/PageLoader'
@@ -64,6 +66,8 @@ const editSchema = z.object({
   contact_phone: z.string().min(8).max(20),
   property_story: z.string().min(10),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
+  beds: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
+  baths: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
   special_features: z.array(z.string()).optional(),
   selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
   images: z.number().min(1, 'Please upload at least one property image.'),
@@ -79,7 +83,7 @@ const STEP_CONFIG = [
     description: 'Title, type, price, size, age, status and location.',
     fields: [
       'title', 'property_type_id', 'asking_price',
-      'size_sqft', 'property_age', 'status',
+      'size_sqft', 'property_age', 'beds', 'baths', 'status',
       'city', 'state', 'district',
       'area', 'pincode',
     ],
@@ -225,6 +229,8 @@ export default function EditListing() {
       contact_phone: '',
       property_story: '',
       property_age: 0,
+      beds: '',
+      baths: '',
       selectedFeatureIds: [],
       images: 0,
       status: 'Available',
@@ -252,6 +258,8 @@ export default function EditListing() {
       contact_phone: '',
       property_story: '',
       property_age: 0,
+      beds: '',
+      baths: '',
       selectedFeatureIds: [],
       images: 0,
       status: 'Available',
@@ -275,7 +283,9 @@ export default function EditListing() {
   }, [draft.draftMedia])
 
   React.useEffect(() => {
-    const subscription = watch(() => draft.scheduleLocalSave())
+    const subscription = watch((value, { type }) => {
+      if (type) draft.scheduleLocalSave()
+    })
     return () => subscription.unsubscribe()
   }, [draft, watch])
 
@@ -304,6 +314,8 @@ export default function EditListing() {
       contact_phone: property.contact_phone || '',
       property_story: property.property_story || '',
       property_age: property.property_age ?? 0,
+      beds: property.beds ?? '',
+      baths: property.baths ?? '',
       selectedFeatureIds: Array.isArray(property.selectedFeatureIds) ? property.selectedFeatureIds : [],
       images: Array.isArray(property.media) ? property.media.filter((m) => m.media_type === 'Image').length : 0,
       status: property.status || 'Available',
@@ -664,6 +676,34 @@ export default function EditListing() {
                           <option value="Sold">Sold</option>
                         </select>
                         <FieldError message={errors.status?.message} />
+                      </div>
+                    </div>
+
+                    {/* Beds + Baths */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Bed}>Beds</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          min={0}
+                          max={100}
+                          {...register('beds')}
+                          placeholder="e.g. 3"
+                          error={errors.beds}
+                        />
+                        <FieldError message={errors.beds?.message} />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FieldLabel icon={Bath}>Baths</FieldLabel>
+                        <FieldInput
+                          type="number"
+                          min={0}
+                          max={100}
+                          {...register('baths')}
+                          placeholder="e.g. 2"
+                          error={errors.baths}
+                        />
+                        <FieldError message={errors.baths?.message} />
                       </div>
                     </div>
 

@@ -39,7 +39,7 @@ export default function AdminHeader() {
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur-sm">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-brand-sand/80 bg-brand-warm-white/95 px-4 backdrop-blur-sm">
       <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
       <Separator orientation="vertical" className="mr-2 h-4" />
 
@@ -48,7 +48,7 @@ export default function AdminHeader() {
 
         <div className="flex shrink-0 items-center gap-2">
           {/* Notification bell */}
-          <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-brand-cream hover:text-brand-forest">
             <Bell className="size-4" />
             <span className="sr-only">Notifications</span>
           </Button>
@@ -61,7 +61,7 @@ export default function AdminHeader() {
               <span className="text-xs font-medium text-foreground leading-none">{displayName}</span>
               <span className="mt-0.5 text-[10px] text-muted-foreground leading-none">Administrator</span>
             </div>
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[11px] font-semibold text-white">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#492615] text-[11px] font-semibold text-white shadow-sm">
               {initials}
             </div>
           </div>
@@ -72,7 +72,7 @@ export default function AdminHeader() {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+            className="gap-1.5 rounded-lg text-muted-foreground hover:bg-destructive/5 hover:text-destructive"
           >
             <LogOut className="size-4" />
             <span className="hidden sm:inline text-xs">Logout</span>

@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "react-loading-skeleton/dist/skeleton.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,7 +12,7 @@
     --font-serif: 'Playfair Display', Georgia, serif;
     --font-sans: 'Outfit', 'Geist Variable', sans-serif;
     
-    --color-brand-forest: #1a3a2a;
+    --color-brand-forest: #492615;
     --color-brand-forest-mid: #2d5a3d;
     --color-brand-sage: #6b8f71;
     --color-brand-terracotta: #c16a3c;
@@ -75,19 +76,19 @@
     --card-foreground: #2a2a2a;
     --popover: #ffffff;
     --popover-foreground: #2a2a2a;
-    --primary: #1a3a2a;
+    --primary: #492615;
     --primary-foreground: #fefcf8;
     --secondary: #f7f2ea;
-    --secondary-foreground: #1a3a2a;
+    --secondary-foreground: #492615;
     --muted: #f7f2ea;
     --muted-foreground: #8a8a7a;
     --accent: #f7f2ea;
-    --accent-foreground: #1a3a2a;
+    --accent-foreground: #492615;
     --destructive: #c16a3c;
     --border: #e8dccb;
     --input: #e8dccb;
     --ring: #c16a3c;
-    --chart-1: #1a3a2a;
+    --chart-1: #492615;
     --chart-2: #2d5a3d;
     --chart-3: #6b8f71;
     --chart-4: #c16a3c;
@@ -95,12 +96,14 @@
     --radius: 0.75rem;
     --sidebar: #fefcf8;
     --sidebar-foreground: #2a2a2a;
-    --sidebar-primary: #1a3a2a;
+    --sidebar-primary: #5c3a21;
     --sidebar-primary-foreground: #fefcf8;
     --sidebar-accent: #f7f2ea;
-    --sidebar-accent-foreground: #1a3a2a;
+    --sidebar-accent-foreground: #5c3a21;
     --sidebar-border: #e8dccb;
     --sidebar-ring: #c16a3c;
+    --skeleton-base: #f7f2ea;
+    --skeleton-highlight: #ffffff;
 }
 
 .dark {
@@ -135,6 +138,13 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    --skeleton-base: oklch(0.269 0 0);
+    --skeleton-highlight: oklch(0.32 0 0);
+}
+
+.react-loading-skeleton {
+    --base-color: var(--skeleton-base) !important;
+    --highlight-color: var(--skeleton-highlight) !important;
 }
 
 @layer base {

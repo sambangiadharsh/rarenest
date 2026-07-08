@@ -7,3 +7,7 @@ export function login(credentials) {
 export function logout() {
   return apiClient.get('/auth/logout')
 }
+
+export function googleLogin(token) {
+  return apiClient.post('/auth/google', { token })
+}

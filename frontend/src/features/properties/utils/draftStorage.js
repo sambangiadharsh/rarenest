@@ -19,6 +19,19 @@ export function removeLocalDraft(key) {
   window.localStorage.removeItem(key)
 }
 
+export function clearAllLocalDrafts() {
+  const keysToRemove = []
+
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i)
+    if (key === 'property-create-draft' || key?.startsWith('property-edit-')) {
+      keysToRemove.push(key)
+    }
+  }
+
+  keysToRemove.forEach((key) => window.localStorage.removeItem(key))
+}
+
 export function isRemoteNewer(remote, local) {
   if (!remote?.updated_at) return false
   if (!local?.updatedAt) return true

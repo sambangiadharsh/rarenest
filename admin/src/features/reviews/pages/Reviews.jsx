@@ -222,7 +222,7 @@ export default function Reviews() {
               {label}
               <span
                 className={`rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
-                  active ? 'bg-brand-forest/10 text-brand-forest' : 'bg-muted text-muted-foreground'
+                  active ? 'bg-[#492615]/10 text-brand-forest' : 'bg-muted text-muted-foreground'
                 }`}
               >
                 {count}

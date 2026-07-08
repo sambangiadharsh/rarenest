@@ -1,4 +1,5 @@
 import apiClient from '@/shared/lib/apiClient'
+import uploadClient from '@/shared/lib/uploadClient'
 
 export function getAllBuilders() {
   return apiClient.get('/builders')
@@ -24,6 +25,6 @@ export function getMyBuilderApplication() {
   return apiClient.get('/builders/applications/my')
 }
 
-export function submitBuilderApplication(data) {
-  return apiClient.post('/builders/applications', data)
+export function submitBuilderApplication(data, config = {}) {
+  return uploadClient.post('/builders/applications', data, config)
 }

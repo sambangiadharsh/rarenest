@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const { randomUUID } = require('crypto');
 const sharp = require('sharp');
 const ffmpeg = require('fluent-ffmpeg');
@@ -10,16 +8,7 @@ const builderRepository = require('../repositories/builderRepository');
 const propertyDraftRepository = require('../repositories/propertyDraftRepository');
 const propertyDraftMediaRepository = require('../repositories/propertyDraftMediaRepository');
 const propertyMediaRepository = require('../repositories/propertyMediaRepository');
-
-const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
-
-function ensureDir(dir) {
-    fs.mkdirSync(dir, { recursive: true });
-}
-
-function toPublicUrl(relativePath) {
-    return relativePath.replace(/\\/g, '/');
-}
+const storageService = require('./storageService');
 
 function mapDraftToPropertyData(draftData = {}) {
     const data = { ...draftData };
@@ -51,23 +40,12 @@ function validateVideo(file) {
     }
 }
 
-async function compressImage(buffer, outputPath) {
-    await sharp(buffer)
+async function compressImage(buffer) {
+    return await sharp(buffer)
         .rotate()
         .resize({ width: limits.MAX_IMAGE_WIDTH, withoutEnlargement: true })
         .webp({ quality: limits.IMAGE_QUALITY })
-        .toFile(outputPath);
-}
-
-function postValidateFile(filePath, maxBytes, label) {
-    if (!fs.existsSync(filePath)) {
-        throw Object.assign(new Error(`${label} processing failed`), { statusCode: 500 });
-    }
-    const stat = fs.statSync(filePath);
-    if (stat.size === 0 || stat.size > maxBytes) {
-        fs.unlinkSync(filePath);
-        throw Object.assign(new Error(`${label} exceeds output size limit`), { statusCode: 400 });
-    }
+        .toBuffer();
 }
 
 function compressVideo(inputPath, outputPath) {
@@ -132,7 +110,7 @@ class PropertyDraftService {
     async deleteDraft(draftId, user) {
         const draft = await propertyDraftRepository.findById(draftId);
         assertDraftOwner(draft, user);
-        this.deleteDraftUploads(draftId);
+        await this.deleteDraftUploads(draftId);
         return propertyDraftRepository.deleteById(draftId);
     }
 
@@ -150,11 +128,6 @@ class PropertyDraftService {
             throw Object.assign(new Error(`Maximum ${limits.MAX_VIDEOS} videos allowed per draft`), { statusCode: 400 });
         }
 
-        const imageDir = path.join(UPLOADS_ROOT, 'property-drafts', draftId, 'images');
-        const videoDir = path.join(UPLOADS_ROOT, 'property-drafts', draftId, 'videos');
-        ensureDir(imageDir);
-        ensureDir(videoDir);
-
         const thumbIdx = Number.isFinite(thumbnailIndex) && !Number.isNaN(thumbnailIndex)
             ? Math.max(0, Math.min(thumbnailIndex, images.length - 1))
             : 0;
@@ -163,12 +136,26 @@ class PropertyDraftService {
             const file = images[i];
             validateImage(file);
             const filename = `${randomUUID()}.webp`;
-            const outputPath = path.join(imageDir, filename);
-            await compressImage(file.buffer, outputPath);
-            postValidateFile(outputPath, limits.MAX_IMAGE_OUTPUT_BYTES, 'Image');
+            const fileKey = storageService.generateDraftMediaKey(draftId, 'images', filename);
+
+            let bufferToSave;
+            try {
+                bufferToSave = await compressImage(file.buffer);
+                if (!bufferToSave || bufferToSave.length === 0) {
+                    throw Object.assign(new Error('Image output is empty'), { statusCode: 400 });
+                }
+                if (bufferToSave.length > limits.MAX_IMAGE_OUTPUT_BYTES) {
+                    throw Object.assign(new Error('Image still exceeds size limit after compression'), { statusCode: 400 });
+                }
+            } catch (err) {
+                throw err.statusCode ? err : Object.assign(new Error(err.message || 'Image processing failed'), { statusCode: 500 });
+            }
+
+            const relativeUrl = await storageService.saveBuffer(fileKey, bufferToSave);
+
             const row = await propertyDraftMediaRepository.insert({
                 draft_id: draftId,
-                media_url: toPublicUrl(`/uploads/property-drafts/${draftId}/images/${filename}`),
+                media_url: relativeUrl,
                 media_type: 'Image',
                 is_thumbnail: existingImages === 0 && i === thumbIdx,
                 sort_order: existingImages + i,
@@ -176,29 +163,50 @@ class PropertyDraftService {
             saved.push(row);
         }
 
-        const tempDir = path.join(UPLOADS_ROOT, 'temp');
-        ensureDir(tempDir);
         for (let i = 0; i < videos.length; i++) {
             const file = videos[i];
             validateVideo(file);
-            const sourceExt = path.extname(file.originalname || '').toLowerCase() || '.mp4';
-            const tempInput = path.join(tempDir, `${randomUUID()}-in${sourceExt}`);
+
+            const originalName = file.originalname || '';
+            const match = originalName.match(/\.[0-9a-z]+$/i);
+            const sourceExt = match ? match[0].toLowerCase() : '.mp4';
+            const inputExt = sourceExt.startsWith('.') ? sourceExt : '.mp4';
+            
+            const tempInput = await storageService.writeTempFile(file.buffer, `-in${inputExt}`);
+            const tempOutput = storageService.generateTempFilePath('.mp4');
+
             const filename = `${randomUUID()}.mp4`;
-            const outputPath = path.join(videoDir, filename);
-            fs.writeFileSync(tempInput, file.buffer);
+            const fileKey = storageService.generateDraftMediaKey(draftId, 'videos', filename);
+            let finalUrl;
+
             try {
-                await compressVideo(tempInput, outputPath);
-                postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
-            } catch {
-                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-                fs.copyFileSync(tempInput, outputPath);
-                postValidateFile(outputPath, limits.MAX_VIDEO_OUTPUT_BYTES, 'Video');
+                await compressVideo(tempInput, tempOutput);
+                
+                const outSize = await storageService.getFileSize(tempOutput);
+                if (outSize === 0) throw Object.assign(new Error(`Video output is empty`), { statusCode: 400 });
+                if (outSize > limits.MAX_VIDEO_OUTPUT_BYTES) throw Object.assign(new Error(`Video still exceeds size limit after compression`), { statusCode: 400 });
+                
+                finalUrl = await storageService.saveLocalFile(fileKey, tempOutput);
+            } catch (err) {
+                try {
+                    const inSize = await storageService.getFileSize(tempInput);
+                    if (inSize === 0) throw Object.assign(new Error(`Video output is empty`), { statusCode: 400 });
+                    if (inSize > limits.MAX_VIDEO_OUTPUT_BYTES) throw Object.assign(new Error(`Video still exceeds size limit after compression`), { statusCode: 400 });
+
+                    finalUrl = await storageService.saveLocalFile(fileKey, tempInput);
+                } catch (fallbackErr) {
+                    throw Object.assign(
+                        new Error(fallbackErr.message || err.message || 'Video processing failed'),
+                        { statusCode: fallbackErr.statusCode || 400 },
+                    );
+                }
             } finally {
-                if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+                await storageService.cleanupTempFiles([tempInput, tempOutput]);
             }
+
             const row = await propertyDraftMediaRepository.insert({
                 draft_id: draftId,
-                media_url: toPublicUrl(`/uploads/property-drafts/${draftId}/videos/${filename}`),
+                media_url: finalUrl,
                 media_type: 'Video',
                 is_thumbnail: false,
                 sort_order: existingVideos + i,
@@ -226,7 +234,7 @@ class PropertyDraftService {
         if (!media || String(media.draft_id).toLowerCase() !== String(draftId).toLowerCase()) {
             throw Object.assign(new Error('Media not found'), { statusCode: 404 });
         }
-        this.deleteUploadFile(media.media_url);
+        await this.deleteUploadFile(media.media_url);
         return propertyDraftMediaRepository.deleteById(mediaId);
     }
 
@@ -255,7 +263,7 @@ class PropertyDraftService {
         const property = await propertyService.createProperty({ ...propertyData, seller_id: user.id });
         await this.promoteDraftMedia(draftId, property.id);
         await propertyDraftRepository.deleteById(draftId);
-        this.deleteDraftUploads(draftId);
+        await this.deleteDraftUploads(draftId);
         return propertyService.getPropertyById(property.id);
     }
 
@@ -275,7 +283,7 @@ class PropertyDraftService {
         const property = await propertyService.updateProperty(draft.property_id, propertyData);
         await this.promoteDraftMedia(draftId, draft.property_id);
         await propertyDraftRepository.deleteById(draftId);
-        this.deleteDraftUploads(draftId);
+        await this.deleteDraftUploads(draftId);
         return property;
     }
 
@@ -286,36 +294,32 @@ class PropertyDraftService {
         const promoted = [];
         for (const item of media) {
             const subfolder = item.media_type === 'Video' ? 'videos' : 'images';
-            const source = path.join(UPLOADS_ROOT, item.media_url.replace(/^\/?uploads\//, ''));
-            const filename = path.basename(source);
-            const destDir = path.join(UPLOADS_ROOT, 'properties', propertyId, subfolder);
-            const dest = path.join(destDir, filename);
-            ensureDir(destDir);
-            if (fs.existsSync(source)) {
-                fs.renameSync(source, dest);
+            // Extract filename from URL (e.g. /uploads/property-drafts/1/images/uuid.webp -> uuid.webp)
+            const parts = item.media_url.split('/');
+            const filename = parts[parts.length - 1];
+            
+            const destKey = storageService.generatePropertyMediaKey(propertyId, subfolder, filename);
+            const newUrl = await storageService.moveFileByUrl(item.media_url, destKey);
+
+            if (newUrl) {
+                const row = await propertyMediaRepository.insert({
+                    property_id: propertyId,
+                    media_url: newUrl,
+                    media_type: item.media_type,
+                    is_thumbnail: item.is_thumbnail,
+                });
+                promoted.push(row);
             }
-            const row = await propertyMediaRepository.insert({
-                property_id: propertyId,
-                media_url: toPublicUrl(`/uploads/properties/${propertyId}/${subfolder}/${filename}`),
-                media_type: item.media_type,
-                is_thumbnail: item.is_thumbnail,
-            });
-            promoted.push(row);
         }
         return promoted;
     }
 
-    deleteUploadFile(mediaUrl) {
-        const relative = mediaUrl.replace(/^\/?uploads\//, '');
-        const resolved = path.join(UPLOADS_ROOT, relative);
-        if (fs.existsSync(resolved)) fs.unlinkSync(resolved);
+    async deleteUploadFile(mediaUrl) {
+        await storageService.deleteFileByUrl(mediaUrl);
     }
 
-    deleteDraftUploads(draftId) {
-        const dir = path.join(UPLOADS_ROOT, 'property-drafts', draftId);
-        if (fs.existsSync(dir)) {
-            fs.rmSync(dir, { recursive: true, force: true });
-        }
+    async deleteDraftUploads(draftId) {
+        await storageService.deleteDraftDirectory(draftId);
     }
 }
 

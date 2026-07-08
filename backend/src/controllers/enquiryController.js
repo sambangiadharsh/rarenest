@@ -1,3 +1,5 @@
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
 const enquiryService = require('../services/enquiryService');
 const propertyService = require('../services/propertyService');
 const enquirySchema = require('../models/enquiryModel');
@@ -5,57 +7,38 @@ const { attachAuthCookie } = require('../utils/authUtils');
 
 function mapEnquiryErrors(result, res) {
     if (result.error === 'not_found') {
-        return res.status(404).json({ success: false, message: 'Property not found' });
+        throw new AppError('Property not found', 404);
     }
     if (result.error === 'requires_login') {
-        return res.status(409).json({
-            success: false,
-            requiresLogin: true,
-            message: 'An account with this email already exists. Please log in to send your enquiry.',
-        });
+        throw new AppError('An account with this email already exists. Please log in to send your enquiry.', 409, { requiresLogin: true });
     }
     if (result.error === 'own_property') {
-        return res.status(400).json({
-            success: false,
-            message: 'You cannot send an enquiry for your own listing',
-        });
+        throw new AppError('You cannot send an enquiry for your own listing', 400);
     }
     if (result.error === 'duplicate') {
-        return res.status(409).json({
-            success: false,
-            message: 'You have already sent an enquiry for this property',
-        });
+        throw new AppError('You have already sent an enquiry for this property', 409);
     }
     return null;
 }
 
 // @desc    List enquiries sent by the current user
 // @route   GET /api/enquiries
-exports.getMyEnquiries = async (req, res) => {
-    try {
+exports.getMyEnquiries = asyncHandler(async (req, res) => {
         const enquiries = await enquiryService.getEnquiriesForUser(req.user.id);
         res.status(200).json({ success: true, data: enquiries });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Send enquiry for a property (authenticated)
 // @route   POST /api/enquiries
-exports.createEnquiry = async (req, res) => {
-    try {
+exports.createEnquiry = asyncHandler(async (req, res) => {
         const { property_id } = req.body;
         if (!property_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide property_id',
-            });
+            throw new AppError('Please provide property_id', 400);
         }
 
         const property = await propertyService.getPropertyById(property_id);
         if (!property) {
-            return res.status(404).json({ success: false, message: 'Property not found' });
+            throw new AppError('Property not found', 404);
         }
 
         const result = await enquiryService.createEnquiry(req.user.id, property_id);
@@ -67,19 +50,14 @@ exports.createEnquiry = async (req, res) => {
             message: 'Enquiry sent successfully',
             data: result.enquiry,
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});
 
 // @desc    Guest enquiry — new account + enquiry + auto-login cookie
 // @route   POST /api/enquiries/guest
-exports.createGuestEnquiry = async (req, res) => {
-    try {
+exports.createGuestEnquiry = asyncHandler(async (req, res) => {
         const { error } = enquirySchema.guestEnquiry.validate(req.body);
         if (error) {
-            return res.status(400).json({ success: false, message: error.details[0].message });
+            throw new AppError(error.details[0].message, 400);
         }
 
         const { property_id, email, name, phone } = req.body;
@@ -109,8 +87,4 @@ exports.createGuestEnquiry = async (req, res) => {
                 last_name: result.user.last_name,
             },
         });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-};
+});

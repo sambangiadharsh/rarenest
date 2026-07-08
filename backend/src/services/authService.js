@@ -24,6 +24,14 @@ class AuthService {
     async updatePassword(userId, hashedPassword) {
         return userRepository.updatePassword(userId, hashedPassword);
     }
+
+    async linkGoogleAccount(userId, googleId, profileImage) {
+        return userRepository.linkGoogleAccount(userId, googleId, profileImage);
+    }
+
+    async updateLastLogin(userId) {
+        return userRepository.updateLastLogin(userId);
+    }
 }
 
 module.exports = new AuthService();

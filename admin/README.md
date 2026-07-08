@@ -29,7 +29,7 @@ This creates or updates the default admin account:
 ## Development
 
 ```bash
-# Terminal 1 — API
+# Terminal 1 — API s 
 cd backend
 npm run dev
 
@@ -37,7 +37,7 @@ npm run dev
 cd frontend
 npm run dev
 
-# Terminal 3 — admin app
+# Terminal 3 — admin app Manage domsin
 cd admin
 npm install
 npm run dev
@@ -66,7 +66,7 @@ Copy `admin/.env.example` to `admin/.env` and set `VITE_API_URL` for production 
 | Reviews | `/reviews` |
 | Careers | `/careers` |
 | Content Management | collapsible group |
-| → About Us | `/content/about-us` |
+| → About Us | `/content/about-us` |  
 | → Contact Info | `/content/contact-info` |
 | → Terms and Conditions | `/content/terms` |
 | → Privacy Policy | `/content/privacy` |

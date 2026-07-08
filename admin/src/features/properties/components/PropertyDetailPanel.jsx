@@ -189,7 +189,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ scrollbarGutter: 'stable' }}>
         {isLoading && (
           <div className="space-y-4 p-4">
             <Skeleton className="aspect-[16/10] w-full rounded-lg" />
@@ -287,7 +287,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
               </div>
             )}
 
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4 pr-6">
               <div>
                 <h3 className="text-lg font-semibold text-foreground">{property.title}</h3>
                 <p className="mt-1 text-xl font-bold text-foreground">
@@ -323,8 +323,8 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
               </div>
 
               {activeTab === 'property-info' && (
-                <div className="grid gap-4 lg:grid-cols-[1fr_200px] min-w-0">
-                  <div>
+                <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
+                  <div className="min-w-0">
                     <div className="grid grid-cols-[1fr_1fr] gap-y-3 gap-x-8">
                       {[
                         { label: 'Property Type', value: property.property_type_name },
@@ -334,6 +334,8 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                             ? `${Number(property.size_sqft).toLocaleString('en-IN')} sq.ft`
                             : null,
                         },
+                        property.beds !== null && property.beds !== undefined && property.beds !== '' ? { label: 'Beds', value: property.beds } : null,
+                        property.baths !== null && property.baths !== undefined && property.baths !== '' ? { label: 'Baths', value: property.baths } : null,
                         { label: 'Property Age', value: ageLabel },
                         { label: 'Area', value: property.Area },
                         { label: 'City', value: property.location_city },
@@ -342,7 +344,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                         { label: 'Pincode', value: property.Pincode },
                         { label: 'Contact email', value: property.contact_email },
                         { label: 'Contact phone', value: property.contact_phone },
-                      ].map((f) => (
+                      ].filter(Boolean).map((f) => (
                         <div key={f.label} className="contents">
                           <p className="text-xs text-muted-foreground">{f.label}</p>
                           <p className="mt-0.5 text-sm font-medium text-foreground">{f.value || '—'}</p>
@@ -351,7 +353,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                     </div>
                   </div>
 
-                  <div className="rounded-lg border border-border bg-muted/30 p-3 min-w-0 w-full">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 min-w-0 w-full ml-6">
                     <h4 className="text-sm font-semibold text-foreground">Amenities</h4>
                     <ul className="mt-3 space-y-2">
                       {features.length === 0 && (
@@ -389,13 +391,13 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                     </div>
                   )}
 
-                  <div className="col-span-full space-y-3 border-t border-border pt-4">
-                    <div className="space-y-1.5">
+                  <div className="col-span-full min-w-0 space-y-3 border-t border-border pt-4">
+                    <div className="w-full min-w-0 space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground">Verification Status</label>
                       <select
                         value={effectiveStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       >
                         <option value="">Select status…</option>
                         {VERIFICATION_OPTIONS.map((opt) => (
@@ -403,7 +405,7 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                         ))}
                       </select>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="w-full min-w-0 space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground">
                         Reason
                         {(effectiveStatus === 'Rejected' || effectiveStatus === 'RequestChanges') && (
@@ -415,12 +417,12 @@ export default function PropertyDetailPanel({ propertyId, onClose }) {
                         onChange={(e) => setReason(e.target.value)}
                         placeholder="Add a reason or note for the seller…"
                         rows={3}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                        className="w-full max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                       />
                     </div>
                     <Button
                       type="button"
-                      className="w-full bg-brand-forest hover:bg-brand-forest/90"
+                      className="w-full bg-[#492615] hover:bg-[#492615]/90"
                       disabled={isSaving || !effectiveStatus}
                       onClick={handleSave}
                     >
