@@ -21,6 +21,13 @@ import { useProperties } from '@/features/properties'
 import PropertyCard from '@/features/properties/components/PropertyCard'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
 import WifiLoader from '@/shared/components/ui/WifiLoader'
+import { getApiOrigin } from '@/shared/config/api'
+
+function resolveUrl(url) {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${getApiOrigin()}${url.startsWith('/') ? '' : '/'}${url}`
+}
 
 /* ─── helpers ─────────────────────────────────────────────── */
 const PALETTE = [
@@ -169,12 +176,25 @@ export default function BuilderProfile() {
 
             {/* Avatar, framed with crop-mark corners like a plan annotation */}
             <div className="relative shrink-0 h-24 w-24">
-              <div
-                className="h-full w-full rounded-2xl flex items-center justify-center text-3xl font-black font-serif shadow-lg"
-                style={{ backgroundColor: pal.bg, color: pal.text, boxShadow: `0 0 0 4px ${pal.ring}55` }}
-              >
-                {initials}
-              </div>
+              {builder.company_logo_url ? (
+                <div 
+                  className="h-full w-full rounded-2xl flex items-center justify-center shadow-lg overflow-hidden bg-white"
+                  style={{ boxShadow: `0 0 0 4px ${pal.ring}55` }}
+                >
+                  <img 
+                    src={resolveUrl(builder.company_logo_url)} 
+                    alt={`${company || name} logo`} 
+                    className="w-full h-full object-cover" 
+                  />
+                </div>
+              ) : (
+                <div
+                  className="h-full w-full rounded-2xl flex items-center justify-center text-3xl font-black font-serif shadow-lg"
+                  style={{ backgroundColor: pal.bg, color: pal.text, boxShadow: `0 0 0 4px ${pal.ring}55` }}
+                >
+                  {initials}
+                </div>
+              )}
               <CornerBracket className="absolute -top-1.5 -left-1.5 h-4 w-4 text-[#C9A227]" />
               <CornerBracket className="absolute -top-1.5 -right-1.5 h-4 w-4 rotate-90 text-[#C9A227]" />
               <CornerBracket className="absolute -bottom-1.5 -left-1.5 h-4 w-4 -rotate-90 text-[#C9A227]" />

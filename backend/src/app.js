@@ -63,6 +63,11 @@ app.use('/api/hero-banners', require('./routes/heroBannerRoutes'));
 app.use('/api/builders/applications', require('./routes/builderApplicationRoutes'));
 app.use('/api/builders', require('./routes/builderRoutes'));
 app.use('/api/admin/reviews', require('./routes/adminReviewRoutes'));
+app.use('/api/admin/support', require('./routes/adminSupportRoutes'));
+app.use('/api/conversations', require('./routes/conversationRoutes'));
+app.use('/api/property-chat', require('./routes/propertyChatRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api', require('./routes/propertyFeatureRoutes'));
 
 // Health Check

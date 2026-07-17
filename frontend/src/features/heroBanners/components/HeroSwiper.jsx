@@ -54,9 +54,7 @@ export default function HeroSwiper({ banners = [], onWaitlist }) {
 
               {/* Slide content */}
               <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-20 sm:py-24 flex flex-col gap-6 items-center justify-center text-center text-white">
-                <div className="inline-flex items-center gap-2 bg-brand-terracotta/25 border border-brand-terracotta/40 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider text-brand-terracotta-light uppercase max-w-max">
-                  <Sparkles className="h-3.5 w-3.5" /> RareNest Marketplace
-                </div>
+                
 
                 <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-[1.1] tracking-tight max-w-3xl">
                   {banner.title}

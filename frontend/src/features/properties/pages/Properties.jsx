@@ -284,6 +284,7 @@ export default function Properties() {
               onChange={(e) => setMaxSize(Number(e.target.value))}
               className="w-full h-1 bg-neutral-200 dark:bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand-bronze"
             />
+            
             <div className="flex justify-between text-[9px] text-neutral-400 font-semibold">
               <span>100 sqft</span>
               <span>3500 sqft</span>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
   ArrowLeft,
@@ -7,6 +7,7 @@ import {
   Loader2,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
   Send,
   Star,
@@ -22,6 +23,7 @@ import EnquiryModal from '@/features/enquiries/components/EnquiryModal'
 import { Button } from '@/shared/components/ui/button'
 import PageLoader from '@/shared/components/ui/PageLoader'
 
+import { useOpenPropertyChat } from '@/features/messaging'
 import { useCreateEnquiry } from '@/features/enquiries'
 import { useProperty } from '@/features/properties'
 import { useToggleWishlist } from '@/features/wishlist'
@@ -38,6 +40,7 @@ import {
 
 export default function PropertyDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
 
   const { isAuthenticated, user } = useSelector((state) => state.auth)
 
@@ -53,6 +56,8 @@ export default function PropertyDetail() {
 
   const { mutateAsync: createEnquiry, isPending: isSendingEnquiry } =
     useCreateEnquiry()
+  const { mutateAsync: openPropertyChat, isPending: isOpeningChat } =
+    useOpenPropertyChat()
 
   const property = data?.data
   const isOwner = isAuthenticated && user && property && String(user.id) === String(property.seller_id)
@@ -100,6 +105,22 @@ export default function PropertyDetail() {
       }
     } catch (err) {
       toast.error(err.message || 'Could not send enquiry.')
+    }
+  }
+
+  const handleMessageOwner = async () => {
+    if (!requireAuth('message the property owner')) return
+
+    try {
+      const res = await openPropertyChat(id)
+      const conversationId = res?.data?.conversation?.id
+      if (conversationId) {
+        navigate(`/messages/${conversationId}`)
+      } else {
+        toast.error('Could not open conversation.')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Could not open conversation.')
     }
   }
 
@@ -526,26 +547,42 @@ export default function PropertyDetail() {
                 </Link>
               </div>
             ) : (
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  type="button"
-                  className="h-10 flex-1 gap-2 bg-brand-terracotta text-sm font-medium hover:bg-brand-terracotta/90"
-                  disabled={isSendingEnquiry}
-                  onClick={handleSendEnquiry}
-                >
-                  {isSendingEnquiry ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    type="button"
+                    className="h-10 flex-1 gap-2 bg-brand-forest text-sm font-medium hover:bg-brand-forest/90"
+                    disabled={isOpeningChat}
+                    onClick={handleMessageOwner}
+                  >
+                    {isOpeningChat ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MessageCircle className="h-4 w-4" />
+                    )}
+                    Message owner
+                  </Button>
 
-                  Send enquiry
-                </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 flex-1 gap-2 border-brand-sand text-sm font-medium"
+                    disabled={isSendingEnquiry}
+                    onClick={handleSendEnquiry}
+                  >
+                    {isSendingEnquiry ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Send enquiry
+                  </Button>
+                </div>
 
                 <Button
                   type="button"
                   variant="outline"
-                  className={`h-10 flex-1 gap-2 border-brand-sand text-sm font-medium ${
+                  className={`h-10 w-full gap-2 border-brand-sand text-sm font-medium ${
                     isWishlisted ? 'text-destructive hover:text-destructive' : ''
                   }`}
                   disabled={isTogglingWishlist}

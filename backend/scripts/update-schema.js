@@ -466,6 +466,194 @@ async function run() {
             END
         `);
 
+        console.log('Creating messaging tables if missing...');
+        await pool.request().query(`
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Conversations')
+            BEGIN
+                CREATE TABLE Conversations (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    type NVARCHAR(20) NOT NULL CHECK (type IN ('PROPERTY', 'SUPPORT')),
+                    property_id UNIQUEIDENTIFIER NULL,
+                    buyer_id UNIQUEIDENTIFIER NULL,
+                    created_by UNIQUEIDENTIFIER NOT NULL,
+                    last_message_at DATETIME NULL,
+                    is_active BIT NOT NULL DEFAULT 1,
+                    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    CONSTRAINT FK_Conversations_property FOREIGN KEY (property_id) REFERENCES Properties(id) ON DELETE CASCADE,
+                    CONSTRAINT FK_Conversations_buyer FOREIGN KEY (buyer_id) REFERENCES Users(id),
+                    CONSTRAINT FK_Conversations_created_by FOREIGN KEY (created_by) REFERENCES Users(id),
+                    CONSTRAINT CK_Conversations_type_property CHECK (
+                        (type = 'PROPERTY' AND property_id IS NOT NULL AND buyer_id IS NOT NULL)
+                        OR (type = 'SUPPORT' AND property_id IS NULL AND buyer_id IS NULL)
+                    )
+                );
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Messages')
+            BEGIN
+                CREATE TABLE Messages (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    conversation_id UNIQUEIDENTIFIER NOT NULL,
+                    sender_id UNIQUEIDENTIFIER NOT NULL,
+                    message NVARCHAR(MAX) NULL,
+                    message_type NVARCHAR(20) NOT NULL DEFAULT 'TEXT' CHECK (message_type IN ('TEXT', 'IMAGE', 'FILE')),
+                    is_internal BIT NOT NULL DEFAULT 0,
+                    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    is_deleted BIT NOT NULL DEFAULT 0,
+                    CONSTRAINT FK_Messages_conversation FOREIGN KEY (conversation_id) REFERENCES Conversations(id) ON DELETE CASCADE,
+                    CONSTRAINT FK_Messages_sender FOREIGN KEY (sender_id) REFERENCES Users(id)
+                );
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ConversationParticipants')
+            BEGIN
+                CREATE TABLE ConversationParticipants (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    conversation_id UNIQUEIDENTIFIER NOT NULL,
+                    user_id UNIQUEIDENTIFIER NOT NULL,
+                    joined_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    last_read_message_id UNIQUEIDENTIFIER NULL,
+                    is_archived BIT NOT NULL DEFAULT 0,
+                    CONSTRAINT FK_Participants_conversation FOREIGN KEY (conversation_id) REFERENCES Conversations(id) ON DELETE CASCADE,
+                    CONSTRAINT FK_Participants_user FOREIGN KEY (user_id) REFERENCES Users(id),
+                    CONSTRAINT UQ_Participants_conversation_user UNIQUE (conversation_id, user_id)
+                );
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.foreign_keys WHERE name = 'FK_Participants_last_read_message'
+            )
+            BEGIN
+                ALTER TABLE ConversationParticipants
+                    ADD CONSTRAINT FK_Participants_last_read_message
+                    FOREIGN KEY (last_read_message_id) REFERENCES Messages(id);
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MessageAttachments')
+            BEGIN
+                CREATE TABLE MessageAttachments (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    message_id UNIQUEIDENTIFIER NOT NULL,
+                    file_url NVARCHAR(500) NOT NULL,
+                    file_name NVARCHAR(255) NOT NULL,
+                    mime_type NVARCHAR(100) NOT NULL,
+                    file_size BIGINT NOT NULL DEFAULT 0,
+                    CONSTRAINT FK_Attachments_message FOREIGN KEY (message_id) REFERENCES Messages(id) ON DELETE CASCADE
+                );
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupportTickets')
+            BEGIN
+                CREATE TABLE SupportTickets (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    conversation_id UNIQUEIDENTIFIER NOT NULL UNIQUE,
+                    user_id UNIQUEIDENTIFIER NOT NULL,
+                    assigned_admin_id UNIQUEIDENTIFIER NULL,
+                    category NVARCHAR(50) NOT NULL CHECK (category IN (
+                        'Account', 'Property Listing', 'Builder Verification',
+                        'Report Listing', 'Technical Issue', 'Payments',
+                        'Feature Request', 'Other'
+                    )),
+                    subject NVARCHAR(255) NOT NULL,
+                    description NVARCHAR(MAX) NOT NULL,
+                    priority NVARCHAR(20) NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High')),
+                    status NVARCHAR(30) NOT NULL DEFAULT 'Open' CHECK (status IN (
+                        'Open', 'In Progress', 'Waiting for User', 'Resolved', 'Closed'
+                    )),
+                    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    updated_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    closed_at DATETIME NULL,
+                    CONSTRAINT FK_SupportTickets_conversation FOREIGN KEY (conversation_id) REFERENCES Conversations(id) ON DELETE CASCADE,
+                    CONSTRAINT FK_SupportTickets_user FOREIGN KEY (user_id) REFERENCES Users(id),
+                    CONSTRAINT FK_SupportTickets_admin FOREIGN KEY (assigned_admin_id) REFERENCES Users(id)
+                );
+            END
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+            BEGIN
+                CREATE TABLE Notifications (
+                    id UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+                    user_id UNIQUEIDENTIFIER NOT NULL,
+                    type NVARCHAR(50) NOT NULL CHECK (type IN (
+                        'PROPERTY_MESSAGE', 'SUPPORT_MESSAGE', 'TICKET_ASSIGNED',
+                        'TICKET_RESOLVED', 'BUILDER_APPROVED', 'BUILDER_REJECTED'
+                    )),
+                    title NVARCHAR(255) NOT NULL,
+                    body NVARCHAR(MAX) NOT NULL,
+                    is_read BIT NOT NULL DEFAULT 0,
+                    created_at DATETIME NOT NULL DEFAULT GETDATE(),
+                    CONSTRAINT FK_Notifications_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+                );
+            END
+        `);
+
+        await pool.request().query(`
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('Conversations') AND name = 'UQ_Conversations_property_buyer'
+            )
+            BEGIN
+                CREATE UNIQUE NONCLUSTERED INDEX UQ_Conversations_property_buyer
+                ON Conversations(property_id, buyer_id)
+                WHERE type = 'PROPERTY' AND property_id IS NOT NULL;
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('Conversations') AND name = 'IX_Conversations_type_last_message'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_Conversations_type_last_message
+                ON Conversations(type, last_message_at DESC);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('Messages') AND name = 'IX_Messages_conversation_created'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_Messages_conversation_created
+                ON Messages(conversation_id, created_at DESC);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('ConversationParticipants') AND name = 'IX_Participants_user_archived'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_Participants_user_archived
+                ON ConversationParticipants(user_id, is_archived, conversation_id);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('SupportTickets') AND name = 'IX_SupportTickets_status'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_SupportTickets_status ON SupportTickets(status);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('SupportTickets') AND name = 'IX_SupportTickets_user_created'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_SupportTickets_user_created
+                ON SupportTickets(user_id, created_at DESC);
+            END
+
+            IF NOT EXISTS (
+                SELECT * FROM sys.indexes
+                WHERE object_id = OBJECT_ID('Notifications') AND name = 'IX_Notifications_user_read'
+            )
+            BEGIN
+                CREATE NONCLUSTERED INDEX IX_Notifications_user_read
+                ON Notifications(user_id, is_read, created_at DESC);
+            END
+        `);
+
         console.log('Database schema updated successfully!');
         process.exit(0);
     } catch (err) {

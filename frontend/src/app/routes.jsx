@@ -23,6 +23,13 @@ import {
 import { MyPropertyDetailPage } from '@/features/seller'
 import { MyEnquiriesPage } from '@/features/enquiries'
 import { MyWishlistPage } from '@/features/wishlist'
+import { MessagesPage } from '@/features/messaging'
+import {
+  SupportCenterPage,
+  CreateTicketPage,
+  TicketListPage,
+  TicketDetailPage,
+} from '@/features/support'
 import { AboutPage, TermsPage, PrivacyPage } from '@/features/cms'
 import { ContactPage } from '@/features/contact'
 import { FaqsPage } from '@/features/faqs'
@@ -60,6 +67,54 @@ export const router = createBrowserRouter([
       { path: 'change-password', element: <ChangePasswordPage /> },
       { path: 'enquiries', element: <MyEnquiriesPage /> },
       { path: 'wishlist', element: <MyWishlistPage /> },
+      {
+        path: 'messages',
+        element: (
+          <RequireAuth>
+            <MessagesPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'messages/:conversationId',
+        element: (
+          <RequireAuth>
+            <MessagesPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'support',
+        element: (
+          <RequireAuth>
+            <SupportCenterPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'support/new',
+        element: (
+          <RequireAuth>
+            <CreateTicketPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'support/tickets',
+        element: (
+          <RequireAuth>
+            <TicketListPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'support/:id',
+        element: (
+          <RequireAuth>
+            <TicketDetailPage />
+          </RequireAuth>
+        ),
+      },
       { path: 'properties/:id', element: <PropertyDetailPage /> },
       {
         path: 'properties/:id/edit',

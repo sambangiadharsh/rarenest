@@ -25,7 +25,7 @@ createRoot(document.getElementById('root')).render(
           <RouterProvider router={router} />
         </GoogleOAuthProvider>
       </Provider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
     </QueryClientProvider>
   </StrictMode>,
 )

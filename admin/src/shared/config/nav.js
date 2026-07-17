@@ -18,6 +18,7 @@ import {
   FileClock,
   MessageSquare,
   Award,
+  LifeBuoy,
 } from 'lucide-react'
 
 export const mainNavItems = [
@@ -63,6 +64,14 @@ export const contentNavGroup = {
   ],
 }
 
+export const supportNavGroup = {
+  title: 'Support',
+  icon: LifeBuoy,
+  items: [
+    { title: 'Support Tickets', href: '/support/tickets', icon: MessageSquare },
+  ],
+}
+
 export const routeTitles = {
   '/': 'Dashboard',
   '/builders/applications': 'Builder Applications',
@@ -80,6 +89,7 @@ export const routeTitles = {
   '/content/privacy': 'Privacy Policy',
   '/content/faqs': 'FAQs',
   '/content/hero-banners': 'Hero Banners',
+  '/support/tickets': 'Support Tickets',
   '/login': 'Sign in',
 }
 

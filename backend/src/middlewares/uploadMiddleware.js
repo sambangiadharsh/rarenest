@@ -52,4 +52,21 @@ const uploadBuilderApplicationFiles = multer({
     { name: 'rera_certificate', maxCount: 1 },
 ]);
 
-module.exports = { uploadPropertyMedia, uploadBannerImage, uploadBuilderApplicationFiles };
+const MESSAGE_ATTACHMENT_MIMES = [
+    ...limits.IMAGE_MIMES,
+    'application/pdf',
+];
+
+const uploadMessageAttachment = multer({
+    storage,
+    limits: { files: 1, fileSize: limits.MAX_DOCUMENT_BYTES },
+    fileFilter(req, file, cb) {
+        if (MESSAGE_ATTACHMENT_MIMES.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(Object.assign(new Error('Only images and PDF files are allowed'), { statusCode: 400 }));
+        }
+    },
+}).single('file');
+
+module.exports = { uploadPropertyMedia, uploadBannerImage, uploadBuilderApplicationFiles, uploadMessageAttachment };

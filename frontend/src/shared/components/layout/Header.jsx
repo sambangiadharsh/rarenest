@@ -1,13 +1,14 @@
 import React from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { Home, Heart, Bell, Menu, X, PlusCircle } from 'lucide-react'
+import { Home, Heart, Menu, X, PlusCircle } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import { logout } from '@/app/store/authSlice'
 import { useLogout } from '@/features/auth'
 import { toast } from 'sonner'
 import { getAdminLoginUrl } from '@/shared/config/app'
 import AccountMenu from './AccountMenu'
+import NotificationBell from '@/features/notifications/components/NotificationBell'
 import { useWishlistContext } from '@/features/wishlist'
 import GuestListingModal from '@/features/properties/components/GuestListingModal'
 import Logo from '@/assets/Logo.png'
@@ -70,14 +71,6 @@ export default function Header() {
     navigate('/wishlist')
   }
 
-  const handlePlaceholderIcon = (feature) => {
-    if (!isAuthenticated) {
-      navigate('/login')
-      return
-    }
-    toast.info(`${feature} coming soon`)
-  }
-
   const activeStyle = ({ isActive }) =>
     `relative text-sm font-semibold tracking-wide transition-colors duration-300 ${isActive
       ? 'text-brand-terracotta font-extrabold'
@@ -103,11 +96,7 @@ export default function Header() {
         onClick={handleWishlistClick}
         badgeCount={wishlistCount}
       />
-      <NavIconButton
-        icon={Bell}
-        label="Notifications"
-        onClick={() => handlePlaceholderIcon('Notifications')}
-      />
+      {isAuthenticated && <NotificationBell />}
     </>
   )
 

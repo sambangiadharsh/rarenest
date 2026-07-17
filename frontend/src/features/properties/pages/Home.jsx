@@ -23,6 +23,13 @@ import { usePropertyTypes } from '@/features/properties'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
 import { HeroSwiper, useActiveBanners } from '@/features/heroBanners'
 import { toast } from 'sonner'
+import { getApiOrigin } from '@/shared/config/api'
+
+function resolveUrl(url) {
+  if (!url) return ''
+  if (url.startsWith('http')) return url
+  return `${getApiOrigin()}${url.startsWith('/') ? '' : '/'}${url}`
+}
 
 
 
@@ -516,10 +523,10 @@ export default function Home() {
                     className="group snap-start shrink-0 w-[260px] bg-white dark:bg-neutral-900 border border-brand-sand dark:border-neutral-800 rounded-2xl p-5 flex flex-col items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-center"
                   >
                     {/* Avatar */}
-                    {builder.company_logo ? (
+                    {builder.company_logo_url ? (
                       <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-brand-sand/60 dark:ring-neutral-800 bg-white">
                         <img 
-                          src={builder.company_logo_url} 
+                          src={resolveUrl(builder.company_logo_url)} 
                           alt={`${displayName} logo`} 
                           className="w-full h-full object-cover" 
                         />

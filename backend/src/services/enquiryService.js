@@ -66,7 +66,7 @@ class EnquiryService {
             return enquiryResult;
         }
 
-        const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const loginUrl = process.env.CLIENT_URL || 'http://localhost:8001';
         let emailSent = false;
         try {
             await sendEmail({

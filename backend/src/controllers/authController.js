@@ -147,7 +147,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
         if (!user) {
             return res.status(200).json({ success: true, message: 'If that email is registered, a reset link has been sent.' });
         }
-
+   
         // Generate raw token, store its SHA-256 hash
         const rawToken = crypto.randomBytes(32).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -155,7 +155,7 @@ exports.forgotPassword = asyncHandler(async (req, res) => {
 
         await authService.updateResetToken(user.id, hashedToken, expireDate);
 
-        const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+        const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:8001'}/reset-password?token=${rawToken}`;
 
         try {
             await sendEmail({

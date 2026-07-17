@@ -163,6 +163,17 @@ class UserRepository {
             .query('UPDATE Users SET role = @role WHERE id = @id');
     }
 
+    async findAdmins() {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            SELECT id, email, first_name, last_name
+            FROM Users
+            WHERE role = 'Admin'
+            ORDER BY first_name, last_name
+        `);
+        return result.recordset;
+    }
+
     async countAll() {
         const pool = await poolPromise;
         const result = await pool.request().query('SELECT COUNT(*) AS total FROM Users');

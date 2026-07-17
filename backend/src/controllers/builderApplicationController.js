@@ -2,6 +2,7 @@ const AppError = require('../utils/AppError');
 const asyncHandler = require('../utils/asyncHandler');
 const builderApplicationRepository = require('../repositories/builderApplicationRepository');
 const builderRepository = require('../repositories/builderRepository');
+const notificationService = require('../services/messaging/notificationService');
 const storageService = require('../services/storageService');
 
 const requiredFields = [
@@ -124,12 +125,24 @@ exports.reviewApplication = asyncHandler(async (req, res) => {
         if (status === 'Approved') {
             // Create/Ensure BuilderProfile for the user
             await builderRepository.ensureProfile(app.user_id, 'Approved', app.company_description);
+            await notificationService.createNotification({
+                user_id: app.user_id,
+                type: 'BUILDER_APPROVED',
+                title: 'Builder application approved',
+                body: 'Your builder application has been approved. You can now list builder projects.',
+            });
         } else if (status === 'Rejected') {
             // Update builder profile status if it existed
             const profile = await builderRepository.findProfileByUserId(app.user_id);
             if (profile) {
                 await builderRepository.updateBuilderStatus(profile.id, 'Rejected');
             }
+            await notificationService.createNotification({
+                user_id: app.user_id,
+                type: 'BUILDER_REJECTED',
+                title: 'Builder application rejected',
+                body: 'Your builder application was not approved. Please contact support for details.',
+            });
         }
 
         res.status(200).json({ success: true, data: updatedApp });

@@ -247,7 +247,7 @@ class PropertyFeatureRepository {
     }
 
     // ─── MAPPINGS ───
-
+    
     async findFeaturesByPropertyId(propertyId) {
         const pool = await poolPromise;
         const result = await pool.request()
@@ -296,7 +296,7 @@ class PropertyFeatureRepository {
         }
         return map;
     }
-
+    
     async savePropertyMappings(propertyId, featureIds) {
         const pool = await poolPromise;
         const transaction = new sql.Transaction(pool);
@@ -326,5 +326,7 @@ class PropertyFeatureRepository {
         }
     }
 }
+
+
 
 module.exports = new PropertyFeatureRepository();

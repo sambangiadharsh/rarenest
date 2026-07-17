@@ -131,8 +131,18 @@ export default function AccountMenu({
           </MenuLinkItem>
         )}
 
+        {!isAdmin && (
+          <MenuLinkItem
+            to="/messages"
+            icon={MessageSquare}
+            onNavigate={onNavigate}
+          >
+            Messages
+          </MenuLinkItem>
+        )}
+
         <MenuLinkItem
-          to="/contact"
+          to="/support"
           icon={LifeBuoy}
           onNavigate={onNavigate}
         >

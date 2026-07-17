@@ -22,11 +22,11 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/shared/components/ui/sidebar'
-import { mainNavItems, builderNavGroup, propertyNavGroup, contentNavGroup } from '@/shared/config/nav'
+import { mainNavItems, builderNavGroup, propertyNavGroup, contentNavGroup, supportNavGroup } from '@/shared/config/nav'
 
 function isPathActive(pathname, href) {
   if (href === '/') return pathname === '/'
-  // Use exact match to avoid parent and child both appearing active
+  if (href === '/support/tickets') return pathname.startsWith('/support/tickets')
   return pathname === href
 }
 
@@ -42,11 +42,16 @@ function isContentGroupActive(pathname) {
   return contentNavGroup.items.some((item) => isPathActive(pathname, item.href))
 }
 
+function isSupportGroupActive(pathname) {
+  return supportNavGroup.items.some((item) => isPathActive(pathname, item.href))
+}
+
 export default function AppSidebar() {
   const { pathname } = useLocation()
   const builderOpen = isBuilderGroupActive(pathname)
   const propertyOpen = isPropertyGroupActive(pathname)
   const contentOpen = isContentGroupActive(pathname)
+  const supportOpen = isSupportGroupActive(pathname)
 
   return (
     <Sidebar collapsible="icon">
@@ -73,10 +78,7 @@ export default function AppSidebar() {
 </SidebarHeader>
 
       <SidebarContent className="bg-[#492615] py-2">
-        <SidebarGroup className="first:border-t-0 first:pt-0 border-t border-white/5 pt-2">
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            Main
-          </SidebarGroupLabel>
+        <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNavItems.map((item) => {
@@ -114,10 +116,7 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="border-t border-white/5 pt-2">
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            Builders
-          </SidebarGroupLabel>
+        <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible defaultOpen={builderOpen} className="group/collapsible">
@@ -171,10 +170,7 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="border-t border-white/5 pt-2">
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            Property
-          </SidebarGroupLabel>
+        <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible defaultOpen={propertyOpen} className="group/collapsible">
@@ -228,10 +224,7 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="border-t border-white/5 pt-2">
-          <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-widest text-white/40">
-            Content
-          </SidebarGroupLabel>
+        <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               <Collapsible defaultOpen={contentOpen} className="group/collapsible">
@@ -284,6 +277,60 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
     
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <Collapsible defaultOpen={supportOpen} className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      tooltip={supportNavGroup.title}
+                      isActive={supportOpen}
+                      className={
+                        supportOpen
+                          ? 'bg-brand-sage/10 text-white font-medium hover:bg-brand-sage/15'
+                          : 'text-white/70 hover:bg-white/5 hover:text-white transition-colors duration-150'
+                      }
+                    >
+                      <span className="flex size-6 items-center justify-center rounded-md">
+                        <supportNavGroup.icon className="size-4" />
+                      </span>
+                      <span>{supportNavGroup.title}</span>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {supportNavGroup.items.map((item) => {
+                        const Icon = item.icon
+                        const active = isPathActive(pathname, item.href)
+                        return (
+                          <SidebarMenuSubItem key={item.href}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={active}
+                              className={
+                                active
+                                  ? 'bg-brand-sage/20 text-white font-medium'
+                                  : 'text-white/60 hover:translate-x-0.5 hover:bg-white/5 hover:text-white transition-all duration-150'
+                              }
+                            >
+                              <Link to={item.href}>
+                                <Icon className="size-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 

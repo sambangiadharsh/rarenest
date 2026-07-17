@@ -12,7 +12,7 @@ class PropertyService {
     async getPropertyById(id, options = {}) {
         const property = await propertyRepository.findById(id);
         if (!property) return null;
-
+         
         property.media = await propertyRepository.findMediaByPropertyId(id);
 
         // Fetch and map features
@@ -38,7 +38,7 @@ class PropertyService {
 
         return property;
     }
-
+    
     async getAllProperties(filters = {}) {
         const properties = await propertyRepository.findAll(filters);
         if (properties.length === 0) return properties;
@@ -97,7 +97,7 @@ class PropertyService {
             phone: phone.trim(),
             
         });
-
+        
         const loginUrl = process.env.CLIENT_URL || 'http://localhost:8001';
         let emailSent = false;
         try {
@@ -118,7 +118,7 @@ class PropertyService {
 
         return { user: newUser, emailSent };
     }
-
+    
     async createGuestListing({ name, email, phone, ...propertyData }) {
         const normalizedEmail = email.trim().toLowerCase();
         const existingUser = await authService.findUserByEmail(normalizedEmail);
@@ -147,12 +147,12 @@ class PropertyService {
             ...propertyData,
             seller_id: newUser.id,
         });
-
+          
         if (propertyData.selectedFeatureIds && propertyData.selectedFeatureIds.length > 0) {
             await propertyFeatureRepository.savePropertyMappings(property.id, propertyData.selectedFeatureIds);
         }
-
-        const loginUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+         
+        const loginUrl = process.env.CLIENT_URL || 'http://localhost:8001';
         let emailSent = false;
         try {
             await sendEmail({
@@ -185,7 +185,7 @@ class PropertyService {
         mediaService.deletePropertyUploads(id);
         return propertyRepository.delete(id);
     }
-
+   
     async checkOwnership(propertyId, userId) {
         const sellerId = await propertyRepository.findSellerIdByPropertyId(propertyId);
         if (sellerId === null) return null;
