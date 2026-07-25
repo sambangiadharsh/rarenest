@@ -6,7 +6,7 @@ export function getApiOrigin() {
   if (import.meta.env.MODE === 'development') {
     return 'http://localhost:8000'
   }
-
+  
   const configured = import.meta.env.VITE_API_URL
   if (typeof configured === 'string' && configured.trim()) {
     return configured.trim().replace(/\/$/, '')

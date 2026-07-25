@@ -4,6 +4,7 @@ import Header from './Header'
 import Footer from './Footer'
 import { Toaster } from 'sonner'
 import { WishlistProvider } from '@/features/wishlist/context/WishlistContext'
+import CustomerSupportWidget from './CustomerSupportWidget'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -34,7 +35,11 @@ export default function Layout() {
 
         {/* Global Smooth Toast Notifications */}
         <Toaster position="bottom-right" richColors closeButton />
+
+        {/* Customer Support Chat Widget */}
+        <CustomerSupportWidget />
       </div>
     </WishlistProvider>
   )
 }
+

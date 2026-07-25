@@ -69,6 +69,7 @@ app.use('/api/property-chat', require('./routes/propertyChatRoutes'));
 app.use('/api/support', require('./routes/supportRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api', require('./routes/propertyFeatureRoutes'));
+app.use('/api', require('./routes/chatWidgetRoutes'));
 
 // Health Check
 app.get('/health', (req, res) => {
