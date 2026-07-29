@@ -1,16 +1,15 @@
-# API Documentation
+# API Reference Documentation
 
-The Rarenest backend exposes a RESTful HTTP API. All endpoints are prefixed with `/api`. JSON is standard for request and response payloads.
+The Rarenest backend service exposes a RESTful HTTP API. All endpoints are prefixed with `/api`. Payloads are formatted as JSON, and authenticated routes verify JWT tokens from HTTP cookies or Bearer Authorization headers.
 
 ---
 
-## Authentication Endpoints (`/api/auth`)
+## 1. Authentication Endpoints (`/api/auth`)
 
-### 1. Register User
+### Register User
 *   **Method**: `POST`
 *   **Path**: `/api/auth/register`
-*   **Auth Required**: No
-*   **Request Body**:
+*   **Payload**:
     ```json
     {
       "email": "user@example.com",
@@ -25,133 +24,233 @@ The Rarenest backend exposes a RESTful HTTP API. All endpoints are prefixed with
     {
       "status": "success",
       "message": "User registered successfully",
-      "user": {
-        "id": "8f8c85ad-89b0-466d-8fe5-21d99901509a",
-        "email": "user@example.com",
-        "role": "User"
-      }
+      "user": { "id": "8f8c85ad-89b0-466d-8fe5-21d99901509a", "email": "user@example.com", "role": "User" }
     }
     ```
 
-### 2. Login User
+### Login User
 *   **Method**: `POST`
 *   **Path**: `/api/auth/login`
-*   **Auth Required**: No
-*   **Request Body**:
+*   **Payload**:
     ```json
-    {
-      "email": "user@example.com",
-      "password": "Password123"
-    }
+    { "email": "user@example.com", "password": "Password123" }
     ```
 *   **Response (200 OK)**:
-    *   *Sets HTTP-Only cookie `token`*
+    *   *Sets HTTP-Only Cookie `token`*
     ```json
     {
       "status": "success",
       "token": "eyJhbGciOiJIUzI1NiIsIn...",
-      "user": {
-        "id": "8f8c85ad-89b0-466d-8fe5-21d99901509a",
-        "email": "user@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "role": "User"
-      }
+      "user": { "id": "8f8c85ad-89b0-466d-8fe5-21d99901509a", "email": "user@example.com", "role": "User" }
+    }
+    ```
+
+### Logout User
+*   **Method**: `GET`
+*   **Path**: `/api/auth/logout`
+*   *Clears the HTTP-Only token cookie.*
+
+### Change Password
+*   **Method**: `PUT`
+*   **Path**: `/api/auth/changepassword`
+*   **Auth Required**: Yes
+*   **Payload**:
+    ```json
+    {
+      "currentPassword": "OldPassword123",
+      "newPassword": "NewPassword123"
     }
     ```
 
 ---
 
-## Property Endpoints (`/api/properties`)
+## 2. Properties Endpoints (`/api/properties`)
 
-### 1. Retrieve Properties list
+### Get All Properties
 *   **Method**: `GET`
 *   **Path**: `/api/properties`
-*   **Auth Required**: No
 *   **Query Parameters**:
-    *   `city` (string) - Filter by location city.
+    *   `city` (string) - Filter by city location.
     *   `type` (string) - Filter by PropertyType ID.
-    *   `minPrice` / `maxPrice` (numbers).
-    *   `beds` / `baths` (numbers).
-    *   `page` / `limit` (numbers).
-*   **Response (200 OK)**:
-    ```json
-    {
-      "properties": [
-        {
-          "id": "a90dfb2f-7634-4b53-a78b-3e5f726bdf3b",
-          "title": "Modern Nest Studio",
-          "asking_price": 450000.00,
-          "beds": 2,
-          "baths": 2,
-          "size_sqft": 1200.00,
-          "location_city": "Austin",
-          "is_verified": true
-        }
-      ],
-      "total": 1,
-      "page": 1
-    }
-    ```
+    *   `minPrice` / `maxPrice` (number) - Price boundaries.
+    *   `beds` / `baths` (number) - Room counts.
+    *   `page` / `limit` (number) - Pagination parameters.
 
-### 2. Create Property
+### Get Single Property
+*   **Method**: `GET`
+*   **Path**: `/api/properties/:id`
+*   **Response (200 OK)**: Detailed property entity.
+
+### Create Property
 *   **Method**: `POST`
 *   **Path**: `/api/properties`
-*   **Auth Required**: Yes (User / Builder / Admin)
-*   **Request Body (JSON or Form-Data for uploads)**:
+*   **Auth Required**: Yes
+*   **Payload**:
     ```json
     {
-      "title": "New Green Hill Villa",
-      "asking_price": 850000.00,
-      "beds": 4,
-      "baths": 3.5,
-      "size_sqft": 3200,
-      "location_city": "Dallas",
+      "title": "Modern Nest Studio",
+      "property_type_id": "type-guid",
+      "asking_price": 320000.00,
+      "beds": 2,
+      "baths": 1,
+      "size_sqft": 950,
+      "location_city": "Austin",
       "location_state": "Texas",
-      "property_story": "A beautiful green villa...",
+      "property_story": "A cozy studio flat...",
       "listing_type": "Individual"
     }
     ```
 
+### Verify Property (Admin Only)
+*   **Method**: `PUT`
+*   **Path**: `/api/properties/:id/verify`
+*   **Auth Required**: Yes (Admin only)
+*   **Payload**:
+    ```json
+    {
+      "status": "Approved", // or "Rejected"
+      "reason": "Verified RERA documentation."
+    }
+    ```
+
+### Toggle Featured (Admin Only)
+*   **Method**: `PATCH`
+*   **Path**: `/api/properties/:id/featured`
+*   **Auth Required**: Yes (Admin only)
+
+### Get Verification History
+*   **Method**: `GET`
+*   **Path**: `/api/properties/:id/verification-history`
+*   **Auth Required**: Yes
+
+### Resubmit Property
+*   **Method**: `POST`
+*   **Path**: `/api/properties/:id/resubmit`
+*   **Auth Required**: Yes
+
 ---
 
-## Builder Applications (`/api/builders/applications`)
+## 3. Property Drafts Endpoints (`/api/property-drafts`)
 
-### 1. Submit Application
+### Get Draft
+*   **Method**: `GET`
+*   **Path**: `/api/property-drafts`
+*   **Auth Required**: Yes
+
+### Upsert Draft
+*   **Method**: `POST`
+*   **Path**: `/api/property-drafts`
+*   **Auth Required**: Yes
+*   **Payload**: Property field parameters matching `Properties` schema draft data.
+
+### Delete Draft
+*   **Method**: `DELETE`
+*   **Path**: `/api/property-drafts/:id`
+*   **Auth Required**: Yes
+
+### Upload Draft Media
+*   **Method**: `POST`
+*   **Path**: `/api/property-drafts/:id/media`
+*   **Auth Required**: Yes
+*   **Content-Type**: `multipart/form-data`
+*   **File Key**: `files` (array of images/videos)
+
+### Set Draft Thumbnail
+*   **Method**: `PATCH`
+*   **Path**: `/api/property-drafts/:id/media/:mediaId/thumbnail`
+*   **Auth Required**: Yes
+
+### Delete Draft Media
+*   **Method**: `DELETE`
+*   **Path**: `/api/property-drafts/:id/media/:mediaId`
+*   **Auth Required**: Yes
+
+### Publish Draft (Submit Listing)
+*   **Method**: `POST`
+*   **Path**: `/api/property-drafts/:id/publish`
+*   **Auth Required**: Yes
+
+---
+
+## 4. Builder Applications & Profiles (`/api/builders`)
+
+### Submit Builder Application
 *   **Method**: `POST`
 *   **Path**: `/api/builders/applications`
-*   **Auth Required**: Yes (User)
+*   **Auth Required**: Yes
 *   **Content-Type**: `multipart/form-data`
-*   **Form Fields**:
-    *   `company_name`: string
-    *   `company_registration_number`: string
-    *   `business_email`: string
-    *   `business_phone`: string
-    *   `office_address`: string
-    *   `declaration_accepted`: boolean
-*   **File Uploads** (keys):
-    *   `business_registration_certificate` (document)
-    *   `applicant_government_id` (document)
+*   **Form fields**: `company_name`, `company_registration_number`, `business_email`, `business_phone`, `office_address`, `city`, `state`
+*   **Files**: `business_registration_certificate`, `applicant_government_id`
+
+### Review Application (Admin Only)
+*   **Method**: `PUT`
+*   **Path**: `/api/builders/applications/:id`
+*   **Auth Required**: Yes (Admin only)
+*   **Payload**:
+    ```json
+    { "status": "Approved" } // or "Rejected"
+    ```
 
 ---
 
-## Conversations & Chat (`/api/conversations`)
+## 5. Support Tickets & Support Management (`/api/support`)
 
-### 1. Get User Conversations
+### Create support ticket
+*   **Method**: `POST`
+*   **Path**: `/api/support/tickets`
+*   **Auth Required**: Yes
+*   **Payload**:
+    ```json
+    {
+      "category": "General",
+      "subject": "Unable to upload registration document",
+      "description": "The file upload errors out..."
+    }
+    ```
+
+### Get My Tickets
+*   **Method**: `GET`
+*   **Path**: `/api/support/tickets`
+*   **Auth Required**: Yes
+
+### Get Ticket Messages
+*   **Method**: `GET`
+*   **Path**: `/api/support/tickets/:id/messages`
+*   **Auth Required**: Yes
+
+### Send Ticket Message
+*   **Method**: `POST`
+*   **Path**: `/api/support/tickets/:id/messages`
+*   **Auth Required**: Yes
+*   **Payload**: `{ "message": "My response text..." }`
+
+### Assign Support Ticket (Admin Only)
+*   **Method**: `PATCH`
+*   **Path**: `/api/admin/support/tickets/:id/assign`
+*   **Auth Required**: Yes (Admin only)
+*   **Payload**: `{ "assigned_to": "admin-user-guid" }`
+
+### Update Ticket Status (Admin Only)
+*   **Method**: `PATCH`
+*   **Path**: `/api/admin/support/tickets/:id/status`
+*   **Auth Required**: Yes (Admin only)
+*   **Payload**: `{ "status": "Resolved" }`
+
+---
+
+## 6. Conversations & Notifications
+
+### Get Conversations
 *   **Method**: `GET`
 *   **Path**: `/api/conversations`
 *   **Auth Required**: Yes
-*   **Response (200 OK)**:
-    ```json
-    [
-      {
-        "id": "e0b96db8-490b-419b-a6be-3bbcd920272b",
-        "last_message": "Is the property still available?",
-        "updated_at": "2026-07-29T11:15:00Z",
-        "participants": [
-          { "id": "user-guid-1", "first_name": "Alice" },
-          { "id": "user-guid-2", "first_name": "Bob" }
-        ]
-      }
-    ]
-    ```
+
+### Get Notifications
+*   **Method**: `GET`
+*   **Path**: `/api/notifications`
+*   **Auth Required**: Yes
+
+### Mark Notification Read
+*   **Method**: `PATCH`
+*   **Path**: `/api/notifications/:id/read`
+*   **Auth Required**: Yes

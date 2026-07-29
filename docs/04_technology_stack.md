@@ -25,3 +25,5 @@ The Rarenest platform uses a modern web stack to achieve developer velocity, dat
 *   **Socket.IO Client**: Browser client for real-time WebSocket connection channels.
 *   **Lucide React**: Vector icon asset library.
 *   **Shadcn UI (Radix UI)**: Customizable accessible primitives.
+*   **React Tanstack Query**: Server side state management.
+*   **Redux  toolkit** :    Client side state management

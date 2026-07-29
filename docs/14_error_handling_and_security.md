@@ -28,8 +28,12 @@ The backend application has a centralized global error middleware (`backend/src/
     };
     ```
 
-### React Error Boundaries
-The frontend and admin panels use error boundaries wrapping pages. If a component fails to render, a fall-back screen is presented instead of crashing the browser window.
+### Frontend & Admin Error Handling
+The frontend clients do not use class-based React `ErrorBoundary` component wraps; instead, rendering and API errors are handled at the component and hook levels:
+*   **Query State Handling**: Components utilizing TanStack Query check local state properties (`isLoading`, `isError`, `error`) to display fallback views or error alerts inline (e.g. `if (isError) return <ErrorView />`).
+*   **Toast Notifications**: Operation actions (like form submissions) catch promise errors and display toast alert cards using a toast helper framework (e.g., `toast.error(err.message)`).
+*   **API Interceptor Redirects**: Global errors like unauthorized access (HTTP 401) are caught by the Axios network layer (`apiClient.js` interceptor), which triggers automatic redirects to the login screen.
+*   **Wildcard Routing**: Unmatched routing endpoints are captured using React Router DOM wildcard routes `{ path: '*', element: <NotFoundPage /> }` in [routes.jsx](file:///c:/Users/LENOVO/Downloads/rarenest/frontend/src/app/routes.jsx#L144).
 
 ---
 
