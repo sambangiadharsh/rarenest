@@ -12,7 +12,7 @@ class AuthService {
     async createUser(userData) {
         return userRepository.create(userData);
     }
-
+    
     async updateResetToken(userId, hashedToken, expireDate) {
         return userRepository.updateResetToken(userId, hashedToken, expireDate);
     }
@@ -32,6 +32,7 @@ class AuthService {
     async updateLastLogin(userId) {
         return userRepository.updateLastLogin(userId);
     }
+
 }
 
 module.exports = new AuthService();

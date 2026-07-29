@@ -13,6 +13,8 @@ exports.getAdminPage = asyncHandler(async (req, res) => {
         res.status(200).json({ success: true, data: page });
 });
 
+
+
 exports.upsertPage = asyncHandler(async (req, res) => {
         const { error } = cmsSchema.upsert.validate(req.body);
         if (error) {
@@ -22,3 +24,7 @@ exports.upsertPage = asyncHandler(async (req, res) => {
         const page = await cmsService.upsertPage(req.params.pageKey, req.body, req.user.id);
         res.status(200).json({ success: true, data: page });
 });
+
+
+
+

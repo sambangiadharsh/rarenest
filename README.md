@@ -30,4 +30,4 @@ npm install
 npm run dev
 ```
 
-Admins sign in only at the admin app (`http://localhost:5174`). The public site redirects admin logins there automatically. Optional: set `VITE_ADMIN_URL` in `frontend/.env` for production admin URL.
+Admins sign in only at the admin app (`http://localhost:8002`). The public site redirects admin logins there automatically. Optional: set `VITE_ADMIN_URL` in `frontend/.env` for production admin URL.

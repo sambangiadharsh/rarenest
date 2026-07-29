@@ -46,4 +46,5 @@ npm run seed:admin
 npm run dev
 ```
 
-API listens on port `5000` by default (`GET /health`).
+API listens on port `8000` by default (`GET /health`).
+Making the documentation for each feature wise and setup,configure relted .MD files

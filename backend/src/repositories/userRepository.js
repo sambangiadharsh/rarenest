@@ -21,7 +21,7 @@ class UserRepository {
         const pool = await poolPromise;
         const result = await pool.request()
             .input('id', sql.UniqueIdentifier, id)
-            .query('SELECT id, email, role FROM Users WHERE id = @id');
+            .query('SELECT id, email, role, first_name, last_name FROM Users WHERE id = @id');
         return result.recordset[0];
     }
 

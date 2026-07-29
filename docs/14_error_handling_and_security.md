@@ -1,0 +1,59 @@
+# Error Handling & Security Practices
+
+A description of error management patterns and security protocols implemented across Rarenest.
+
+## 1. Error Handling
+
+### Backend Error Handler Middleware
+The backend application has a centralized global error middleware (`backend/src/middlewares/errorMiddleware.js`). All exceptions occurring within routes should be passed to this middleware using `next(error)`.
+
+*   **Structure**:
+    ```javascript
+    const errorMiddleware = (err, req, res, next) => {
+        let statusCode = err.statusCode || 500;
+        let message = err.message || 'Internal Server Error';
+
+        // Capture SQL Server constraints or type errors
+        if (err.name === 'RequestError' || err.name === 'PreconditionError') {
+            statusCode = 400;
+        }
+
+        console.error(`[Error] ${req.method} ${req.url} - Code: ${statusCode} - Msg: ${message}`, err.stack);
+
+        res.status(statusCode).json({
+            status: 'error',
+            message: message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    };
+    ```
+
+### React Error Boundaries
+The frontend and admin panels use error boundaries wrapping pages. If a component fails to render, a fall-back screen is presented instead of crashing the browser window.
+
+---
+
+## 2. Security Practices
+
+### SQL Injection Protection
+All database repository methods use parameterized inputs through the MS SQL pool parameters. Direct string interpolation is prohibited in database calls.
+
+*   **Secure Pattern**:
+    ```javascript
+    const request = new sql.Request(pool);
+    request.input('userId', sql.UniqueIdentifier, userId);
+    const result = await request.query('SELECT * FROM Users WHERE id = @userId');
+    ```
+
+### CORS Configuration
+The backend strictly regulates resource sharing using the `cors` package. The allowed origins are retrieved from environment files (`CLIENT_URL` and `MANAGE_URL`).
+
+### HTTPS and Secure Cookies
+Authentication tokens are delivered inside cookies marked with `HttpOnly` and `Secure` attributes, preventing scripting access and sniffing during transit.
+
+### Secure HTTP Headers (Helmet.js)
+The Express server uses `helmet` to set secure default headers:
+*   `X-Content-Type-Options`: `nosniff`
+*   `X-Frame-Options`: `SAMEORIGIN` (prevents clickjacking)
+*   `Content-Security-Policy`: Tailored to allow resource loading from verified locations.
+*   Cross-origin policies configured to allow frontends on different subdomains to load upload attachments.
