@@ -14,6 +14,7 @@ The Rarenest platform uses a modern web stack to achieve developer velocity, dat
 *   **Nodemailer**: Email transmission wrapper.
 *   **Helmet & Cors**: Security middleware configuring HTTP headers and Allowed Origin security.
 *   **Morgan**: HTTP logging framework.
+*   **dotenv**: Environmental varibales configuration 
 
 ## Frontend & Admin Core Stack
 
@@ -27,3 +28,4 @@ The Rarenest platform uses a modern web stack to achieve developer velocity, dat
 *   **Shadcn UI (Radix UI)**: Customizable accessible primitives.
 *   **React Tanstack Query**: Server side state management.
 *   **Redux  toolkit** :    Client side state management
+

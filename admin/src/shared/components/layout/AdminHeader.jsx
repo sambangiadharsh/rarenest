@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { LogOut, Bell } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import { Separator } from '@/shared/components/ui/separator'
@@ -22,7 +22,7 @@ export default function AdminHeader() {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const { mutateAsync: logoutApi } = useLogout()
-  const title = routeTitles[pathname] ?? 'Admin'
+ 
 
   const displayName = user?.name || user?.email || 'Admin'
   const initials = getInitials(displayName)
@@ -44,14 +44,10 @@ export default function AdminHeader() {
       <Separator orientation="vertical" className="mr-2 h-4" />
 
       <div className="flex flex-1 items-center justify-between gap-4 min-w-0">
-        <h1 className="font-heading text-base font-semibold text-brand-forest truncate">{title}</h1>
+        <h1 className="font-heading text-base font-semibold text-brand-forest truncate"></h1>
 
         <div className="flex shrink-0 items-center gap-2">
-          {/* Notification bell */}
-          <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:bg-brand-cream hover:text-brand-forest">
-            <Bell className="size-4" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          
 
           <Separator orientation="vertical" className="h-4" />
 
@@ -67,7 +63,7 @@ export default function AdminHeader() {
           </div>
 
           <Separator orientation="vertical" className="h-4" />
-
+           
           <Button
             variant="ghost"
             size="sm"
@@ -82,3 +78,8 @@ export default function AdminHeader() {
     </header>
   )
 }
+
+
+
+
+

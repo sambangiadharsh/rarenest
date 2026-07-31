@@ -12,7 +12,7 @@ import { Label } from '@/shared/components/ui/label'
 import { setCredentials } from '@/app/store/authSlice'
 import { useLogin } from '@/features/auth'
 import GoogleAuthButton from '../components/GoogleAuthButton'
-
+import Logo from '@/assets/Logo.png'
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters long'),
@@ -87,25 +87,24 @@ export default function Login() {
   return (
     <div className="flex min-h-svh">
       {/* Left brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-[#492615] p-10 lg:flex lg:w-[45%]">
+      <div className="relative hidden flex-col overflow-hidden bg-[#492615] p-5 lg:flex lg:w-[45%]">
         {/* Decorative circles */}
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#492615]/40" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-[#492615]/30" />
         <div className="pointer-events-none absolute bottom-40 right-10 h-40 w-40 rounded-full bg-[#492615]/20" />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-brand-terracotta shadow-lg">
-            <span className="font-heading text-lg font-bold text-white">R</span>
-          </div>
-          <div>
-            <p className="font-heading text-xl font-bold text-white">RareNest</p>
+        <div className="relative flex items-center">
+             <img
+                src={Logo}
+                alt="RareNest"
+                className="h-25 w-auto object-contain"
+              />
             <p className="text-xs text-brand-sage">Admin Console</p>
-          </div>
         </div>
 
         {/* Center content */}
-        <div className="relative space-y-6">
+        <div className="relative space-y-8">
           <div>
             <h1 className="font-heading text-4xl font-bold leading-tight text-white">
               Manage your <br />
@@ -149,7 +148,7 @@ export default function Login() {
             <h2 className="font-heading text-2xl font-semibold text-brand-forest">Welcome back</h2>
             <p className="mt-1 text-sm text-muted-foreground">Sign in to your admin account to continue</p>
           </div>
-
+         
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-foreground">
@@ -195,7 +194,7 @@ export default function Login() {
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
-
+            
             <Button
               type="submit"
               className="h-10 w-full gap-2 bg-[#492615] text-white hover:bg-[#492615]/90"
@@ -236,3 +235,64 @@ export default function Login() {
     </div>
   )
 }
+
+
+
+<div>
+  <form>
+    <input type="text" placeholder="name of agent"/>
+    <input type="password" placeholder="address"/>
+    <input type="number"/>
+    <textarea row="3" cols="30"></textarea>
+    <lable>options</lable>
+    <input type="radio"/>
+    <select>
+
+      <options>
+         <option>
+          agent
+         </option>
+         <option>
+          builder
+         </option>
+         <option>
+          developer
+         </option>
+         <option>
+          buyer
+         </option>
+         <option>
+          seller
+         </option>
+      </options>
+    </select>
+    
+    <button type="submit">Submit</button>
+
+  </form>
+  <p>
+    <h1></h1>
+    <strong></strong>
+    <br></br>
+    <hr>
+    </hr>
+    <table>
+      <tr>
+        <td>name</td>
+        <td>address</td>
+        <td>email</td>
+        <td>phone
+
+        </td>
+        <td>
+          property count
+        </td>
+        <td>
+          <button>
+            edit
+          </button>
+        </td>
+      </tr>
+    </table>
+  </p>
+</div>

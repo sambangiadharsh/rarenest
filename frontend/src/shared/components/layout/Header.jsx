@@ -112,7 +112,7 @@ export default function Header() {
               <img
                 src={Logo}
                 alt="RareNest"
-                className="h-20 w-auto object-contain"
+                className="h-25 w-auto object-contain"
               />
             </Link>
           </div>
