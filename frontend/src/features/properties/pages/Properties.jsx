@@ -15,8 +15,10 @@ import { useProperties } from '@/features/properties'
 import { usePropertyTypes } from '@/features/properties'
 import { mapPropertyForCard } from '@/features/properties/lib/propertyUtils'
 import { toast } from 'sonner'
+import { useSearchParams } from 'react-router-dom'
 
 export default function Properties() {
+  const [searchParams] = useSearchParams()
   const [search, setSearch] = React.useState('')
   const [viewMode, setViewMode] = React.useState('grid')
   const [activeCategory, setActiveCategory] = React.useState('All Homes')
@@ -27,21 +29,18 @@ export default function Properties() {
   const [maxSize, setMaxSize] = React.useState(3500)
   const [statusFilter, setStatusFilter] = React.useState('All')
   const [statusOpen, setStatusOpen] = React.useState(false)
-  
-  // Applied filters state
-  const [appliedFilters, setAppliedFilters] = React.useState({
-    minPrice: '',
-    maxPrice: '',
-    maxSize: 3500,
-    status: 'All'
+
+  // Sidebar filters matching screenshot
+  const [citySearch, setCitySearch] = React.useState(() => searchParams.get('city') || '')
+  const [selectedTypes, setSelectedTypes] = React.useState(() => {
+    const typeParam = searchParams.get('type')
+    return typeParam ? [typeParam] : []
   })
 
   const { data: propertiesRes, isLoading } = useProperties()
   const { data: typesRes } = usePropertyTypes()
   const realProperties = propertiesRes?.data || []
   const apiTypes = typesRes?.data || []
-
-  
 
   const categories = [
     { name: 'All Homes', icon: '🏡' },
@@ -61,37 +60,45 @@ export default function Properties() {
     return normalizedProp === normalizedCat || normalizedProp.includes(normalizedCat) || normalizedCat.includes(normalizedProp)
   }
 
-  // Filter & Search Logic
+  // Filter & Search Logic (Live updating on input change)
   const filtered = displayProperties.filter((p) => {
     // 0. Status Filter
     const status = p.status?.toLowerCase() || 'available'
-    const appliedStatus = appliedFilters.status.toLowerCase()
+    const appliedStatus = statusFilter.toLowerCase()
     if (appliedStatus !== 'all' && status !== appliedStatus) return false
 
-    // 1. Search Query Filter
+    // 1. Search Query Filter (Catalog search input - searches title/description/type/location)
     const searchLower = search.toLowerCase()
     const titleMatch = p.title.toLowerCase().includes(searchLower)
     const locMatch = p.locationLabel.toLowerCase().includes(searchLower)
     const typeMatch = p.property_type.toLowerCase().includes(searchLower)
     if (search && !titleMatch && !locMatch && !typeMatch) return false
 
-    // 2. Category Pill Filter
+    // 2. Horizontal Category Pill Filter
     if (!categoryMatches(p.property_type, activeCategory)) return false
 
     // 3. Price Filter Parameters
-    if (appliedFilters.minPrice && p.asking_price < Number(appliedFilters.minPrice)) return false
-    if (appliedFilters.maxPrice && p.asking_price > Number(appliedFilters.maxPrice)) return false
+    if (minPrice && p.asking_price < Number(minPrice)) return false
+    if (maxPrice && p.asking_price > Number(maxPrice)) return false
 
-    // 4. Size Filter Parameter
-    if (p.size_sqft > appliedFilters.maxSize) return false
+    // 4. Property Type Checkboxes (Sidebar)
+    if (selectedTypes.length > 0) {
+      const match = selectedTypes.some(type => categoryMatches(p.property_type, type))
+      if (!match) return false
+    }
+
+    // 5. City Search Filter (Sidebar)
+    if (citySearch.trim()) {
+      const cityLower = citySearch.toLowerCase().trim()
+      const locationLower = p.locationLabel?.toLowerCase() || ''
+      if (!locationLower.includes(cityLower)) return false
+    }
+
+    // 6. Size Filter Parameter
+    if (p.size_sqft > maxSize) return false
 
     return true
   })
-
-  const handleApplyFilters = () => {
-    setAppliedFilters({ minPrice, maxPrice, maxSize, status: statusFilter })
-    toast.success('Filter criteria updated!')
-  }
 
   const handleResetFilters = () => {
     setMinPrice('')
@@ -99,8 +106,19 @@ export default function Properties() {
     setMaxSize(3500)
     setStatusFilter('All')
     setStatusOpen(false)
-    setAppliedFilters({ minPrice: '', maxPrice: '', maxSize: 3500, status: 'All' })
+    setSearch('')
+    setActiveCategory('All Homes')
+    setCitySearch('')
+    setSelectedTypes([])
     toast.success('Filters cleared!')
+  }
+
+  const handleTypeToggle = (typeName) => {
+    setSelectedTypes((prev) =>
+      prev.includes(typeName)
+        ? prev.filter((t) => t !== typeName)
+        : [...prev, typeName]
+    )
   }
 
   return (
@@ -212,6 +230,49 @@ export default function Properties() {
             </div>
           </div>
 
+          {/* Property Type Checkboxes */}
+          <div className="flex flex-col gap-2.5">
+            <label className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-widest">
+              Property Type
+            </label>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-350 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.length === 0}
+                  onChange={() => setSelectedTypes([])}
+                  className="rounded border-neutral-300 text-brand-bronze focus:ring-brand-bronze/50 h-3.5 w-3.5"
+                />
+                <span>All Types</span>
+              </label>
+              {apiTypes.map((type) => (
+                <label key={type.id || type.name} className="flex items-center gap-2 text-xs font-medium text-neutral-700 dark:text-neutral-350 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(type.name)}
+                    onChange={() => handleTypeToggle(type.name)}
+                    className="rounded border-neutral-300 text-brand-bronze focus:ring-brand-bronze/50 h-3.5 w-3.5"
+                  />
+                  <span>{type.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* City Search */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-widest">
+              City
+            </label>
+            <input
+              type="text"
+              placeholder="Search city..."
+              value={citySearch}
+              onChange={(e) => setCitySearch(e.target.value)}
+              className="w-full bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-850 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-bronze/50 transition-all"
+            />
+          </div>
+
           {/* Property Status Filter (Custom Dropdown) */}
           <div className="flex flex-col gap-2 relative z-20">
             <label className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-widest">
@@ -290,13 +351,6 @@ export default function Properties() {
               <span>3500 sqft</span>
             </div>
           </div>
-
-          <Button
-            onClick={handleApplyFilters}
-            className="w-full bg-brand-bronze hover:bg-brand-bronze-dark text-white font-semibold py-2.5 rounded-xl text-xs transition-all duration-300"
-          >
-            Apply Filters
-          </Button>
         </div>
 
         {/* Right Side Cards Display grid */}

@@ -368,14 +368,14 @@ function isGst(value) {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Company Name" required icon={Building2} error={errors.company_name}>
-                    <TextInput value={form.company_name} onChange={(e) => updateField('company_name', e.target.value)} error={errors.company_name} placeholder="e.g. Earth Residence Co." />
+                    <TextInput value={form.company_name} onChange={(e) => updateField('company_name', e.target.value)} error={errors.company_name} placeholder="e.g. Earth Residence Co." maxLength={255} />
                   </Field>
                   <Field label="Company Registration Number" required icon={FileText} error={errors.company_registration_number}>
-                    <TextInput value={form.company_registration_number} onChange={(e) => updateField('company_registration_number', e.target.value)} error={errors.company_registration_number} placeholder="Registration or CIN number" />
+                    <TextInput value={form.company_registration_number} onChange={(e) => updateField('company_registration_number', e.target.value)} error={errors.company_registration_number} placeholder="Registration or CIN number" maxLength={100} />
                   </Field>
                   <div className="sm:col-span-2">
                     <Field label="Company Description" required icon={FileText} error={errors.company_description} helper="Include your build focus, experience, and project credentials.">
-                      <TextArea value={form.company_description} onChange={(e) => updateField('company_description', e.target.value)} error={errors.company_description} placeholder="Describe the company and its work..." />
+                      <TextArea value={form.company_description} onChange={(e) => updateField('company_description', e.target.value)} error={errors.company_description} placeholder="Describe the company and its work..." maxLength={10000} />
                     </Field>
                   </div>
                   <FileField label="Company Logo" file={files.company_logo} error={errors.company_logo} onChange={(file) => updateFile('company_logo', file)} helper="Optional. JPG, PNG, or PDF." />
@@ -403,22 +403,22 @@ function isGst(value) {
                 </label>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Contact Person Name" required icon={User} error={errors.contact_person_name}>
-                    <TextInput value={form.contact_person_name} onChange={(e) => updateField('contact_person_name', e.target.value)} error={errors.contact_person_name} />
+                    <TextInput value={form.contact_person_name} onChange={(e) => updateField('contact_person_name', e.target.value)} error={errors.contact_person_name} maxLength={150} />
                   </Field>
                   <Field label="Business Email" required icon={Mail} error={errors.business_email}>
-                    <TextInput value={form.business_email} onChange={(e) => updateField('business_email', e.target.value)} error={errors.business_email} />
+                    <TextInput value={form.business_email} onChange={(e) => updateField('business_email', e.target.value)} error={errors.business_email} maxLength={255} />
                   </Field>
                   <Field label="Business Phone" required icon={Phone} error={errors.business_phone}>
-                    <TextInput value={form.business_phone} onChange={(e) => updateField('business_phone', e.target.value)} error={errors.business_phone} />
+                    <TextInput value={form.business_phone} onChange={(e) => updateField('business_phone', e.target.value)} error={errors.business_phone} maxLength={30} />
                   </Field>
                   <Field label="Office Address" required icon={MapPin} error={errors.office_address}>
-                    <TextInput value={form.office_address} onChange={(e) => updateField('office_address', e.target.value)} error={errors.office_address} />
+                    <TextInput value={form.office_address} onChange={(e) => updateField('office_address', e.target.value)} error={errors.office_address} maxLength={1000} />
                   </Field>
                   <Field label="City" required icon={MapPin} error={errors.city}>
-                    <TextInput value={form.city} onChange={(e) => updateField('city', e.target.value)} error={errors.city} />
+                    <TextInput value={form.city} onChange={(e) => updateField('city', e.target.value)} error={errors.city} maxLength={100} />
                   </Field>
                   <Field label="State" required icon={MapPin} error={errors.state}>
-                    <TextInput value={form.state} onChange={(e) => updateField('state', e.target.value)} error={errors.state} />
+                    <TextInput value={form.state} onChange={(e) => updateField('state', e.target.value)} error={errors.state} maxLength={100} />
                   </Field>
                 </div>
 
@@ -458,6 +458,7 @@ function isGst(value) {
                               value={link.url}
                               onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
                               error={errors[`social_link_${index}_url`]}
+                              maxLength={1000}
                             />
                             {errors[`social_link_${index}_url`] && <span className="text-[10px] text-destructive mt-1 block">{errors[`social_link_${index}_url`]}</span>}
                           </div>
@@ -499,11 +500,11 @@ function isGst(value) {
                   <FileField label="Business Registration Certificate" required file={files.business_registration_certificate} error={errors.business_registration_certificate} onChange={(file) => updateFile('business_registration_certificate', file)} />
                   <FileField label="Government ID of Applicant" required file={files.applicant_government_id} error={errors.applicant_government_id} onChange={(file) => updateFile('applicant_government_id', file)} />
                   <Field label="GST Number" error={errors.gst_number} helper="Optional.">
-                    <TextInput value={form.gst_number} onChange={(e) => updateField('gst_number', e.target.value)} error={errors.gst_number} />
+                    <TextInput value={form.gst_number} onChange={(e) => updateField('gst_number', e.target.value)} error={errors.gst_number} maxLength={50} />
                   </Field>
                   <FileField label="GST Certificate" file={files.gst_certificate} error={errors.gst_certificate} onChange={(file) => updateFile('gst_certificate', file)} helper="Optional." />
                   <Field label="RERA Number" error={errors.rera_number} helper="Optional.">
-                    <TextInput value={form.rera_number} onChange={(e) => updateField('rera_number', e.target.value)} error={errors.rera_number} />
+                    <TextInput value={form.rera_number} onChange={(e) => updateField('rera_number', e.target.value)} error={errors.rera_number} maxLength={50} />
                   </Field>
                   <FileField label="RERA Certificate" file={files.rera_certificate} error={errors.rera_certificate} onChange={(file) => updateFile('rera_certificate', file)} helper="Optional." />
                 </div>

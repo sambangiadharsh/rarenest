@@ -4,6 +4,7 @@ const builderApplicationRepository = require('../repositories/builderApplication
 const builderRepository = require('../repositories/builderRepository');
 const notificationService = require('../services/messaging/notificationService');
 const storageService = require('../services/storageService');
+const builderApplicationSchema = require('../models/builderApplicationModel');
 
 const requiredFields = [
     'company_name',
@@ -35,6 +36,11 @@ exports.submitApplication = asyncHandler(async (req, res) => {
         const body = Object.fromEntries(
             Object.entries(req.body || {}).map(([key, value]) => [key, normalize(value)])
         );
+
+        const { error } = builderApplicationSchema.submit.validate(body);
+        if (error) {
+            throw new AppError(error.details[0].message, 400);
+        }
 
         const missingField = requiredFields.find((field) => !body[field]);
         if (missingField) {

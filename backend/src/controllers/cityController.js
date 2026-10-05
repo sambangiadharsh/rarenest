@@ -13,19 +13,19 @@ exports.searchCities = asyncHandler(async (req, res) => {
 
         const pool = await poolPromise;
         const result = await pool.request()
-            .input('keyword', sql.NVarChar, `%${q.trim()}%`)
+            .input('keyword', sql.NVarChar, `${q.trim()}%`)
             .query(`
-                SELECT TOP 20 City, State, District
-                FROM Cities
-                WHERE City LIKE @keyword
-                ORDER BY City ASC
+                SELECT DISTINCT TOP 20 CityName AS City, StateName AS State
+                FROM Locations
+                WHERE CityName LIKE @keyword
+                ORDER BY CityName ASC
             `);
 
         // Format to lowercase properties as requested
         const formattedCities = result.recordset.map(row => ({
             city: row.City,
             state: row.State,
-            district: row.District || ''
+            district: ''
         }));
 
         return res.status(200).json(formattedCities);

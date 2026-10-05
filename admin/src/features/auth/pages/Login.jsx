@@ -88,11 +88,7 @@ export default function Login() {
     <div className="flex min-h-svh">
       {/* Left brand panel */}
       <div className="relative hidden flex-col overflow-hidden bg-[#492615] p-5 lg:flex lg:w-[45%]">
-        {/* Decorative circles */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#492615]/40" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 h-64 w-64 rounded-full bg-[#492615]/30" />
-        <div className="pointer-events-none absolute bottom-40 right-10 h-40 w-40 rounded-full bg-[#492615]/20" />
-
+        
         {/* Logo */}
         <div className="relative flex items-center">
              <img
@@ -128,7 +124,7 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <p className="relative text-xs text-brand-sage/60">
+        <p className="relative text-xs pt-7 text-brand-sage/60">
           © 2025 RareNest. All rights reserved.
         </p>
       </div>

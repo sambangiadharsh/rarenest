@@ -112,7 +112,7 @@ exports.getProperty = asyncHandler(async (req, res) => {
         if (!property) {
             throw new AppError('Property not found', 404);
         }
-
+        
         const hasActivePropertyType =
             !property.property_type_id || isBitTruthy(property.property_type_is_active);
         const isPubliclyVisible =
@@ -350,4 +350,6 @@ exports.verifyProperty = asyncHandler(async (req, res) => {
         });
         res.status(200).json({ success: true, data: updatedProperty });
 });
+
+
 

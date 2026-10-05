@@ -24,3 +24,6 @@ exports.markAllRead = asyncHandler(async (req, res) => {
     await notificationService.markAllRead(req.user.id);
     res.status(200).json({ success: true, message: 'All notifications marked as read' });
 });
+
+
+

@@ -15,11 +15,13 @@ import {
   Triangle,
   ChevronLeft,
   ChevronRight,
+  Maximize2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/shared/components/ui/button'
 import PageLoader from '@/shared/components/ui/PageLoader'
 import WifiLoader from '@/shared/components/ui/WifiLoader'
+import ImageLightboxModal from '@/shared/components/ui/ImageLightboxModal'
 import {
   useProperty,
   usePropertyVerificationHistory,
@@ -267,6 +269,7 @@ export default function MyPropertyDetail() {
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
   const [showAllFeaturesGrouped, setShowAllFeaturesGrouped] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   useEffect(() => {
     setActiveImage(0)
@@ -410,7 +413,8 @@ export default function MyPropertyDetail() {
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="relative aspect-[16/10] overflow-hidden bg-neutral-100 dark:bg-neutral-800 cursor-grab active:cursor-grabbing select-none"
+              onClick={() => setIsLightboxOpen(true)}
+              className="relative aspect-[16/10] overflow-hidden bg-neutral-100 dark:bg-neutral-800 cursor-pointer select-none group"
             >
               {displayMedia.type === 'Video' ? (
                 <video
@@ -422,10 +426,15 @@ export default function MyPropertyDetail() {
                 <img
                   src={displayMedia.src}
                   alt={property.title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=400&q=60' }}
                 />
               )}
+
+              <span className="absolute right-3 top-3 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-1 text-[11px] font-semibold text-white flex items-center gap-1 hover:bg-black/80 transition-colors pointer-events-none z-10">
+                <Maximize2 className="h-3 w-3" />
+                <span>View</span>
+              </span>
 
               {/* Navigation Overlay Arrows */}
               {mediaItems.length > 1 && (
@@ -715,6 +724,15 @@ export default function MyPropertyDetail() {
           )}
         </div>
       )}
+      {/* Image Lightbox Modal */}
+      <ImageLightboxModal
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        mediaItems={mediaItems.length ? mediaItems : [{ type: 'Image', src: heroImage }]}
+        currentIndex={activeImage}
+        onIndexChange={setActiveImage}
+        title={property?.title || 'Property Gallery'}
+      />
     </div>
   )
 }

@@ -38,7 +38,18 @@ export default function Home() {
   const { data: typesRes, isLoading: typesLoading } = usePropertyTypes()
   const { data: bannersRes } = useActiveBanners()
   const { data: buildersRes, isLoading: buildersLoading } = useBuilders()
-  const [builderIndex, setBuilderIndex] = React.useState(0)
+  const builderCarouselRef = React.useRef(null)
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false)
+  const [canScrollRight, setCanScrollRight] = React.useState(false)
+
+  const checkScroll = React.useCallback(() => {
+    if (builderCarouselRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = builderCarouselRef.current
+      setCanScrollLeft(scrollLeft > 5)
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 5)
+    }
+  }, [])
+
 
   const activeBanners = bannersRes?.data ?? []
   const realProperties = propertiesRes?.data || []
@@ -157,8 +168,28 @@ export default function Home() {
     (builder) => builder.builder_status === 'Approved' && (builder.is_featured === 1 || builder.is_featured === true)
   )
 
-  const maxBuilderIndex = Math.max(0, realBuilders.length - 4)
-  const visibleBuilders = realBuilders.slice(builderIndex, builderIndex + 4)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      checkScroll()
+    }, 200)
+    window.addEventListener('resize', checkScroll)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', checkScroll)
+    }
+  }, [realBuilders, checkScroll])
+
+  const scrollLeft = () => {
+    if (builderCarouselRef.current) {
+      builderCarouselRef.current.scrollBy({ left: -280, behavior: 'smooth' })
+    }
+  }
+
+  const scrollRight = () => {
+    if (builderCarouselRef.current) {
+      builderCarouselRef.current.scrollBy({ left: 280, behavior: 'smooth' })
+    }
+  }
 
   return (
     <div className="flex flex-col gap-16 md:gap-24 w-full pb-16">
@@ -210,165 +241,54 @@ export default function Home() {
           </div>
           )}
 
-          {/* Main Interface Layout Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
-            {/* LEFT COLUMN: Sticky Filter Sidebar */}
-            <div className="lg:col-span-1 lg:sticky lg:top-28 h-fit bg-brand-cream border border-brand-sand rounded-2xl p-5 flex flex-col gap-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-serif text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4 text-brand-terracotta" /> Filter
-                </span>
+          {/* Featured Properties Listings Grid */}
+          <div className="w-full">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="h-10 w-10 animate-spin text-brand-terracotta" />
+                <p className="text-sm font-semibold text-neutral-400">Loading catalog...</p>
+              </div>
+            ) : filteredProperties.length === 0 ? (
+              <div className="text-center py-20 bg-brand-cream border border-dashed border-brand-sand rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
+                <span className="text-4xl">🏝</span>
+                <h3 className="font-serif text-lg font-bold text-neutral-800 dark:text-neutral-200">
+                  {displayProperties.length === 0 ? 'No Listings Yet' : 'No Match Found'}
+                </h3>
+                <p className="text-sm text-neutral-500 max-w-sm">
+                  {displayProperties.length === 0
+                    ? 'Featured properties will appear here once our team marks them as featured.'
+                    : 'No residences match your filters. Try selecting a different category theme.'}
+                </p>
                 <button 
                   onClick={clearActiveFilters}
-                  className="text-xs font-semibold text-neutral-400 hover:text-brand-terracotta transition-colors"
+                  className="mt-2 text-sm font-bold text-brand-terracotta hover:text-brand-terracotta-light underline decoration-dotted"
                 >
-                  Reset All
+                  Reset Category
                 </button>
               </div>
-
-              {/* Price Inputs */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
-                  Price Range (₹)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <input 
-                    type="number"
-                    placeholder="Min"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    className="w-full bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-terracotta/50 transition-colors"
-                  />
-                  <input 
-                    type="number"
-                    placeholder="Max"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="w-full bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-terracotta/50 transition-colors"
-                  />
-                </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredProperties.map((prop, idx) => (
+                  <PropertyCard key={prop.id} property={prop} index={idx} />
+                ))}
               </div>
+            )}
 
-              {/* Property Status Filter (Custom Dropdown) */}
-              <div className="flex flex-col gap-2 relative z-20">
-                <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
-                  Property Status
-                </label>
-                <div>
-                  <button
-                    type="button"
-                    onClick={() => setStatusOpen(!statusOpen)}
-                    className="w-full flex items-center justify-between bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-terracotta/50 transition-all cursor-pointer text-left font-sans font-medium text-neutral-700 dark:text-neutral-300"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        statusFilter === 'Available' ? 'bg-emerald-500' :
-                        statusFilter === 'Pending' ? 'bg-amber-500' :
-                        statusFilter === 'Sold' ? 'bg-rose-500' : 'bg-neutral-400'
-                      }`} />
-                      {statusFilter === 'All' ? 'All Statuses' : statusFilter}
-                    </span>
-                    <span className="text-neutral-400 text-xs">▼</span>
-                  </button>
+            {/* Animated View All Listings Button */}
+            <div className="mt-12 flex justify-center w-full">
+              <Link to="/properties">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="relative group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-brand-forest via-brand-forest-mid to-brand-forest text-white font-bold text-sm tracking-wide shadow-xl shadow-brand-forest/20 hover:shadow-2xl hover:shadow-brand-forest/40 border border-white/10 overflow-hidden cursor-pointer transition-all duration-300"
+                >
+                  {/* Animated Shine Sweep Effect */}
+                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
                   
-                  {statusOpen && (
-                    <>
-                      <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />
-                      <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-neutral-900 border border-brand-sand rounded-xl shadow-xl z-40 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-                        {[
-                          { label: 'All Statuses', value: 'All', color: 'bg-neutral-400' },
-                          { label: 'Available', value: 'Available', color: 'bg-emerald-500' },
-                          { label: 'Pending', value: 'Pending', color: 'bg-amber-500' },
-                          { label: 'Sold', value: 'Sold', color: 'bg-rose-500' }
-                        ].map((item) => (
-                          <button
-                            key={item.value}
-                            type="button"
-                            onClick={() => {
-                              setStatusFilter(item.value)
-                              setStatusOpen(false)
-                            }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-left cursor-pointer transition-colors duration-200 ${
-                              statusFilter === item.value
-                                ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white font-bold'
-                                : 'text-neutral-600 hover:bg-neutral-50 dark:text-neutral-400 dark:hover:bg-neutral-800'
-                            }`}
-                          >
-                            <span className={`h-1.5 w-1.5 rounded-full ${item.color}`} />
-                            {item.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Size Slider */}
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center text-xs font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider">
-                  <span>Maximum Area</span>
-                  <span className="text-brand-terracotta font-bold normal-case font-sans text-sm">
-                    {maxSize >= 3500 ? 'Any Size' : `${maxSize} sqft`}
-                  </span>
-                </div>
-                <input 
-                  type="range"
-                  min="100"
-                  max="3500"
-                  step="100"
-                  value={maxSize}
-                  onChange={(e) => setMaxSize(Number(e.target.value))}
-                  className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-brand-terracotta"
-                />
-                <div className="flex justify-between text-[10px] text-neutral-400 font-semibold">
-                  <span>100 sqft</span>
-                  <span>3500 sqft</span>
-                </div>
-              </div>
-
-              {/* Apply Action Buttons */}
-              <button
-                onClick={applyActiveFilters}
-                className="w-full bg-brand-terracotta hover:bg-brand-terracotta-light text-white font-bold py-2.5 rounded-xl transition-all duration-300 shadow-sm text-sm border-none"
-              >
-                Apply Filters
-              </button>
-            </div>
-
-            {/* RIGHT COLUMN: Listings Grid */}
-            <div className="lg:col-span-3">
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-24 gap-3">
-                  <Loader2 className="h-10 w-10 animate-spin text-brand-terracotta" />
-                  <p className="text-sm font-semibold text-neutral-400">Loading catalog...</p>
-                </div>
-              ) : filteredProperties.length === 0 ? (
-                <div className="text-center py-20 bg-brand-cream border border-dashed border-brand-sand rounded-2xl flex flex-col items-center justify-center p-6 gap-3">
-                  <span className="text-4xl">🏝</span>
-                  <h3 className="font-serif text-lg font-bold text-neutral-800 dark:text-neutral-200">
-                    {displayProperties.length === 0 ? 'No Listings Yet' : 'No Match Found'}
-                  </h3>
-                  <p className="text-sm text-neutral-500 max-w-sm">
-                    {displayProperties.length === 0
-                      ? 'Featured properties will appear here once our team marks them as featured.'
-                      : 'No residences match your filters. Try expanding your search or resetting filters.'}
-                  </p>
-                  <button 
-                    onClick={clearActiveFilters}
-                    className="mt-2 text-sm font-bold text-brand-terracotta hover:text-brand-terracotta-light underline decoration-dotted"
-                  >
-                    Reset Active Filters
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-                  {filteredProperties.map((prop, idx) => (
-                    <PropertyCard key={prop.id} property={prop} index={idx} />
-                  ))}
-                </div>
-              )}
+                  <span className="relative z-10">View All Listings</span>
+                  <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+                </motion.button>
+              </Link>
             </div>
           </div>
         </section>
@@ -441,40 +361,13 @@ export default function Home() {
         {/* 4. FEATURED BUILDERS PANEL */}
         <section id="builders" className="flex flex-col gap-8 scroll-mt-24">
           {/* Header row */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              
-              <h2 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">
-                Featured Builders
-              </h2>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                Explore top-rated builders with trusted quality and exceptional projects.
-              </p>
-            </div>
-
-            {/* Nav arrows — only when there are builders */}
-            {!buildersLoading && realBuilders.length > 4 && (
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setBuilderIndex((prev) => Math.max(0, prev - 1))}
-                  aria-label="Show previous builders"
-                  disabled={builderIndex === 0}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBuilderIndex((prev) => Math.min(maxBuilderIndex, prev + 1))}
-                  aria-label="Show next builders"
-                  disabled={builderIndex >= maxBuilderIndex}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-sand bg-white dark:bg-neutral-900 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            )}
+          <div className="flex flex-col gap-2">
+            <h2 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">
+              Featured Builders
+            </h2>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Explore top-rated builders with trusted quality and exceptional projects.
+            </p>
           </div>
 
           {/* Loading */}
@@ -495,94 +388,124 @@ export default function Home() {
 
           {/* Carousel */}
           {!buildersLoading && realBuilders.length > 0 && (
-            <div className="flex gap-5 overflow-hidden pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 justify-center">
-              {visibleBuilders.map((builder, idx) => {
-                const AVATAR_COLORS = [
-                  'bg-purple-100 text-purple-600',
-                  'bg-teal-100 text-teal-600',
-                  'bg-orange-100 text-orange-600',
-                  'bg-sky-100 text-sky-600',
-                  'bg-rose-100 text-rose-600',
-                  'bg-emerald-100 text-emerald-600',
-                ]
-                const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length]
-                const firstName = builder.first_name ?? ''
-                const lastName = builder.last_name ?? ''
-                const fullName = `${firstName} ${lastName}`.trim() || 'Builder'
-                const displayName = builder.company_name || fullName
-                const initials = builder.company_name
-                  ? builder.company_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-                  : `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '??'
-                const rating = Number(builder.average_rating ?? 0)
-                const totalReviews = Number(builder.total_reviews ?? 0)
-                const propertiesCount = Number(builder.properties_count ?? 0)
+            <div className="relative group/carousel px-1 sm:px-12">
+              {/* Left Arrow Button */}
+              {canScrollLeft && (
+                <button
+                  type="button"
+                  onClick={scrollLeft}
+                  aria-label="Show previous builders"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-brand-sand bg-white/95 dark:bg-neutral-900/95 dark:border-neutral-700 shadow-md text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-all duration-300"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
 
-                return (
-                  <div
-                    key={builder.id}
-                    className="group snap-start shrink-0 w-[260px] bg-white dark:bg-neutral-900 border border-brand-sand dark:border-neutral-800 rounded-2xl p-5 flex flex-col items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-center"
-                  >
-                    {/* Avatar */}
-                    {builder.company_logo_url ? (
-                      <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-brand-sand/60 dark:ring-neutral-800 bg-white">
-                        <img 
-                          src={resolveUrl(builder.company_logo_url)} 
-                          alt={`${displayName} logo`} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    ) : (
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ring-4 ring-brand-sand/60 dark:ring-neutral-800 ${colorClass}`}>
-                        {initials}
-                      </div>
-                    )}
+              {/* Right Arrow Button */}
+              {canScrollRight && (
+                <button
+                  type="button"
+                  onClick={scrollRight}
+                  aria-label="Show next builders"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-brand-sand bg-white/95 dark:bg-neutral-900/95 dark:border-neutral-700 shadow-md text-neutral-600 dark:text-neutral-300 hover:border-brand-terracotta hover:text-brand-terracotta transition-all duration-300"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
 
-                    {/* Name + rating */}
-                    <div className="flex flex-col gap-1.5 w-full">
-                      <h3 className="font-semibold text-base text-neutral-900 dark:text-white leading-tight truncate" title={displayName}>
-                        {displayName}
-                      </h3>
-                      <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
-                        Owner: {fullName}
-                      </p>
+              <div 
+                ref={builderCarouselRef}
+                onScroll={checkScroll}
+                className="flex gap-5 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory"
+              >
+                {realBuilders.map((builder, idx) => {
+                  const AVATAR_COLORS = [
+                    'bg-purple-100 text-purple-600',
+                    'bg-teal-100 text-teal-600',
+                    'bg-orange-100 text-orange-600',
+                    'bg-sky-100 text-sky-600',
+                    'bg-rose-100 text-rose-600',
+                    'bg-emerald-100 text-emerald-600',
+                  ]
+                  const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length]
+                  const firstName = builder.first_name ?? ''
+                  const lastName = builder.last_name ?? ''
+                  const fullName = `${firstName} ${lastName}`.trim() || 'Builder'
+                  const displayName = builder.company_name || fullName
+                  const initials = builder.company_name
+                    ? builder.company_name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+                    : `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '??'
+                  const rating = Number(builder.average_rating ?? 0)
+                  const totalReviews = Number(builder.total_reviews ?? 0)
+                  const propertiesCount = Number(builder.properties_count ?? 0)
 
-                      <div className="flex items-center justify-center gap-1">
-                        <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                        <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                          {rating > 0 ? rating.toFixed(1) : '—'}
-                        </span>
-                        <span className="text-xs text-neutral-400">
-                          ({totalReviews})
-                        </span>
-                      </div>
-
-                      <span className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-brand-forest dark:text-emerald-400">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Verified Builder
-                      </span>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="w-full border-t border-brand-sand dark:border-neutral-800" />
-
-                    {/* Stats */}
-                    <div className="flex flex-col gap-1.5 w-full text-xs text-neutral-500 dark:text-neutral-400">
-                      <span className="flex items-center justify-center gap-1.5">
-                        <Building2 className="h-3.5 w-3.5 text-brand-terracotta shrink-0" />
-                        {propertiesCount} {propertiesCount === 1 ? 'Property' : 'Properties'} Listed
-                      </span>
-                    </div>
-
-                    {/* CTA */}
-                    <Link
-                      to={`/builders/${builder.id}`}
-                      className="w-full bg-brand-forest hover:bg-brand-forest/90 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-300 text-center block"
+                  return (
+                    <div
+                      key={builder.id}
+                      className="group snap-start shrink-0 w-[260px] bg-white dark:bg-neutral-900 border border-brand-sand dark:border-neutral-800 rounded-2xl p-5 flex flex-col items-center gap-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-center"
                     >
-                      View Profile
-                    </Link>
-                  </div>
-                )
-              })}
+                      {/* Avatar */}
+                      {builder.company_logo_url ? (
+                        <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-brand-sand/60 dark:ring-neutral-800 bg-white">
+                          <img 
+                            src={resolveUrl(builder.company_logo_url)} 
+                            alt={`${displayName} logo`} 
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
+                      ) : (
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ring-4 ring-brand-sand/60 dark:ring-neutral-800 ${colorClass}`}>
+                          {initials}
+                        </div>
+                      )}
+
+                      {/* Name + rating */}
+                      <div className="flex flex-col gap-1.5 w-full">
+                        <h3 className="font-semibold text-base text-neutral-900 dark:text-white leading-tight truncate" title={displayName}>
+                          {displayName}
+                        </h3>
+                        <p className="text-[11px] text-neutral-500 dark:text-neutral-400 truncate">
+                          Owner: {fullName}
+                        </p>
+
+                        <div className="flex items-center justify-center gap-1">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                          <span className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                            {rating > 0 ? rating.toFixed(1) : '—'}
+                          </span>
+                          <span className="text-xs text-neutral-400">
+                            ({totalReviews})
+                          </span>
+                        </div>
+
+                        <span className="inline-flex items-center justify-center gap-1 text-[11px] font-semibold text-brand-forest dark:text-emerald-400">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Verified Builder
+                        </span>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="w-full border-t border-brand-sand dark:border-neutral-800" />
+
+                      {/* Stats */}
+                      <div className="flex flex-col gap-1.5 w-full text-xs text-neutral-500 dark:text-neutral-400">
+                        <span className="flex items-center justify-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-brand-terracotta shrink-0" />
+                          {propertiesCount} {propertiesCount === 1 ? 'Property' : 'Properties'} Listed
+                        </span>
+                      </div>
+
+                      {/* CTA */}
+                      <Link
+                        to={`/builders/${builder.id}`}
+                        className="w-full bg-brand-forest hover:bg-brand-forest/90 text-white text-sm font-semibold py-2.5 rounded-xl transition-all duration-300 text-center block"
+                      >
+                        View Profile
+                      </Link>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           )}
         </section>

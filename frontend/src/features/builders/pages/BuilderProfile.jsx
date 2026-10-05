@@ -138,39 +138,17 @@ export default function BuilderProfile() {
   const memberSince = builder.created_at ? new Date(builder.created_at).getFullYear() : null
 
   return (
-    <div className="min-h-screen bg-[#f7f7f8] dark:bg-neutral-950">
-
-      {/* ══════════════ BANNER ══════════════ */}
-      <div className="relative h-52 w-full overflow-hidden bg-gradient-to-br from-[#16241c] via-[#122019] to-[#25402f]">
-        {/* fine site-plan grid, replaces generic dot mesh */}
-        <svg className="absolute inset-0 h-full w-full opacity-[0.09]" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-              <path d="M0 0H28V28" fill="none" stroke="white" strokeWidth="0.75" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-        {/* soft warmth, kept subtle so the grid reads first */}
-        <div className="absolute -bottom-16 right-0 h-56 w-56 rounded-full bg-[#C9A227]/10 blur-3xl" />
-
-        {/* dimension rule along the bottom edge — a quiet nod to a site plan */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-white/10" />
-        <span className="absolute bottom-2 right-4 font-mono text-[10px] tracking-widest text-white/30">
-          BUILDER PROFILE
-        </span>
-
+    <div className="min-h-screen bg-[#f7f7f8] dark:bg-neutral-950 pt-24 pb-12">
+      {/* ══════════════ PROFILE CARD ══════════════ */}
+      <div className="relative mx-auto max-w-4xl px-4">
         <Link
           to="/"
-          className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 px-3 py-1.5 text-xs font-medium text-white/80 hover:bg-white/20 hover:text-white transition-colors"
+          className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-neutral-200/50 hover:bg-neutral-200 dark:bg-neutral-850 dark:hover:bg-neutral-800 px-3 py-1.5 text-xs font-medium text-neutral-700 dark:text-neutral-350 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </Link>
-      </div>
-
-      {/* ══════════════ PROFILE CARD ══════════════ */}
-      <div className="relative mx-auto max-w-4xl px-4">
-        <div className="relative -mt-16 rounded-2xl bg-white dark:bg-neutral-900 shadow-xl border border-neutral-100 dark:border-neutral-800 px-6 pt-6 pb-7">
+        
+        <div className="relative rounded-2xl bg-white dark:bg-neutral-900 shadow-xl border border-neutral-100 dark:border-neutral-800 px-6 pt-6 pb-7">
 
           <div className="flex flex-col sm:flex-row sm:items-start gap-5">
 
@@ -414,7 +392,7 @@ export default function BuilderProfile() {
   )
 }
 
-/* ─── tiny sub-components ─────────────────────────────────── */
+/* ─── tiny sub-components components ─────────────────────────────────── */
 function StatChip({ icon, label, href, target }) {
   const cls = 'inline-flex items-center gap-1.5 rounded-full bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 px-3 py-1 font-mono text-[11px] font-medium text-neutral-600 dark:text-neutral-400 hover:border-[#C9A227]/60 hover:text-[#a9821a] transition-colors'
   return href

@@ -13,7 +13,7 @@ exports.upsertContactInfo = asyncHandler(async (req, res) => {
         if (error) {
             throw new AppError(error.details[0].message, 400);
         }
-
+            
         const contact = await contactInfoService.upsertContactInfo(req.body, req.user.id);
         res.status(200).json({ success: true, data: contact });
 });

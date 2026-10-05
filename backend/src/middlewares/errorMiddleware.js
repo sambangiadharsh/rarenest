@@ -8,7 +8,7 @@ function normalizeError(err) {
     if (err.code === 'LIMIT_FILE_SIZE') {
         return new AppError('File too large', 400);
     }
-
+    
     if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
         return new AppError(err.message || 'Invalid upload', 400);
     }
@@ -42,3 +42,5 @@ const errorMiddleware = (err, req, res, next) => {
 };
 
 module.exports = errorMiddleware;
+
+

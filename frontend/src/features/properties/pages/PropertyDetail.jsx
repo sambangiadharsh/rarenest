@@ -16,12 +16,14 @@ import {
   ChevronRight,
   Bed,
   Bath,
+  Maximize2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import EnquiryModal from '@/features/enquiries/components/EnquiryModal'
 import { Button } from '@/shared/components/ui/button'
 import PageLoader from '@/shared/components/ui/PageLoader'
+import ImageLightboxModal from '@/shared/components/ui/ImageLightboxModal'
 
 import { useOpenPropertyChat } from '@/features/messaging'
 import { useCreateEnquiry } from '@/features/enquiries'
@@ -143,6 +145,7 @@ export default function PropertyDetail() {
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
   const [showAllFeaturesGrouped, setShowAllFeaturesGrouped] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   useEffect(() => {
     setActiveImage(0)
@@ -250,7 +253,8 @@ export default function PropertyDetail() {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="relative aspect-[16/9] overflow-hidden bg-neutral-100 dark:bg-neutral-800 cursor-grab active:cursor-grabbing select-none"
+          onClick={() => setIsLightboxOpen(true)}
+          className="relative aspect-[16/9] overflow-hidden bg-neutral-100 dark:bg-neutral-800 cursor-pointer select-none group"
         >
           {displayMedia.type === 'Video' ? (
             <video
@@ -262,12 +266,17 @@ export default function PropertyDetail() {
             <img
               src={displayMedia.src}
               alt={property.title}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           )}
 
           <span className="absolute left-4 top-4 rounded-full bg-brand-forest px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
             {state || 'India'}
+          </span>
+
+          <span className="absolute right-4 top-4 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white flex items-center gap-1.5 hover:bg-black/80 transition-colors pointer-events-none">
+            <Maximize2 className="h-3.5 w-3.5" />
+            <span>Click to View Gallery</span>
           </span>
 
           {/* Navigation Overlay Arrows */}
@@ -609,6 +618,15 @@ export default function PropertyDetail() {
         onClose={() => setEnquiryOpen(false)}
         propertyId={id}
         propertyTitle={property.title}
+      />
+
+      <ImageLightboxModal
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        mediaItems={mediaItems.length ? mediaItems : [{ type: 'Image', src: heroImage }]}
+        currentIndex={activeImage}
+        onIndexChange={setActiveImage}
+        title={property?.title || 'Property Gallery'}
       />
     </div>
   )

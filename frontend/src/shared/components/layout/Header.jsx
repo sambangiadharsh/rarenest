@@ -1,7 +1,8 @@
 import React from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { Home, Heart, Menu, X, PlusCircle } from 'lucide-react'
+import { Heart, Menu, X, PlusCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Button } from '@/shared/components/ui/button'
 import { logout } from '@/app/store/authSlice'
 import { useLogout } from '@/features/auth'
@@ -40,10 +41,12 @@ function NavIconButton({
     </Button>
   )
 }
+
 export default function Header() {
   const { isAuthenticated, user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { mutateAsync: logoutApi } = useLogout()
   const [isOpen, setIsOpen] = React.useState(false)
   const [guestListingOpen, setGuestListingOpen] = React.useState(false)
@@ -71,11 +74,29 @@ export default function Header() {
     navigate('/wishlist')
   }
 
-  const activeStyle = ({ isActive }) =>
-    `relative text-sm font-semibold tracking-wide transition-colors duration-300 ${isActive
-      ? 'text-brand-terracotta font-extrabold'
-      : 'text-brand-warm-white/80 hover:text-white'
-    }`
+  // Smooth scroll helper for hash-links
+  React.useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '')
+      const scrollTimer = setTimeout(() => {
+        const element = document.getElementById(id)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
+      return () => clearTimeout(scrollTimer)
+    }
+  }, [location])
+
+  const isLinkActive = (path, hash) => {
+    if (hash) {
+      return location.pathname === path && location.hash === `#${hash}`
+    }
+    if (path === '/') {
+      return location.pathname === '/' && (!location.hash || location.hash === '')
+    }
+    return location.pathname.startsWith(path) && !location.hash
+  }
 
   const isAdmin = user?.role?.toLowerCase() === 'admin'
 
@@ -87,6 +108,13 @@ export default function Header() {
     }
     navigate('/properties/create')
   }
+
+  const navItems = [
+    { label: 'Explore', path: '/', hash: '' },
+    { label: 'Builders', path: '/', hash: 'builders' },
+    { label: 'How it works', path: '/', hash: 'how-it-works' },
+    ...(!isAdmin ? [{ label: 'Listings', path: '/properties', hash: '' }] : []),
+  ]
 
   const navIcons = (
     <>
@@ -117,35 +145,42 @@ export default function Header() {
             </Link>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <NavLink to="/" className={activeStyle}>
-              Explore
-            </NavLink>
-            <a
-              href="/#builders"
-              className="text-sm font-semibold tracking-wide text-brand-warm-white/80 hover:text-white transition-colors"
-            >
-              Builders
-            </a>
-            <a
-              href="/#how-it-works"
-              className="text-sm font-semibold tracking-wide text-brand-warm-white/80 hover:text-white transition-colors"
-            >
-              How it works
-            </a>
-            {!isAdmin && (
-              <NavLink to="/properties" className={activeStyle}>
-                Catalog
-              </NavLink>
-            )}
-            {isAuthenticated && isAdmin && (
-              <a
-                href={getAdminLoginUrl()}
-                className="text-sm font-semibold tracking-wide text-brand-warm-white/80 hover:text-white transition-colors"
-              >
-                Admin Portal
-              </a>
-            )}
+          {/* Capsule Pill Header Navigation Bar applied strictly to Explore, Builders, How it works, Listings */}
+          <nav className="hidden md:flex items-center ml-auto mr-6">
+            <div className="flex items-center gap-1 rounded-full bg-white/10 p-1.5 backdrop-blur-md border border-white/15 shadow-inner">
+              {navItems.map((item) => {
+                const active = isLinkActive(item.path, item.hash)
+                const targetUrl = item.hash ? `${item.path}#${item.hash}` : item.path
+
+                return (
+                  <Link
+                    key={item.label}
+                    to={targetUrl}
+                    className={`relative rounded-full px-5 py-2 text-sm font-semibold transition-colors duration-200 select-none ${
+                      active ? 'text-brand-forest font-bold' : 'text-brand-warm-white/80 hover:text-white'
+                    }`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="activeHeaderPill"
+                        className="absolute inset-0 bg-brand-cream rounded-full shadow-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{item.label}</span>
+                  </Link>
+                )
+              })}
+
+              {isAuthenticated && isAdmin && (
+                <a
+                  href={getAdminLoginUrl()}
+                  className="relative rounded-full px-4 py-2 text-sm font-semibold text-brand-warm-white/80 hover:text-white transition-colors"
+                >
+                  <span className="relative z-10">Admin Portal</span>
+                </a>
+              )}
+            </div>
           </nav>
 
           <div className="hidden md:flex items-center gap-2">
@@ -154,7 +189,7 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleListProperty()}
-                className="gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold transition-all duration-300"
+                className="gap-1.5 border-brand-terracotta/40 text-brand-terracotta hover:bg-brand-terracotta hover:text-white font-semibold transition-all duration-300 rounded-full px-4"
               >
                 <PlusCircle className="h-4 w-4" />
                 List a Property
@@ -208,42 +243,33 @@ export default function Header() {
 
         {isOpen && (
           <div className="md:hidden border-b border-brand-forest-mid/50 bg-brand-forest/98 px-4 pt-2 pb-6 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-top-5 duration-200">
-            <div className="flex flex-col gap-3">
-              <Link
-                to="/"
-                onClick={closeMobile}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
-              >
-                <Home className="h-4 w-4 text-brand-terracotta" /> Explore
-              </Link>
-              <a
-                href="/#builders"
-                onClick={closeMobile}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
-              >
-                Builders
-              </a>
-              <a
-                href="/#how-it-works"
-                onClick={closeMobile}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
-              >
-                How it works
-              </a>
-              {!isAdmin && (
-                <Link
-                  to="/properties"
-                  onClick={closeMobile}
-                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
-                >
-                  Catalog
-                </Link>
-              )}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 bg-white/5 p-2 rounded-2xl border border-white/10">
+                {navItems.map((item) => {
+                  const active = isLinkActive(item.path, item.hash)
+                  const targetUrl = item.hash ? `${item.path}#${item.hash}` : item.path
+                  return (
+                    <Link
+                      key={item.label}
+                      to={targetUrl}
+                      onClick={closeMobile}
+                      className={`flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+                        active
+                          ? 'bg-brand-cream text-brand-forest shadow-sm font-bold'
+                          : 'text-brand-warm-white/90 hover:bg-white/10'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+
               {isAuthenticated && isAdmin && (
                 <a
                   href={getAdminLoginUrl()}
                   onClick={closeMobile}
-                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors"
+                  className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-brand-warm-white/95 hover:bg-brand-forest-mid/55 transition-colors font-bold"
                 >
                   Admin Portal
                 </a>

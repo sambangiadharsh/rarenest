@@ -24,6 +24,8 @@ class UserRepository {
             .query('SELECT id, email, role, first_name, last_name FROM Users WHERE id = @id');
         return result.recordset[0];
     }
+    
+
 
     async findRoleById(id) {
         const pool = await poolPromise;

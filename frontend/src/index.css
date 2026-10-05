@@ -12,8 +12,9 @@
     --font-sans: 'Outfit', 'Geist Variable', sans-serif;
     
     /* Live site colors */
-    --color-brand-forest: #324A3E;
+    --color-brand-forest: #234236;
     --color-brand-forest-mid: #2d5a3d;
+    
     --color-brand-sage: #6b8f71;
     --color-brand-terracotta: #c16a3c;
     --color-brand-terracotta-light: #e8956a;
@@ -227,6 +228,16 @@
  50% {
   transform: scaleY(1.8);
  }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 

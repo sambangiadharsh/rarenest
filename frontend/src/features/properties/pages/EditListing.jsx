@@ -55,19 +55,19 @@ import * as draftService from '../services/propertyDraftService'
 const editSchema = z.object({
   title: z.string().min(2).max(255),
   property_type_id: z.string().uuid('Select a property type'),
-  asking_price: z.preprocess((v) => Number(v), z.number().positive()),
-  size_sqft: z.preprocess((v) => Number(v), z.number().positive()),
+  asking_price: z.preprocess((v) => Number(v), z.number().positive().max(99999999999999)),
+  size_sqft: z.preprocess((v) => Number(v), z.number().positive().max(99999999)),
   city: z.string().max(100).optional().or(z.literal('')),
   state: z.string().min(1, 'State is required').max(100),
   district: z.string().min(1, 'District is required').max(100),
   area: z.string().min(2).max(100),
   pincode: z.string().min(6).max(10),
-  contact_email: z.string().email(),
+  contact_email: z.string().email().max(255),
   contact_phone: z.string().min(8).max(20),
-  property_story: z.string().min(10),
+  property_story: z.string().min(10).max(10000),
   property_age: z.preprocess((v) => Number(v), z.number().int().min(0).max(200)),
-  beds: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
-  baths: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().nullable().optional()),
+  beds: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().max(100).nullable().optional()),
+  baths: z.preprocess((v) => (v === '' || v === undefined || v === null ? null : Number(v)), z.number().int().nonnegative().max(100).nullable().optional()),
   special_features: z.array(z.string()).optional(),
   selectedFeatureIds: z.array(z.string()).min(1, 'Please select at least one feature'),
   images: z.number().min(1, 'Please upload at least one property image.'),
@@ -603,6 +603,7 @@ export default function EditListing() {
                         {...register('title')}
                         placeholder="e.g. Himalayan Earthship Retreat"
                         error={errors.title}
+                        maxLength={255}
                       />
                       <FieldError message={errors.title?.message} />
                     </div>
@@ -633,6 +634,8 @@ export default function EditListing() {
                           {...register('asking_price')}
                           placeholder="e.g. 4500000"
                           error={errors.asking_price}
+                          min={0}
+                          max={99999999999999}
                         />
                         <FieldError message={errors.asking_price?.message} />
                       </div>
@@ -646,6 +649,8 @@ export default function EditListing() {
                           {...register('size_sqft')}
                           placeholder="e.g. 1200"
                           error={errors.size_sqft}
+                          min={0}
+                          max={99999999}
                         />
                         <FieldError message={errors.size_sqft?.message} />
                       </div>
@@ -781,12 +786,12 @@ export default function EditListing() {
                       <div className="grid sm:grid-cols-2 gap-3">
                         <div className="flex flex-col gap-2">
                           <FieldLabel required>Area</FieldLabel>
-                          <FieldInput type="text" {...register('area')} placeholder="e.g. Tapovan" error={errors.area} />
+                          <FieldInput type="text" {...register('area')} placeholder="e.g. Tapovan" error={errors.area} maxLength={100} />
                           <FieldError message={errors.area?.message} />
                         </div>
                         <div className="flex flex-col gap-2">
                           <FieldLabel required>Pincode</FieldLabel>
-                          <FieldInput type="text" {...register('pincode')} placeholder="e.g. 249192" error={errors.pincode} />
+                          <FieldInput type="text" {...register('pincode')} placeholder="e.g. 249192" error={errors.pincode} maxLength={10} />
                           <FieldError message={errors.pincode?.message} />
                         </div>
                       </div>
@@ -800,12 +805,12 @@ export default function EditListing() {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
                         <FieldLabel icon={Mail} required>Contact Email</FieldLabel>
-                        <FieldInput type="email" {...register('contact_email')} placeholder="seller@example.com" error={errors.contact_email} />
+                        <FieldInput type="email" {...register('contact_email')} placeholder="seller@example.com" error={errors.contact_email} maxLength={255} />
                         <FieldError message={errors.contact_email?.message} />
                       </div>
                       <div className="flex flex-col gap-2">
                         <FieldLabel icon={Phone} required>Contact Phone</FieldLabel>
-                        <FieldInput type="tel" {...register('contact_phone')} placeholder="+91 98765 43210" error={errors.contact_phone} />
+                        <FieldInput type="tel" {...register('contact_phone')} placeholder="+91 98765 43210" error={errors.contact_phone} maxLength={20} />
                         <FieldError message={errors.contact_phone?.message} />
                       </div>
                     </div>
@@ -816,6 +821,7 @@ export default function EditListing() {
                         {...register('property_story')}
                         rows={6}
                         placeholder="Describe what makes this property truly rare — the land, the build, the lifestyle it offers…"
+                        maxLength={10000}
                         className={`w-full rounded-xl bg-neutral-50/50 dark:bg-neutral-950 px-4 py-3 text-sm border outline-none transition-all placeholder:text-neutral-400 font-sans resize-y leading-relaxed ${
                           errors.property_story
                             ? 'border-destructive ring-1 ring-destructive'

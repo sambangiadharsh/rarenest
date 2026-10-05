@@ -1,5 +1,6 @@
 const express = require('express');
-const router = express.Router();
+//create the mini app instance for this authrouter instead of maintaining everything  in single app.js file
+const router = express.Router();        
 const { register, login, logout, changePassword, forgotPassword, resetPassword, googleLogin } = require('../controllers/authController');
 const { protect } = require('../middlewares/authMiddleware');
 
